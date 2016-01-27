@@ -8,5 +8,8 @@
 ## Official Project Page
 https://meta.wikimedia.org/wiki/Grants:IEG/StrepHit:_Wikidata_Statements_Validation_via_References
 
+## Documentation
+https://www.mediawiki.org/wiki/StrepHit
+
 ## License
 The source code is under the terms of the [GNU General Public License, version 3](http://www.gnu.org/licenses/gpl.html).
