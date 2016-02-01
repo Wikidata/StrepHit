@@ -14,3 +14,4 @@ class WebSourcesCorpusItem(Item):
     death = Field()
     bio = Field()
     url = Field()
+    other = Field()
