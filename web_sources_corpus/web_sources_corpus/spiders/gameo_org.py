@@ -54,7 +54,7 @@ class GameoOrgSpider(scrapy.Spider):
         elif 'century' in info:
             birth, death = None, None
         else:
-            birth, death = re.findall(r'(\d+)-(\d+)', info)[0]
+            birth, death = re.findall(r'(\d+)-(\d*)', info.replace(' ', ''))[0]
         return name.strip(), birth, death
 
     def extract_bio(self, sel):
