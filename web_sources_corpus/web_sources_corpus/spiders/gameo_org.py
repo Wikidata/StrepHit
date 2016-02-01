@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import scrapy
-import json
 import re
 from scrapy import Request
 from web_sources_corpus import utils

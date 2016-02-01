@@ -1,7 +1,7 @@
 import re
 
 
-def clean_extract(sel, path, limit_from=None, limit_to=None, sep='\n'):
+def clean_extract(sel, path='.//text()', limit_from=None, limit_to=None, sep='\n'):
     return clean(sep.join(x.strip()
         for x in sel.xpath(path).extract()[limit_from:limit_to]))
 
