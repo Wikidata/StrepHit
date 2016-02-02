@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import scrapy
-import json
 import re
 from scrapy import Request
 from web_sources_corpus import utils
@@ -54,7 +53,7 @@ class GameoOrgSpider(scrapy.Spider):
         elif 'century' in info:
             birth, death = None, None
         else:
-            birth, death = re.findall(r'(\d+)-(\d+)', info)[0]
+            birth, death = re.findall(r'(\d+)-(\d*)', info.replace(' ', ''))[0]
         return name.strip(), birth, death
 
     def extract_bio(self, sel):
