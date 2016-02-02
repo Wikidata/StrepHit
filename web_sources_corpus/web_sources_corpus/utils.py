@@ -1,9 +1,15 @@
 import re
 
 
-def clean_extract(sel, path, limit_from=None, limit_to=None, sep='\n'):
-    return clean(sep.join(x.strip()
-        for x in sel.xpath(path).extract()[limit_from:limit_to]))
+def clean_extract(sel, path, path_type='xpath', limit_from=None, limit_to=None, sep='\n'):
+    if path_type == 'xpath':
+        return clean(sep.join(x.strip()
+            for x in sel.xpath(path).extract()[limit_from:limit_to]))
+    elif path_type == 'css':
+        return clean(sep.join(x.strip()
+            for x in sel.css(path).extract()[limit_from:limit_to]))
+    else:
+        return None
 
 
 def clean(s):
