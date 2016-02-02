@@ -17,7 +17,7 @@ class GameoOrgSpider(BaseSpider):
 
     list_page_selectors = None
     detail_page_selectors = 'xpath:.//table[@class="mw-allpages-table-chunk"]//a/@href'
-    next_page_selectors = 'xpath:.//td[@class="mw-allpages-nav"]/a[3]'
+    next_page_selectors = 'xpath:.//td[@class="mw-allpages-nav"]/a[3]/@href'
 
     item_class = WebSourcesCorpusItem
     item_fields = {
