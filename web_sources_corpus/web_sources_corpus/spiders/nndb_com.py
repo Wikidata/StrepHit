@@ -14,7 +14,7 @@ class NndbComSpider(BaseSpider):
     )
 
     list_page_selectors = 'xpath:.//a[@class="newslink"]/@href'
-    detail_page_selector = 'xpath:.//a[contains(@href, "http://www.nndb.com/people/")]/@href'
+    detail_page_selectors = 'xpath:.//a[contains(@href, "http://www.nndb.com/people/")]/@href'
 
     item_class = WebSourcesCorpusItem
     item_fields = {
