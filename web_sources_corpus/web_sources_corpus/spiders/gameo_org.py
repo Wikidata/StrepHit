@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import re
-from scrapy import log
+import logging
 from web_sources_corpus import utils
 from web_sources_corpus.items import WebSourcesCorpusItem
 from web_sources_corpus.spiders.BaseSpider import BaseSpider
@@ -30,7 +30,7 @@ class GameoOrgSpider(BaseSpider):
             name, birth, death = self.parse_title(title)
         except (IndexError, ValueError):
             # not a person (could be a place or whatever else)
-            self.log('Not a person at ' + response.url, level=log.DEBUG)
+            logging.debug('Not a person at ' + response.url)
             return None
         else:
             item['name'] = name
