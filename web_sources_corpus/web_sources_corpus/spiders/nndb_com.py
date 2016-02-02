@@ -1,28 +1,27 @@
 # -*- coding: utf-8 -*-
 import scrapy
 import json
-from scrapy import Request
 from web_sources_corpus import utils
+from web_sources_corpus.spiders.BaseSpider import BaseSpider
 from web_sources_corpus.items import WebSourcesCorpusItem
 
 
-class NndbComSpider(scrapy.Spider):
+class NndbComSpider(BaseSpider):
     name = "nndb_com"
+    allowed_domains = ['www.nndb.com']
     start_urls = (
         'http://www.nndb.com/',
     )
 
-    def parse(self, response):
-        for url in response.css('.newslink').xpath('@href').extract():
-            yield Request(url, self.parse_letter)
+    list_page_selectors = 'xpath:.//a[@class="newslink"]/@href'
+    detail_page_selectors = 'xpath:.//a[contains(@href, "http://www.nndb.com/people/")]/@href'
 
-    def parse_letter(self, response):
-        for url in response.xpath(
-                './/a[contains(@href, "http://www.nndb.com/people/")]/@href'
-        ).extract():
-            yield Request(url, self.parse_person)
+    item_class = WebSourcesCorpusItem
+    item_fields = {
+        'name': 'clean:xpath:.//table//td[1]//table//tr[3]//table//td//b1/text()'
+    }
 
-    def parse_person(self, response):
+    def refine_item(self, response, item):
         base = './/table//td[1]//table//tr[3]//table//td'
 
         data = {}
@@ -36,12 +35,8 @@ class NndbComSpider(scrapy.Spider):
                 if field is not None:
                     data[field.lower().strip().replace(':', '')] = ' '.join(values).strip()
 
-        return WebSourcesCorpusItem(
-            name=response.xpath(base + '//b[1]/text()').extract()[0],
-            url=response.url,
-            birth=data.get('born'),
-            death=data.get('died'),
-            other=json.dumps(data)
-        )
+        item['birth'] = data.get('born')
+        item['death'] = data.get('died')
+        item['other'] = json.dumps(data)
 
-
+        return item
