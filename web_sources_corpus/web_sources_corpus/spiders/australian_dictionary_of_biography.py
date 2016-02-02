@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
+import re
+from lxml.html import fromstring
 from scrapy import Request, Spider
 from web_sources_corpus.items import WebSourcesCorpusItem
 
@@ -19,7 +21,7 @@ class AustralianDictionaryOfBiographySpider(Spider):
             yield Request(url, self.parse_person)
         
         # Pagination handling: look for anchors with text = 'next'
-        next_page = response.xpath("//a[.='next']")
+        next_page = response.xpath("//a[.='next']/@href")
         if next_page:
             # There should be 2 equal nodes (top + bottom of the page), so take the first
             url = response.urljoin(next_page.extract_first())
@@ -29,7 +31,11 @@ class AustralianDictionaryOfBiographySpider(Spider):
     def parse_person(self, response):
         item = WebSourcesCorpusItem()
         item['url'] = response.url
-        item['name'] = response.css('h2::text').extract_first()
-        item['bio'] = response.css('div.biographyContent').extract()
+        name_and_dates = response.css('h2::text').extract_first()
+        dates = re.search(r'\((\d{4})[^\d](\d{4})\)', name_and_dates, re.UNICODE)
+        item['name'] = re.search(r'[^\d]+', name_and_dates, re.UNICODE).group().strip(' (')
+        if dates:
+            item['birth'] = dates.group(1)
+            item['death'] = dates.group(2)
+        item['bio'] = fromstring(response.css('div.biographyContent').extract_first()).text_content().strip()
         yield item
-        
