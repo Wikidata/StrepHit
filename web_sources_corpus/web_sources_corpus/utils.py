@@ -65,9 +65,9 @@ def parse_birth_death(string):
         century = int(string[0:2])
         birth, death = '%d01' % (century - 1), '%d00' % century
     else:
-        match = re.findall(r'(ca?\.)?(\d+)-(ca?\.)?(\d*)', string)
+        match = re.search(r'(ca?\.)?(?P<birth>\d+)-(ca?\.)?(?P<death>\d*)', string)
         birth = death = None
         if match:
-            birth = match[0][1] or None
-            death = match[0][3] or None
+            birth = match.group('birth') or None
+            death = match.group('death') or None
     return birth, death
