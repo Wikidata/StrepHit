@@ -3,7 +3,7 @@
 
 import logging
 
-from web_sources_corpus import utils
+from web_sources_corpus.utils import clean_extract
 from web_sources_corpus.items import WebSourcesCorpusItem
 from web_sources_corpus.spiders.BaseSpider import BaseSpider
 
@@ -28,7 +28,7 @@ class RKDArtistsSpider(BaseSpider):
         """ Feed the item with key-value pairs extracted from <dl> tags """
         for pair in dl_pairs:
             key = pair.xpath('./dt/text()').extract_first().replace(' ', '_').lower()
-            value = utils.clean_extract(pair, './dd//text()')
+            value = clean_extract(pair, './dd//text()')
             if key or value:
                 item['other'][key] = value
             else:
@@ -40,7 +40,7 @@ class RKDArtistsSpider(BaseSpider):
         item['other'] = {}
         name = item['name']
         # Alias
-        alias = response.xpath('.//div[@class="expandable-header"][contains(., "Name variations")]/following-sibling::div[@class="expandable-content"]//dd/text()')
+        alias = clean_extract(response, './/div[@class="expandable-header"][contains(., "Name variations")]/following-sibling::div[@class="expandable-content"]//dd/text()')
         if alias:
             item['other']['alias'] = alias
         else:
