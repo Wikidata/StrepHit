@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-import re
 import logging
 from web_sources_corpus import utils
 from web_sources_corpus.items import WebSourcesCorpusItem
@@ -41,12 +40,5 @@ class GameoOrgSpider(BaseSpider):
 
     def parse_title(self, title):
         name, info = title.split('(')
-        if info.startswith('d.'):
-            birth, death = None, re.findall(r'\d+', info)[0]
-        elif info.startswith('b.'):
-            birth, death = re.findall(r'\d+', info)[0], None
-        elif 'century' in info:
-            birth, death = None, None
-        else:
-            birth, death = re.findall(r'(\d+)-(\d*)', info.replace(' ', ''))[0]
+        birth, death = utils.parse_birth_death(info)
         return name.strip(), birth, death

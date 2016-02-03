@@ -36,3 +36,38 @@ def split_at(content, delimiters):
                 break
     if last < len(content):
         yield None, content[last:]
+
+
+def parse_birth_death(string):
+    """
+    Parses birth and death dates from a string.
+    :param string: String with the dates. Can be 'd. <year>' to indicate the
+    year of death, 'b. <year>' to indicate the year of birth, <year>-<year>
+    to indicate both birth and death year. Can optionally include 'c.' or 'ca.'
+    before years to indicate approximation (ignored by the return value).
+    If only the century is specified, birth is the first year of the century and
+    death is the last one, e.g. '19th century' will be parsed as `('1801', '1900')`
+    :return: tuple `(birth_year, death_year)`, both strings as appearing in the
+    original string. If the string cannot be parsed `(None, None)` is returned.
+    """
+
+    string = string.lower().replace(' ', '')
+    if type(string) == unicode:
+        # \u2013 is another fancy unicode character ('EN DASH') for '-'
+        string = string.replace(u'\u2013', '-')
+
+    if string.startswith('d.'):
+        birth, death = None, re.findall(r'(ca?\.)?\d+', string)[0]
+    elif string.startswith('b.'):
+        birth, death = re.findall(r'(ca?\.)?\d+', string)[0], None
+    elif 'century' in string:
+        century = int(string[0:2])
+        birth, death = '%d01' % (century - 1), '%d00' % century
+    else:
+        match = re.findall(r'(ca?\.)?(\d+)-(ca?\.)?(\d*)', string)
+        birth = death = None
+        if match:
+            _, birth, _, death = match[0]
+            birth = birth or None
+            death = death or None
+    return birth, death
