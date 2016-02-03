@@ -76,7 +76,7 @@ class BaseSpider(scrapy.Spider):
             yield Request(self.make_url_absolute(response.url, url), self.parse_detail)
 
         if self.next_page_selectors:
-            _next = self.get_elements_from_selector(response.url, self.next_page_selectors)
+            _next = self.get_elements_from_selector(response, self.next_page_selectors)
             if _next:
                 yield Request(self.make_url_absolute(response.url, _next[0]), self.parse_list)
 
