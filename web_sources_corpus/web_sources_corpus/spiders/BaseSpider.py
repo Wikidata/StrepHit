@@ -5,6 +5,7 @@ import urlparse
 import re
 import json
 from scrapy import Request
+from web_sources_corpus import utils
 
 
 class BaseSpider(scrapy.Spider):
@@ -66,18 +67,18 @@ class BaseSpider(scrapy.Spider):
                 save = {'next_pages': None}
 
             for url in self.get_elements_from_selector(response, selector):
-                yield Request(self.make_url_absolute(response, url), self.parse, meta=save)
+                yield Request(self.make_url_absolute(response.url, url), self.parse, meta=save)
 
     def parse_list(self, response):
         """ Second stage of the spider implementing pagination
         """
         for url in self.get_elements_from_selector(response, self.detail_page_selectors):
-            yield Request(self.make_url_absolute(response, url), self.parse_detail)
+            yield Request(self.make_url_absolute(response.url, url), self.parse_detail)
 
         if self.next_page_selectors:
-            _next = self.get_elements_from_selector(response, self.next_page_selectors)
+            _next = self.get_elements_from_selector(response.url, self.next_page_selectors)
             if _next:
-                yield Request(self.make_url_absolute(response, _next[0]), self.parse_list)
+                yield Request(self.make_url_absolute(response.url, _next[0]), self.parse_list)
 
     def parse_detail(self, response):
         """ Third stage of the spider, parses the detail page to produce an item
@@ -123,14 +124,14 @@ class BaseSpider(scrapy.Spider):
                 else:
                     return getattr(self, method)(response)
 
-    def make_url_absolute(self, response, url):
+    def make_url_absolute(self, page_url, url):
         splitted = urlparse.urlsplit(url)
         if splitted.netloc:  # already absolute
             return url
         else:
-            return urlparse.urljoin(response.url, url)
+            return urlparse.urljoin(page_url, url)
 
-    def clean(self, response, strings):
+    def clean(self, response, strings, unicode=True):
         """ Utility function to clean strings. Can be used within your selectors
         """
-        return re.subn(r'(\s){2,}', '\g<1>', ' '.join(strings), re.UNICODE)[0].strip()
+        return utils.clean(' '.join(strings), unicode)

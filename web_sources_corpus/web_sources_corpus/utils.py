@@ -12,8 +12,9 @@ def clean_extract(sel, path, path_type='xpath', limit_from=None, limit_to=None, 
         return None
 
 
-def clean(s):
-    return re.subn(r'(\s){2,}', '\g<1>', s, re.UNICODE)[0].strip()
+def clean(s, unicode=True):
+    flags = re.UNICODE if unicode else 0
+    return re.subn(r'(\s){2,}', '\g<1>', s, flags)[0].strip()
 
 
 def split_at(content, delimiters):
