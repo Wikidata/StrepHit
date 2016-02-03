@@ -27,21 +27,44 @@ class GenealogicsSpider(Spider):
         if next_page:
             url = response.urljoin(next_page)
             yield Request(url, self.parse)
+        else:
+            logging.debug("No next page link found: %s" % next_page)
     
     
     def parse_person(self, response):
         item = WebSourcesCorpusItem()
         item['url'] = response.url
-        item['name'] = clean_extract(response, 'h1#nameheader::text', path_type='css')
+        name = clean_extract(response, "//h1[contains(@class, 'header')]//text()")
+        if name:
+            item['name'] = name
+        else:
+            logging.debug("No name found for item with URL '%s'" % item['url'])
         bio_nodes = response.xpath("//li[contains(., 'BIOGRAPHY')]").extract()
         if bio_nodes:
             item['bio'] = fromstring('\n'.join(bio_nodes)).text_content().strip()
         else:
             logging.debug("No raw text biography found for %s" % item['name'])
-        item = {}
         item['other'] = {}
-        for key_node in response.css('li#info td.fieldnameback'):
-            key = key_node.xpath('.//text()').extract_first()
-            # Take the first sibling of the key node as the value
-            value = key_node.xpath('./following-sibling::td[1]').xpath('.//text()').extract_first()
-            item['other'][key] = value
+        keys = response.css('li#info td.fieldnameback')
+        if keys:
+            for key_node in keys:
+                key_text = key_node.xpath('.//text()').extract_first()
+                # Take the first sibling of the key node as the value
+                value = key_node.xpath('./following-sibling::td[1]')
+                if value:
+                    people_links = value.xpath(".//a[contains(@href, 'getperson')]")
+                    if people_links:
+                        logging.debug("Values with links found for key '%s'" % key_text)
+                        item['other'][key_text] = []
+                        for person in people_links:
+                            name = person.xpath('.//text()').extract_first()
+                            link = person.xpath('@href').extract_first()
+                            item['other'][key_text].append({name: response.urljoin(link)})
+                    else:
+                        literal_value = clean_extract(value, './/text()')
+                        item['other'][key_text] = literal_value
+                else:
+                    logging.debug("No value found for key '%s'" % key_text)
+        else:
+            logging.debug("No semi-structured data found for '%s'" % item['name'])
+        yield item
