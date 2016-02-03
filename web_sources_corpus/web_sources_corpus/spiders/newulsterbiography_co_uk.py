@@ -27,14 +27,10 @@ class NewulsterbiographyCoUkSpider(BaseSpider):
 
     def get_bio(self, response, values):
         bio = utils.clean('\n'.join(reversed(values)))
-
         if not bio:
-            bio = utils.clean_extract(
-                response,
+            bio = utils.clean(' '.join(reversed(response.xpath(
                 './/div[@id="person_details"]/div/br[1]/preceding-sibling::text()'
-            )
-
-        assert bio
+            ).extract())))
         return bio
 
     def get_name(self, response, values):
