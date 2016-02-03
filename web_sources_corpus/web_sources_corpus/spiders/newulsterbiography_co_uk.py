@@ -38,4 +38,6 @@ class NewulsterbiographyCoUkSpider(BaseSpider):
         return bio
 
     def get_name(self, response, values):
+        if not values:
+            values = response.xpath('//h1[@class="person_heading"]/text()').extract()
         return values[0].split('(')[0].strip()
