@@ -37,7 +37,7 @@ class GenealogicsSpider(Spider):
         if bio_nodes:
             item['bio'] = fromstring('\n'.join(bio_nodes)).text_content().strip()
         else:
-            logging.debug("No raw text biography found for %s", % item['name'])
+            logging.debug("No raw text biography found for %s" % item['name'])
         item = {}
         item['other'] = {}
         for key_node in response.css('li#info td.fieldnameback'):
