@@ -57,9 +57,9 @@ def parse_birth_death(string):
         string = string.replace(u'\u2013', '-')
 
     if string.startswith('d.'):
-        birth, death = None, re.findall(r'(ca?\.)?\d+', string)[0]
+        birth, death = None, re.findall(r'(ca?\.)?(\d+)', string)[0][1]
     elif string.startswith('b.'):
-        birth, death = re.findall(r'(ca?\.)?\d+', string)[0], None
+        birth, death = re.findall(r'(ca?\.)?(\d+)', string)[0][1], None
     elif 'century' in string:
         century = int(string[0:2])
         birth, death = '%d01' % (century - 1), '%d00' % century
@@ -67,7 +67,6 @@ def parse_birth_death(string):
         match = re.findall(r'(ca?\.)?(\d+)-(ca?\.)?(\d*)', string)
         birth = death = None
         if match:
-            _, birth, _, death = match[0]
-            birth = birth or None
-            death = death or None
+            birth = match[0][1] or None
+            death = match[0][3] or None
     return birth, death
