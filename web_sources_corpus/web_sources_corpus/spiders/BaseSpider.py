@@ -3,6 +3,7 @@
 import scrapy
 import urlparse
 import re
+import json
 from scrapy import Request
 
 
@@ -33,7 +34,8 @@ class BaseSpider(scrapy.Spider):
     The spider provides a simple method to parse items. Item class is specified in
     `item_class` (must inherit from `scrapy.Item`) and item fields are specified
     in the dict `item_fields`, whose keys are field names and values are selectors
-    following the syntax described above.
+    following the syntax described above. They can also be lists or dicts arbitrarily
+    nested eventually containing selectors.
 
     Each item can be processed and refined by the method `refine_item`.
     """
@@ -80,15 +82,27 @@ class BaseSpider(scrapy.Spider):
     def parse_detail(self, response):
         """ Third stage of the spider, parses the detail page to produce an item
         """
-        item = self.item_class(url=response.url)
-        for k, v in self.item_fields.iteritems():
-            item[k] = self.get_elements_from_selector(response, v)
+
+        def make_dict(fields, result=None):
+            res = result or {}
+            for k, v in fields.iteritems():
+                if type(v) == dict:
+                    res[k] = make_dict(v)
+                elif type(v) == list:
+                    res[k] = map(make_dict, v)
+                else:
+                    res[k] = self.get_elements_from_selector(response, v)
+            return res
+
+        item = make_dict(self.item_fields, self.item_class(url=response.url))
         yield self.refine_item(response, item)
 
     def refine_item(self, response, item):
         """ Applies any custom post-processing to the item, override if needed.
         Return None to discard the item
         """
+        if item.get('other') is not None:
+            item['other'] = json.dumps(item['other'])
         return item
 
     def get_elements_from_selector(self, response, selector):
