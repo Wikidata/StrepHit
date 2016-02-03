@@ -29,12 +29,13 @@ class MunksrollSpider(BaseSpider):
                                           './/div[@id="maincontent"]/p[1]/em'
                                           ).split('<br>')[0]
 
-        birth, death = re.subn(r'<[^>]+>', '', birth_death)[0].split('d.')
+        birth_death = re.subn(r'<[^>]+>', '', birth_death)[0].split('d.')
+        if len(birth_death) == 2:
+            birth, death = birth_death
+            birth = birth[len('b.'):].strip()
+            death = death.strip()
 
-        birth = birth[len('b.'):].strip()
-        death = death.strip()
-
-        item['birth'] = birth if birth != '?' else None
-        item['death'] = death if death != '?' else None
+            item['birth'] = birth if birth != '?' else None
+            item['death'] = death if death != '?' else None
 
         return super(MunksrollSpider, self).refine_item(response, item)
