@@ -44,4 +44,7 @@ class StructuraeNetSpider(BaseSpider):
 
         item['other']['biography'] = data
 
+        item['birth'] = data.get('Born in')
+        item['death'] = data.get('Deceased in', data.get('Deceased on'))
+
         return super(StructuraeNetSpider, self).refine_item(response, item)
