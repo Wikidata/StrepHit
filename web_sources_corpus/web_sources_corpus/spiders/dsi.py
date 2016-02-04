@@ -33,4 +33,4 @@ class DsiSpider(BaseSpider):
         item['name'] = '%s, %s' % (data.get('Last Name', ''), data.get('Given Name'))
         item['other'] = data
 
-        return item
+        return super(DsiSpider, self).refine_item(response, item)
