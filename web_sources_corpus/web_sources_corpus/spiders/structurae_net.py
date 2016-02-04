@@ -8,10 +8,10 @@ class StructuraeNetSpider(BaseSpider):
     name = "structurae_net"
     allowed_domains = ["structurae.net"]
     start_urls = (
-        'http://structurae.net/persons/search/?name=&lastname=&year=0-9999&countryid=0&min=0',
+        'http://structurae.net/persons/',
     )
 
-    list_page_selectors = None
+    list_page_selectors = 'xpath:.//ol[@class="commalist"]//a/@href'
     detail_page_selectors = 'xpath:.//ol[@class="searchlist"]//a/@href'
     next_page_selectors = 'xpath:(.//div[@class="nextPageNav"])[1]//a[1]/@href'
 
