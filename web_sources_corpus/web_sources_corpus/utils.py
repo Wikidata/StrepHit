@@ -1,13 +1,16 @@
 import re
 
 
-def clean_extract(sel, path, path_type='xpath', limit_from=None, limit_to=None, sep='\n'):
+def clean_extract(sel, path, path_type='xpath', limit_from=None, limit_to=None, sep='\n',
+                  unicode=True):
     if path_type == 'xpath':
         return clean(sep.join(x.strip()
-            for x in sel.xpath(path).extract()[limit_from:limit_to]))
+            for x in sel.xpath(path).extract()[limit_from:limit_to]),
+            unicode=unicode)
     elif path_type == 'css':
         return clean(sep.join(x.strip()
-            for x in sel.css(path).extract()[limit_from:limit_to]))
+            for x in sel.css(path).extract()[limit_from:limit_to]),
+            unicode=unicode)
     else:
         return None
 
@@ -22,10 +25,6 @@ def split_at(content, delimiters):
 
     >>> [x for x in split_at(range(11), range(3,10,3))]
     [(None, [1, 2]), (3, [4, 5]), (6, [7, 8]), (None, [9, 10])]
-
-    :param content:
-    :param delimiters:
-    :return:
     """
     found = last = 0
     for i, x in enumerate(content):
@@ -71,3 +70,34 @@ def parse_birth_death(string):
             birth = match.group('birth') or None
             death = match.group('death') or None
     return birth, death
+
+
+def extract_dict(response, keys_selector, values_selector, **kwargs):
+    """ Extracts a dictionary given the selectors for the keys and the vaues.
+    The selectors should point to the elements containing the text and not the
+    text itself.
+
+    :param response: The response object. The methods xpath or css are used
+    :param keys_selector: Selector pointing to the elements containing the keys,
+                          starting with the type `xpath:` or `css:` followed by
+                          the selector itself
+    :param values_selector: Selector pointing to the elements containing the values,
+                            starting with the type `xpath:` or `css:` followed
+                            by the selector itself
+    :param **kwargs: Other parameters to pass to `clean_extract`. Nothing good will
+                     come by passing `path_type='css'`, you have been warned.
+    """
+    def get(selector):
+        type, sel = selector.split(':', 1)
+        if type == 'css':
+            return response.css(sel)
+        elif type == 'xpath':
+            return response.xpath(sel)
+        else:
+            raise ValueError('Unknown selector type: ' + type)
+
+    keys = get(keys_selector)
+    values = get(values_selector)
+
+    return dict(zip((clean_extract(k, './/text()', **kwargs) for k in keys),
+                    (clean_extract(v, './/text()', **kwargs) for v in values)))

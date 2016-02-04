@@ -20,16 +20,11 @@ class DsiSpider(BaseSpider):
     item_class = WebSourcesCorpusItem
 
     def refine_item(self, response, item):
-        keys = response.xpath(
-            '(.//table)[last()]//tr/td[@class="td_label_details"]//text()'
-        ).extract()
+        data = utils.extract_dict(response,
+            'xpath:(.//table)[last()]//tr/td[@class="td_label_details"]',
+            'xpath:(.//table)[last()]//tr/td[@class="td_value_details"]'
+        )
 
-        values = response.xpath(
-            '(.//table)[last()]//tr/td[@class="td_value_details"]//text()'
-        ).extract()
-
-        data = dict(zip((utils.clean(k) for k in keys),
-                        (utils.clean(v) for v in values)))
         item['name'] = '%s, %s' % (data.get('Last Name', ''), data.get('Given Name'))
         item['other'] = data
 
