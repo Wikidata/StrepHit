@@ -16,13 +16,13 @@ class BaseSpider(scrapy.Spider):
     the details of the items to scrape. Finally a third selector is used to
     extract the url pointing to the next "list" page.
 
-     - `list_page_selector` is a list of selectors used to reach the page
+     - `list_page_selectors` is a list of selectors used to reach the page
        containing the items to scrape. Each selector is applied to the page(s)
        fetched by extracting the url from the previous page using the preceding
        selector.
-     - `detail_page_selector` extract the urls pointing to the detail pages. Can be
+     - `detail_page_selectors` extract the urls pointing to the detail pages. Can be
        a single selector or a list.
-     - `next_page_selector` extracts the url pointing to the next page
+     - `next_page_selectors` extracts the url pointing to the next page
 
     Selector starting with `css:` are css selectors, those starting with `xpath:`
     are xpath selectors, all others should follow the syntax `method:selector`,
