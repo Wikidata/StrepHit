@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+import logging
 from web_sources_corpus.spiders import BaseSpider
 from web_sources_corpus.items import WebSourcesCorpusItem
 
@@ -25,4 +26,10 @@ class GreekRomanBioMythSpider(BaseSpider):
         return title.split('/')[-1]
 
     def refine_item(self, response, item):
-        return item if len(item['bio']) > 50 else None
+        if len(item['bio']) < 50:
+            logging.debug('skipped %s, bio is too short! bio: %s' % (
+                item['url'], item['bio']
+            )
+            return None
+        else:
+            return super(GreekRomanBioMythSpider, self).refine_item(response, item)
