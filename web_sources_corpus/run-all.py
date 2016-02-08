@@ -8,7 +8,7 @@ import os
 @click.option('--dry-run', '-d', is_flag=True, help='Do not actually run spiders')
 @click.option('--skip', '-s', multiple=True, default=['BaseSpider.py', '__init__.py'],
               help='Do not consider these files as valid spiders')
-@click.option('--command', help='Use this command to run the spider',
+@click.option('--command', '-c', help='Use this command to run the spider',
               default='scrapy crawl -o {data_dir}/{spider}.json --logfile {data_dir}/{spider}.log {spider} &')
 def main(spiders_dir, data_dir, dry_run, skip, command):
     """ Ensures that all spiders are running, launching them in the background
@@ -22,19 +22,20 @@ def main(spiders_dir, data_dir, dry_run, skip, command):
     spiders = set(f[:-len('.py')] for f in os.listdir(spiders_dir)
                   if f.endswith('.py') and f not in skip)
     done = set(f[:-len('.json')] for f in os.listdir(data_dir) if f.endswith('.json'))
+    to_run = spiders.difference(done)
 
     print 'Detected spiders:'
     print '\t- ' + '\n\t- '.join(spiders) + '\n'
 
-    print 'Skipped spiders:'
-    print '\t- ' + '\n\t- '.join(done) + '\n'
+    print 'To-be-run spiders:'
+    print '\t- ' + '\n\t- '.join(to_run) + '\n'
 
     if not dry_run:
-        for spider in spiders.difference(done):
+        for spider in to_run:
             print 'Launching', spider, '...'
             os.system(command.format(spider=spider, data_dir=data_dir))
     else:
-        print 'Dry run, %d spiders have not been launched' % len(spiders.difference(done))
+        print 'Dry run, %d spiders have not been launched' % len(to_run)
 
 
 if __name__ == '__main__':
