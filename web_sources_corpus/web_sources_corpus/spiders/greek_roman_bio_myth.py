@@ -8,7 +8,7 @@ class GreekRomanBioMythSpider(BaseSpider):
     name = "greek_roman_bio_myth"
     allowed_domains = ["en.wikisource.org"]
     start_urls = (
-        'http://www.en.wikisource.org/',
+        'https://en.wikisource.org/wiki/Dictionary_of_Greek_and_Roman_Biography_and_Mythology',
     )
 
     list_page_selectors = 'xpath:.//div[@id="mw-content-text"]/ul/li[position()>2]/a/@href'
