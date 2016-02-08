@@ -25,18 +25,22 @@ class NndbComSpider(BaseSpider):
         base = './/table//td[1]//table//tr[3]//table//td'
 
         data = {}
+        item['bio'] = ''
         for paragraph in response.xpath(base + '//p'):
             fields = paragraph.xpath('./b/text()').extract()
             if not fields:
-                continue
-
-            contents = paragraph.xpath('.//text()').extract()
-            for field, values in utils.split_at(contents, fields):
-                if field is not None:
-                    data[field.lower().strip().replace(':', '')] = ' '.join(values).strip()
+                inner_text = utils.clean_extract(paragraph, './/text()', sep=' ',
+                                                 unicode=False)
+                item['bio'] += inner_text + '\n'
+            else:
+                contents = paragraph.xpath('.//text()').extract()
+                for field, values in utils.split_at(contents, fields):
+                    if field is not None:
+                        data[field.lower().strip().replace(':', '')] = ' '.join(values).strip()
 
         item['birth'] = data.get('born')
         item['death'] = data.get('died')
-        item['other'] = json.dumps(data)
+        if not item['bio']:
+            del item['bio']
 
-        return item
+        return super(NndbComSpider, self).refine_item(response, item)
