@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import logging
 import urlparse
-
-from web_sources_corpus.utils import clean_extract
 from web_sources_corpus.items import WebSourcesCorpusItem
 from web_sources_corpus.spiders.BaseSpider import BaseSpider
 
@@ -19,7 +16,6 @@ class DictionaryOfNationalBiographySpider(BaseSpider):
     next_page_selectors = 'xpath:.//span[@id="headernext"]/a/@href'
     
     item_class = WebSourcesCorpusItem
-    # There seems to be semi-structured data only here
     item_fields = {
         'bio': 'clean:xpath:.//div//p//text()'
     }
@@ -29,4 +25,4 @@ class DictionaryOfNationalBiographySpider(BaseSpider):
         item['url'] = url
         # Wiki URLs naming convention
         item['name'] = ' '.join(urlparse.urlsplit(url).path.split('/')[-1].split('_')[:-1])
-        return item
+        return super(DictionaryOfNationalBiographySpider, self).refine_item(response, item)
