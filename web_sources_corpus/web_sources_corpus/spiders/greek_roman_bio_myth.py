@@ -29,7 +29,7 @@ class GreekRomanBioMythSpider(BaseSpider):
         if len(item['bio']) < 50:
             logging.debug('skipped %s, bio is too short! bio: %s' % (
                 item['url'], item['bio']
-            )
+            ))
             return None
         else:
             return super(GreekRomanBioMythSpider, self).refine_item(response, item)
