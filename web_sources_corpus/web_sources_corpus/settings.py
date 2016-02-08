@@ -13,6 +13,7 @@ BOT_NAME = 'web_sources_corpus'
 
 SPIDER_MODULES = ['web_sources_corpus.spiders']
 NEWSPIDER_MODULE = 'web_sources_corpus.spiders'
+TEMPLATES_DIR = 'templates/'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
