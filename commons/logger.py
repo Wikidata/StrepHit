@@ -26,4 +26,4 @@ def setup_logger(level='info', log_file=None):
 
 
 # Default logger: write to console with level INFO
-default_logger = setup_logger()
+logger = setup_logger()
