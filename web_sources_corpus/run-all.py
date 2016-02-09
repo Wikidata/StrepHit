@@ -9,7 +9,7 @@ import os
 @click.option('--skip', '-s', multiple=True, default=['BaseSpider.py', '__init__.py'],
               help='Do not consider these files as valid spiders')
 @click.option('--command', '-c', help='Use this command to run the spider',
-              default='scrapy crawl -o {data_dir}/{spider}.json --logfile {data_dir}/{spider}.log {spider} &')
+              default='scrapy crawl -o {data_dir}/{spider}.jsonlines --logfile {data_dir}/{spider}.log {spider} &')
 def main(spiders_dir, data_dir, dry_run, skip, command):
     """ Ensures that all spiders are running, launching them in the background
 
