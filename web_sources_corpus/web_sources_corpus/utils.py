@@ -72,7 +72,8 @@ def parse_birth_death(string):
     return birth, death
 
 
-def extract_dict(response, keys_selector, values_selector, **kwargs):
+def extract_dict(response, keys_selector, values_selector, keys_extractor='.//text()',
+                 values_extractor='.//text()', **kwargs):
     """ Extracts a dictionary given the selectors for the keys and the vaues.
     The selectors should point to the elements containing the text and not the
     text itself.
@@ -84,6 +85,10 @@ def extract_dict(response, keys_selector, values_selector, **kwargs):
     :param values_selector: Selector pointing to the elements containing the values,
                             starting with the type `xpath:` or `css:` followed
                             by the selector itself
+    :param keys_extracotr: Selector used to actually extract the value of the key from
+                           each key element. xpath only
+    :param keys_extracotr: Selector used to extract the actual value value from each
+                           value element. xpath only
     :param **kwargs: Other parameters to pass to `clean_extract`. Nothing good will
                      come by passing `path_type='css'`, you have been warned.
     """
@@ -99,5 +104,5 @@ def extract_dict(response, keys_selector, values_selector, **kwargs):
     keys = get(keys_selector)
     values = get(values_selector)
 
-    return dict(zip((clean_extract(k, './/text()', **kwargs) for k in keys),
-                    (clean_extract(v, './/text()', **kwargs) for v in values)))
+    return dict(zip((clean_extract(k, keys_extractor, **kwargs) for k in keys),
+                    (clean_extract(v, values_extractor, **kwargs) for v in values)))

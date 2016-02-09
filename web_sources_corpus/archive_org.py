@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-# TODO replace all prints with logger
 import re
 import click
 import json
