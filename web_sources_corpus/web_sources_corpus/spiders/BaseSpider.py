@@ -77,7 +77,7 @@ class BaseSpider(scrapy.Spider):
             selector, rest = self.detail_page_selectors[0], self.detail_page_selectors[1:]
             save = {'next_pages': rest}
         else:
-            selector = next_pags
+            selector = self.detail_page_selectors
             save = {'next_pages': None}
 
         for url in self.get_elements_from_selector(response, selector):
