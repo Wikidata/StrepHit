@@ -9,7 +9,7 @@ import os
 @click.option('--skip', '-s', multiple=True, default=['BaseSpider.py', '__init__.py'],
               help='Do not consider these files as valid spiders')
 @click.option('--command', '-c', help='Use this command to run the spider',
-              default='scrapy crawl -o {data_dir}/{spider}.jsonlines --logfile {data_dir}/{spider}.log {spider} &')
+              default='scrapy crawl -o {data_dir}/{spider}.{format} --logfile {data_dir}/{spider}.log {spider} &')
 @click.option('--result-format', '-f', default='.jsonlines',
               help='File format used to check for result file presence')
 def main(spiders_dir, data_dir, dry_run, skip, command, result_format):
@@ -35,7 +35,7 @@ def main(spiders_dir, data_dir, dry_run, skip, command, result_format):
     if not dry_run:
         for spider in to_run:
             print 'Launching', spider, '...'
-            os.system(command.format(spider=spider, data_dir=data_dir))
+            os.system(command.format(spider=spider, data_dir=data_dir, format=result_format))
     else:
         print 'Dry run, %d spiders have not been launched' % len(to_run)
 
