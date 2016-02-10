@@ -10,7 +10,9 @@ import os
               help='Do not consider these files as valid spiders')
 @click.option('--command', '-c', help='Use this command to run the spider',
               default='scrapy crawl -o {data_dir}/{spider}.jsonlines --logfile {data_dir}/{spider}.log {spider} &')
-def main(spiders_dir, data_dir, dry_run, skip, command):
+@click.option('--result-format', '-f', default='.jsonlines',
+              help='File format used to check for result file presence')
+def main(spiders_dir, data_dir, dry_run, skip, command, result_format):
     """ Ensures that all spiders are running, launching them in the background
 
     Presence/absence of <data-dir>/<spider-name>.json is used to tell if a spider
@@ -21,7 +23,7 @@ def main(spiders_dir, data_dir, dry_run, skip, command):
 
     spiders = set(f[:-len('.py')] for f in os.listdir(spiders_dir)
                   if f.endswith('.py') and f not in skip)
-    done = set(f[:-len('.json')] for f in os.listdir(data_dir) if f.endswith('.json'))
+    done = set(f[:-len(result_format)] for f in os.listdir(data_dir) if f.endswith(result_format))
     to_run = spiders.difference(done)
 
     print 'Detected spiders:'
