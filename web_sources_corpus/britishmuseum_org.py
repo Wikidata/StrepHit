@@ -26,16 +26,17 @@ detail_url = 'http://collection.britishmuseum.org/resource?uri={person}&format=j
 @click.option('--use-cache/--no-cache', default=True)
 @click.option('--step', '-s', default=1000)
 def main(out_file, use_cache, step):
-    result = json.loads(utils.get_and_cache(count_query))
+    result = json.loads(utils.get_and_cache(count_query, use_cache))
     count = int(result['results']['bindings'][0]['c']['value'])
 
     with progressbar.ProgressBar(max_value=count) as bar:
         for offset in xrange(0, count, step):
             url = persons_query.format(limit=step, offset=offset)
-            result = json.loads(utils.get_and_cache(url))
+            result = json.loads(utils.get_and_cache(url, use_cache))
             for i, person in enumerate(result['results']['bindings']):
                 person_url = person['p']['value']
-                details = json.loads(utils.get_and_cache(detail_url.format(person=person_url)))
+                details = json.loads(utils.get_and_cache(detail_url.format(person=person_url),
+                                                         use_cache))
                 data = details[person_url]
                 item = {
                     'name': data['http://www.w3.org/2004/02/skos/core#prefLabel'][0]['value'],
