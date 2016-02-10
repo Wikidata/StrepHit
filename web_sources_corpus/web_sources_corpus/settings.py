@@ -81,6 +81,6 @@ AUTOTHROTTLE_DEBUG=False
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 HTTPCACHE_ENABLED=True
 HTTPCACHE_EXPIRATION_SECS=0
-HTTPCACHE_DIR='/tmp/scrapy-httpcache'
+HTTPCACHE_DIR='/tmp/strephit_cache/scrapy-httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES=[]
 #HTTPCACHE_STORAGE='scrapy.extensions.httpcache.FilesystemCacheStorage'
