@@ -112,7 +112,7 @@ def extract_dict(response, keys_selector, values_selector, keys_extractor='.//te
                     (clean_extract(v, values_extractor, **kwargs) for v in values)))
 
 
-def get_and_cache(url, cache=True):
+def get_and_cache(url, cache=True, cache_base='strephit_cache'):
     """
     Perform an HTTP GET request to the given url and optionally cache the
     result somewhere in the file system. The cached content will be used
@@ -120,7 +120,8 @@ def get_and_cache(url, cache=True):
     Raises all HTTP errors
     :param url: URL of the page to retrieve
     :param cache: Whether to use cache
-    :param encoding: encoding of the content
+    :param cache_base: Base directory of the cached file. Can be absolute or
+    relative, in which case it is referred to the system's temp dir.
     :return: The content page at the given URL, unicode
     """
     if not cache:
@@ -128,15 +129,22 @@ def get_and_cache(url, cache=True):
         r.raise_for_status()
         content = r.text
     else:
-        cached_name = os.path.join(tempfile.gettempdir(),
-                                   hashlib.sha1(url).hexdigest())
-        if os.path.exists(cached_name):
-            with open(cached_name) as f:
+        name = hashlib.sha1(url).hexdigest()
+        if os.path.isabs(cache_base):
+            cache_dir = os.path.join(cache_base, name[:3])
+        else:
+            cache_dir = os.path.join(tempfile.gettempdir(), cache_base, name[:3])
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+        cache_location = os.path.join(cache_dir, name)
+
+        if os.path.exists(cache_location):
+            with open(cache_location) as f:
                 content = f.read().decode('utf8')
         else:
             r = requests.get(url)
             r.raise_for_status()
             content = r.text
-            with open(cached_name, 'w') as f:
+            with open(cache_location, 'w') as f:
                 f.write(content.encode('utf8'))
     return content
