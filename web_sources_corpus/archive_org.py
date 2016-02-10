@@ -6,20 +6,7 @@ import click
 import json
 import os
 import requests
-
-
-def get_text(volume_url, cache=None):
-    if cache and os.path.exists(cache):
-        with open(cache) as f:
-            content = f.read().decode('utf8')
-    else:
-        r = requests.get(volume_url)
-        r.raise_for_status()
-        content = r.text
-        if cache:
-            with open(cache, 'w') as f:
-                f.write(content.encode('utf8'))
-    return content
+from web_sources_corpus import utils
 
 
 def parse_and_save(text, separator, out_file):
@@ -59,10 +46,9 @@ def american_bio(ctx):
 
     for volume in xrange(1, 11):
         print 'Volume', volume
-        cache = '/tmp/bio_dir_of_america_{volume}.txt'.format(volume=volume)
         volume_url = 'https://archive.org/download/biographicaldict{volume:02d}johnuoft/' \
                      'biographicaldict{volume:02d}johnuoft_djvu.txt'.format(volume=volume)
-        vol = get_text(volume_url, cache if use_cache else None)
+        vol = utils.get_and_cache(volume_url, use_cache)
         parse_and_save(vol, ur'([A-Z]+, [A-Z][a-z]+ ?),[^,]+,', out_file)
 
 
@@ -72,11 +58,9 @@ def who_was_who(ctx):
     out_file = ctx.obj.pop('out_file')
     use_cache = ctx.obj.pop('cache')
 
-    cache = '/tmp/who_is_who.txt'
     url = 'https://archive.org/download/whowaswhocompani01londuoft/' \
           'whowaswhocompani01londuoft_djvu.txt'
-
-    text = get_text(url, cache if use_cache else None)
+    text = utils.get_and_cache(url, use_cache)
     parse_and_save(text, ur'([A-Z]+, ([0-9A-Z][. \-a-z]+)+),[^,]+[,;]', out_file)
     
 

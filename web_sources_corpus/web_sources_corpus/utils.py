@@ -1,4 +1,8 @@
 import re
+import os
+import tempfile
+import requests
+import hashlib
 
 
 def clean_extract(sel, path, path_type='xpath', limit_from=None, limit_to=None, sep='\n',
@@ -106,3 +110,33 @@ def extract_dict(response, keys_selector, values_selector, keys_extractor='.//te
 
     return dict(zip((clean_extract(k, keys_extractor, **kwargs) for k in keys),
                     (clean_extract(v, values_extractor, **kwargs) for v in values)))
+
+
+def get_and_cache(url, cache=True):
+    """
+    Perform an HTTP GET request to the given url and optionally cache the
+    result somewhere in the file system. The cached content will be used
+    in the subsequent requests.
+    Raises all HTTP errors
+    :param url: URL of the page to retrieve
+    :param cache: Whether to use cache
+    :param encoding: encoding of the content
+    :return: The content page at the given URL, unicode
+    """
+    if not cache:
+        r = requests.get(url)
+        r.raise_for_status()
+        content = r.text
+    else:
+        cached_name = os.path.join(tempfile.gettempdir(),
+                                   hashlib.sha1(url).hexdigest())
+        if os.path.exists(cached_name):
+            with open(cached_name) as f:
+                content = f.read().decode('utf8')
+        else:
+            r = requests.get(url)
+            r.raise_for_status()
+            content = r.text
+            with open(cached_name, 'w') as f:
+                f.write(content.encode('utf8'))
+    return content
