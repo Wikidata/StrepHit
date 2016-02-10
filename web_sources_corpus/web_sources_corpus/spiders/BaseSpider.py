@@ -67,18 +67,28 @@ class BaseSpider(scrapy.Spider):
                 save = {'next_pages': None}
 
             for url in self.get_elements_from_selector(response, selector):
-                yield Request(self.make_url_absolute(response.url, url), self.parse, meta=save)
+                yield Request(self.make_url_absolute(response.url, url), self.parse,
+                              meta=save)
 
     def parse_list(self, response):
         """ Second stage of the spider implementing pagination
         """
-        for url in self.get_elements_from_selector(response, self.detail_page_selectors):
-            yield Request(self.make_url_absolute(response.url, url), self.parse_detail)
+        if type(self.detail_page_selectors) == list:
+            selector, rest = self.detail_page_selectors[0], self.detail_page_selectors[1:]
+            save = {'next_pages': rest}
+        else:
+            selector = next_pags
+            save = {'next_pages': None}
+
+        for url in self.get_elements_from_selector(response, selector):
+            yield Request(self.make_url_absolute(response.url, url), self.parse_detail,
+                          meta=save)
 
         if self.next_page_selectors:
             _next = self.get_elements_from_selector(response, self.next_page_selectors)
             if _next:
-                yield Request(self.make_url_absolute(response.url, _next[0]), self.parse_list)
+                yield Request(self.make_url_absolute(response.url, _next[0]),
+                              self.parse_list)
 
     def parse_detail(self, response):
         """ Third stage of the spider, parses the detail page to produce an item
@@ -94,9 +104,16 @@ class BaseSpider(scrapy.Spider):
                 else:
                     res[k] = self.get_elements_from_selector(response, v)
             return res
-
-        item = make_dict(self.item_fields, self.item_class(url=response.url))
-        yield self.refine_item(response, item)
+    
+        next_pages = response.meta.get('next_pages')
+        if next_pages:
+            selector, rest = next_pages[0], next_pages[1:]
+            for url in self.get_elements_from_selector(response, selector):
+                yield Request(self.make_url_absolute(response.url, url),
+                              self.parse_detail, meta={'next_pages': rest})
+        else:
+            item = make_dict(self.item_fields, self.item_class(url=response.url))
+            yield self.refine_item(response, item)
 
     def refine_item(self, response, item):
         """ Applies any custom post-processing to the item, override if needed.
