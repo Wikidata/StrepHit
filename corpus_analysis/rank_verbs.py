@@ -13,20 +13,21 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 
 
-VERBAL_TAGS = {
-    # TreeTagger uses the Penn Treebank tagset
-    # http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/Penn-Treebank-Tagset.pdf
-    'en': ['VB%s' % suffix for suffix in ['', 'D', 'G', 'N', 'P', 'Z']]
+VERBAL_PREFIXES = {
+    'en': 'V'
 }
 
 
-def extract_verbs(pos_tagged_text, language):
+def extract_verbs(pos_tagged_corpus, language):
     """Extract verb lemmas and surface forms from a POS-tagged text."""
-    verbs = defaultdict(list)
-    for tag in pos_tagged_text:
-        if tag.pos in VERBAL_TAGS[language]:
-            verbs[tag.lemma].append(tag.word)
-    return verbs
+    verbs = defaultdict(set)
+    for tagged_document in pos_tagged_corpus:
+        logger.debug("POS-tagged document: %s" % tagged_document)
+        for tag in tagged_document:
+            if tag.pos.startswith(VERBAL_PREFIXES[language]):
+                verbs[tag.lemma].add(tag.word)
+    # sets are not JSON serializable, so cast them to lists
+    return {lemma: list(tokens) for lemma, tokens in verbs.iteritems()}
 
 
 def compute_tf_idf_matrix(corpus):
@@ -61,16 +62,22 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
     """
     avg_ranking = stdev_ranking = {}
     for lemma, tokens in verbs.iteritems():
+        logger.debug("Computing scores for lemma '%s' ..." % lemma)
         averages = []
         stdevs = []
         for token in tokens:
             token_scores = get_similarity_scores(token, vectorizer, tf_idf_matrix)
-            averages += token_scores
-            stdevs.append(std(token_scores))
-        avg_ranking[lemma] = average(averages)
-        stdev_ranking[lemma] = average(stdevs)
-    return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)),
-    OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
+            averages += filter(None, token_scores.flatten().tolist())
+            stdevs.append(token_scores.std())
+        logger.debug("TF/IDF scores: %s" % averages)
+        logger.debug("stdev scores: %s" % stdevs)
+        tf_idf_final = average(averages)
+        stdev_final = average(stdevs)
+        avg_ranking[lemma] = tf_idf_final
+        stdev_ranking[lemma] = stdev_final
+        logger.debug("Average TF/IDF score: %f" % tf_idf_final)
+        logger.debug("Average stdev score: %f" % stdev_final)
+    return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)), OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
 
 
 @click.command()
@@ -78,7 +85,7 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
 @click.argument('document_key')
 @click.argument('language_code')
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
-@click.option('-o', '--output-file', type=click.File('wb'), default='pos_tagged.json')
+@click.option('-o', '--output-file', type=click.File('wb'), default='verbs.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
 def main(corpus_path, document_key, language_code, tagger, output_file, tt_home):
     """ Perform part-of-speech (POS) tagging over an input corpus.
@@ -91,14 +98,11 @@ def main(corpus_path, document_key, language_code, tagger, output_file, tt_home)
     logger.info("Computing TF/IDF matrix ...")
     vectorizer, tf_idf_matrix = compute_tf_idf_matrix(corpus_for_tf_idf)
     logger.info("Starting part-of-speech (POS) tagging ...")
-    all_verbs = {}
-    for tagged_document in pos_tagger.tag_many(corpus):
-        logger.debug("POS-tagged document: %s" % tagged_document)
-        verbs = extract_verbs(tagged_document, language_code)
-        logger.debug("Extracted verbs: %s" % verbs)
-        all_verbs.update(verbs)
-    json.dump(all_verbs, output_file, indent=2)
-    avg_ranking, stdev_ranking = compute_ranking(all_verbs, vectorizer, tf_idf_matrix)
+    tagged_corpus = [tagged_document for tagged_document in pos_tagger.tag_many(corpus)]
+    corpus_verbs = extract_verbs(tagged_corpus, language_code)
+    logger.debug("Corpus verbs: %s" % corpus_verbs)
+    json.dump(corpus_verbs, output_file, indent=2)
+    avg_ranking, stdev_ranking = compute_ranking(corpus_verbs, vectorizer, tf_idf_matrix)
     logger.info("Ranking based on average TF/IDF scores: %s" % json.dumps(avg_ranking, indent=2))
     logger.info("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking, indent=2))
     return 0
