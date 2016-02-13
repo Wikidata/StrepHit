@@ -23,9 +23,9 @@ VERBAL_TAGS = {
 def extract_verbs(pos_tagged_text, language):
     """Extract verb lemmas and surface forms from a POS-tagged text."""
     verbs = defaultdict(list)
-    for token in pos_tagged_text:
-        if token.pos in VERBAL_TAGS[language]:
-            verbs[token.lemma].append(token)
+    for tag in pos_tagged_text:
+        if tag.pos in VERBAL_TAGS[language]:
+            verbs[tag.lemma].append(tag.word)
     return verbs
 
 
@@ -65,11 +65,12 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
         stdevs = []
         for token in tokens:
             token_scores = get_similarity_scores(token, vectorizer, tf_idf_matrix)
-            averages.append(average(token_scores))
+            averages += token_scores
             stdevs.append(std(token_scores))
         avg_ranking[lemma] = average(averages)
         stdev_ranking[lemma] = average(stdevs)
-    return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)), OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
+    return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)),
+    OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
 
 
 @click.command()
@@ -92,11 +93,11 @@ def main(corpus_path, document_key, language_code, tagger, output_file, tt_home)
     logger.info("Starting part-of-speech (POS) tagging ...")
     all_verbs = {}
     for tagged_document in pos_tagger.tag_many(corpus):
-        logger.debug("POS-tagged document: %s" % tagged)
+        logger.debug("POS-tagged document: %s" % tagged_document)
         verbs = extract_verbs(tagged_document, language_code)
         logger.debug("Extracted verbs: %s" % verbs)
         all_verbs.update(verbs)
-    output_file.write(json.dumps(all_verbs))
+    json.dump(all_verbs, output_file, indent=2)
     avg_ranking, stdev_ranking = compute_ranking(all_verbs, vectorizer, tf_idf_matrix)
     logger.info("Ranking based on average TF/IDF scores: %s" % json.dumps(avg_ranking, indent=2))
     logger.info("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking, indent=2))
