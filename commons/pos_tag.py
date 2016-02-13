@@ -25,14 +25,24 @@ class PosTagger():
         """
         if self.tagger == 'tt':
             from treetaggerpoll import TaggerProcessPoll
-            from treetaggerwrapper import make_tags
+            from treetaggerwrapper import make_tags, NotTag
             jobs = []
             tt_pool = TaggerProcessPoll(TAGLANG=self.language, TAGDIR=self.tt_home)
             for text in texts:
                 jobs.append(tt_pool.tag_text_async(text))
             for i, job in enumerate(jobs):
                 job.wait_finished()
-                yield make_tags(job.result)
+                tags = []
+                tagged = make_tags(job.result)
+                # TreeTagger may find non-tags, probably some scraped garbage
+                # Skip them, but keep a trace in the log
+                for tag in tagged:
+                    if type(tag) == NotTag:
+                        logger.warn("Non-tag found: '%s'. Skipping ..." % tag)
+                        continue
+                    else:
+                        tags.append(tag)
+                yield tags
                 jobs[i] = None
             tt_pool.stop_poll()
         elif self.tagger == 'nltk':
@@ -52,17 +62,18 @@ class PosTagger():
 
 @click.command()
 @click.argument('input_dir', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
+@click.argument('document_key')
 @click.argument('language_code')
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
 @click.option('-o', '--output-file', type=click.File('wb'), default='pos_tagged.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
-def main(input_dir, language_code, tagger, output_file, tt_home):
+def main(input_dir, document_key, language_code, tagger, output_file, tt_home):
     """ Perform part-of-speech (POS) tagging over an input corpus.
     """
     pos_tagger = PosTagger(language_code, tagger, tt_home)
-    texts = [item['bio'] for item in load_corpus(input_dir)]
-    for tagged_text in pos_tagger.tag_many(texts):
-        output_file.write(json.dumps(tagged_text))
+    corpus = load_corpus(input_dir, document_key)
+    for tagged_document in pos_tagger.tag_many(corpus):
+        output_file.write(json.dumps(tagged_document) + '\n')
     return 0
 
 
