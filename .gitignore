@@ -63,3 +63,6 @@ target/
 
 # vim swap files
 *.swp
+
+# Test stuff
+test
