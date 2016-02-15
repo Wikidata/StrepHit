@@ -10,7 +10,7 @@ import os
               help='Do not consider these files as valid spiders')
 @click.option('--command', '-c', help='Use this command to run the spider',
               default='scrapy crawl -o {data_dir}/{spider}.{format} --logfile {data_dir}/{spider}.log {spider} &')
-@click.option('--result-format', '-f', default='.jsonlines',
+@click.option('--result-format', '-f', default='jsonlines',
               help='File format used to check for result file presence')
 def main(spiders_dir, data_dir, dry_run, skip, command, result_format):
     """ Ensures that all spiders are running, launching them in the background
@@ -32,12 +32,17 @@ def main(spiders_dir, data_dir, dry_run, skip, command, result_format):
     print 'To-be-run spiders:'
     print '\t- ' + '\n\t- '.join(to_run) + '\n'
 
-    if not dry_run:
-        for spider in to_run:
-            print 'Launching', spider, '...'
-            os.system(command.format(spider=spider, data_dir=data_dir, format=result_format))
-    else:
+    commands = [
+        command.format(spider=spider, data_dir=data_dir, format=result_format) for spider in to_run
+    ]
+    if dry_run:
         print 'Dry run, %d spiders have not been launched' % len(to_run)
+        print 'Commands:\n', '\n'.join(commands)
+    else:
+        print 'Launching spiders...'
+        for cmd in commands:
+            print cmd
+            os.system(cmd)
 
 
 if __name__ == '__main__':
