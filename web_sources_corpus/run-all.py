@@ -23,7 +23,7 @@ def main(spiders_dir, data_dir, dry_run, skip, command, result_format):
 
     spiders = set(f[:-len('.py')] for f in os.listdir(spiders_dir)
                   if f.endswith('.py') and f not in skip)
-    done = set(f[:-len(result_format)] for f in os.listdir(data_dir) if f.endswith(result_format))
+    done = set(f[:-len(result_format) - 1] for f in os.listdir(data_dir) if f.endswith(result_format))
     to_run = spiders.difference(done)
 
     print 'Detected spiders:'
