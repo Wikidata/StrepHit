@@ -8,7 +8,7 @@ from sys import exit
 from commons.pos_tag import PosTagger
 from commons.io_utils import load_corpus
 from commons.logger import logger
-from numpy import average, std
+from numpy import average
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 
@@ -34,6 +34,7 @@ def compute_tf_idf_matrix(corpus):
     """ Compute the TF/IDF matrix of the input corpus.
         :param corpus: an iterable of documents
         :return: the :class:`TfidfVectorizer` instance and the TF/IDF matrix
+        :rtype: tuple
     """
     vectorizer = TfidfVectorizer()
     return vectorizer, vectorizer.fit_transform(corpus)
@@ -56,23 +57,30 @@ def get_similarity_scores(verb_token, vectorizer, tf_idf_matrix):
 
 def compute_ranking(verbs, vectorizer, tf_idf_matrix):
     """ Compute the final verb rankings.
-        :param dict verbs: Dictionary of verbs with lemmas as keys and corpus tokens as values
-        :return: 2 rankings, one with average TF/IDF and one with standard deviation scores
+        :param dict verbs: Dictionary of verbs with lemmas as keys and tokens appearing in the corpus as values
+        :param :class:`TfidfVectorizer` vectorizer: :class:`TfidfVectorizer` instance, as returned by :func:`compute_tf_idf_matrix`
+        :param numpy.ndarray tf_idf_matrix: TF/IDF matrix, as returned by :func:`compute_tf_idf_matrix`
+        :return: 2 rankings (ordered dicts), one with average TF/IDF scores and one with average standard deviation scores
         :rtype: tuple
     """
     avg_ranking = stdev_ranking = {}
     for lemma, tokens in verbs.iteritems():
         logger.debug("Computing scores for lemma '%s' ..." % lemma)
-        averages = []
-        stdevs = []
+        # Lemma-based scores lists to be filled with token-based scores
+        tf_idfs = st_devs = []
+        # Token-based scores are computed against the whole corpus
         for token in tokens:
-            token_scores = get_similarity_scores(token, vectorizer, tf_idf_matrix)
-            averages += filter(None, token_scores.flatten().tolist())
-            stdevs.append(token_scores.std())
-        logger.debug("TF/IDF scores: %s" % averages)
-        logger.debug("stdev scores: %s" % stdevs)
-        tf_idf_final = average(averages)
-        stdev_final = average(stdevs)
+            # TF/IDF
+            scores = get_similarity_scores(token, vectorizer, tf_idf_matrix)
+            # Keep TF/IDF scores > 0 and fill the lemma-based score list
+            tf_idfs += filter(None, scores.flatten().tolist())
+            # Compute stdev over the token-based TF/IDF scores and fill the other lemma-based score list
+            st_devs.append(scores.std())
+        logger.debug("TF/IDF scores: %s" % tf_idfs)
+        logger.debug("stdev scores: %s" % st_devs)
+        # Lemma-based final scores are averages of the score lists
+        tf_idf_final = average(tf_idfs)
+        stdev_final = average(st_devs)
         avg_ranking[lemma] = tf_idf_final
         stdev_ranking[lemma] = stdev_final
         logger.debug("Average TF/IDF score: %f" % tf_idf_final)
