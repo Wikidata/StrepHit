@@ -4,7 +4,6 @@ from strephit.commons import pos_tag, io
 
 CLI_COMMANDS = {
     'pos_tag': pos_tag.main,
-    'preprocess_corpus': io.preprocess_corpus,
 }
 
 
