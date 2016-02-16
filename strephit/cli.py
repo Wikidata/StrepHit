@@ -1,7 +1,9 @@
+from __future__ import absolute_import
 import click
+import yaml
 import sys
 from strephit import commons
-from strephit.commons import logger
+from strephit.commons import logging
 
 
 CLI_COMMANDS = {
@@ -11,7 +13,8 @@ CLI_COMMANDS = {
 
 @click.group(commands=CLI_COMMANDS)
 @click.pass_context
-@click.option('--log-level', type=click.Choice(['debug', 'info', 'warning']), default='info')
-@click.option('--log-file', type=click.File('w'), default=sys.stderr)
-def cli(ctx, log_level, log_file):
-    logger.logger = logger.setup_logger(log_level, log_file)
+@click.option('--log-level', type=(unicode, click.Choice(logging.LEVELS)), multiple=True)
+def cli(ctxm, log_level):
+    logging.setup()
+    for module, level in log_level:
+        logging.setLogLevel(module, level)

@@ -1,10 +1,19 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-   
+from __future__ import absolute_import
+
 import click
 import json
+import logging
 from sys import exit
-from strephit.commons.logger import logger
 from strephit.commons.io import load_corpus
+from nltk import pos_tag, word_tokenize
+from treetaggerwrapper import TreeTagger, make_tags
+from treetaggerpoll import TaggerProcessPoll
+from treetaggerwrapper import make_tags, NotTag
+
+
+logger = logging.getLogger(__name__)
 
 
 class PosTagger():
@@ -23,8 +32,6 @@ class PosTagger():
             Works only with TreeTagger.
         """
         if self.tagger == 'tt':
-            from treetaggerpoll import TaggerProcessPoll
-            from treetaggerwrapper import make_tags, NotTag
             jobs = []
             tt_pool = TaggerProcessPoll(TAGLANG=self.language, TAGDIR=self.tt_home)
             for text in texts:
@@ -51,18 +58,16 @@ class PosTagger():
     def tag_one(self, text):
         """Run a single-threaded POS-tagger over an input text."""
         if self.tagger == 'tt':
-            from treetaggerwrapper import TreeTagger, make_tags
             tt = TreeTagger(TAGLANG=self.language, TAGDIR=self.tt_home)
             return make_tags(tt.tag_text(text))
         elif self.tagger == 'nltk':
-            from nltk import pos_tag, word_tokenize
             return pos_tag(word_tokenize(text))
 
 
 @click.command()
-@click.argument('input_dir', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
-@click.argument('document_key')
-@click.argument('language_code')
+@click.argument('input-dir', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
+@click.argument('document-key')
+@click.argument('language-code')
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
 @click.option('-o', '--output-file', type=click.File('wb'), default='pos_tagged.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")

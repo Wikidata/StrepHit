@@ -1,22 +1,29 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
+from __future__ import absolute_import
 
 import json
 import os
-from strephit.commons.logger import logger
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def load_scraped_items(items_dir):
-    """
+    """ Loads all the items from a directory. All the files in that directory
+        should contain JSON-serialized items, one per line.
+        :param str items_dir: Local path containing the data files.
     """
     for path, subdirs, files in os.walk(items_dir):
     	for name in files:
             f = os.path.join(path, name)
-            with open(f) as source:
-                logger.info("Loaded input file '%s'" % name)
-                for n, line in enumerate(source):
-                    logger.debug("Processing item #%d ..." % n)
-                    yield json.loads(line)
+            if f.endswith('.jsonl') or f.endswith('.jsonlines'):
+                with open(f) as source:
+                    logger.debug("Loaded input file '%s'" % name)
+                    for n, line in enumerate(source):
+                        logger.debug("Processing item #%d ..." % n)
+                        yield json.loads(line)
 
 
 def load_corpus(items_dir, document_key):
