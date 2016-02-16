@@ -27,16 +27,12 @@ class PosTagger():
         self.tt_home = tt_home
 
 
-    def tag_many(self, texts):
+    def tag_many(self, texts, batch_size=10000):
         """ Run a multi-process POS-tagger over a list of input texts.
             Works only with TreeTagger.
         """
-        if self.tagger == 'tt':
-            jobs = []
-            tt_pool = TaggerProcessPoll(TAGLANG=self.language, TAGDIR=self.tt_home)
-            for text in texts:
-                jobs.append(tt_pool.tag_text_async(text))
-            for i, job in enumerate(jobs):
+        def finalize_batch(jobs):
+            for i, (text, job) in enumerate(jobs):
                 job.wait_finished()
                 tags = []
                 tagged = make_tags(job.result)
@@ -45,12 +41,26 @@ class PosTagger():
                 for tag in tagged:
                     if type(tag) == NotTag:
                         logger.warn("Non-tag found: '%s'. Skipping ..." % tag)
-                        continue
+                        logger.debug('text is: ' + text)
                     else:
                         tags.append(tag)
                 yield tags
                 jobs[i] = None
-            tt_pool.stop_poll()
+
+        if self.tagger == 'tt':
+            tt_pool = TaggerProcessPoll(TAGLANG=self.language, TAGDIR=self.tt_home)
+            try:
+                jobs = []
+                for i, text in enumerate(texts):
+                    jobs.append((text, tt_pool.tag_text_async(text)))
+                    if i % batch_size == 0:
+                        for each in finalize_batch(jobs):
+                            yield each
+                        jobs = []
+                for each in finalize_batch(jobs):
+                    yield each
+            finally:
+                tt_pool.stop_poll()
         elif self.tagger == 'nltk':
             raise NotImplementedError("Multi-process POS tagging with NLTK is not yet implemented.")
     
@@ -71,12 +81,13 @@ class PosTagger():
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
 @click.option('-o', '--output-file', type=click.File('wb'), default='pos_tagged.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
-def main(input_dir, document_key, language_code, tagger, output_file, tt_home):
+@click.option('--batch-size', '-b', default=10000)
+def main(input_dir, document_key, language_code, tagger, output_file, tt_home, batch_size):
     """ Perform part-of-speech (POS) tagging over an input corpus.
     """
     pos_tagger = PosTagger(language_code, tagger, tt_home)
     corpus = load_corpus(input_dir, document_key)
-    for i, tagged_document in enumerate(pos_tagger.tag_many(corpus)):
+    for i, tagged_document in enumerate(pos_tagger.tag_many(corpus, batch_size)):
         output_file.write(json.dumps(tagged_document) + '\n')
     return 0
 

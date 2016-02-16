@@ -44,6 +44,7 @@ def setup():
                 'level': 'DEBUG'
             }, 
             'debug_file_handler': {
+                'formatter': 'strephit',
                 'level': 'DEBUG', 
                 'filename': 'strephit-debug.log', 
                 'class': 'logging.FileHandler', 
