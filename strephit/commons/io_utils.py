@@ -3,7 +3,7 @@
 
 import json
 import os
-from commons.logger import logger
+from strephit.commons.logger import logger
 
 
 def load_scraped_items(items_dir):
