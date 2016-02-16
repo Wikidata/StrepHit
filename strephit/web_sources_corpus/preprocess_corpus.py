@@ -3,7 +3,11 @@ import os
 import json
 import click
 import logging
+import hashlib
 from strephit.commons.io import load_scraped_items
+
+
+logger = logging.getLogger(__name__)
 
 
 @click.command()
@@ -26,5 +30,6 @@ def preprocess_corpus(corpus_dir, document_key, output_dir, items_per_file, min_
                 logger.info('processed %d items so far, continuing in %s' % (count, fname) )
                 current_file.close()
                 current_file = open(os.path.join(output_dir, fname), 'w')
+            item['id'] = hashlib.sha1(item[document_key].encode('utf8')).hexdigest()
             json.dump(item, current_file)
             current_file.write('\n')
