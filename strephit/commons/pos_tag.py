@@ -4,7 +4,7 @@ import click
 import json
 from sys import exit
 from strephit.commons.logger import logger
-from strephit.commons.io_utils import load_corpus
+from strephit.commons.io import load_corpus
 
 
 class PosTagger():
@@ -66,7 +66,7 @@ class PosTagger():
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
 @click.option('-o', '--output-file', type=click.File('wb'), default='pos_tagged.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
-def main(ctx, input_dir, document_key, language_code, tagger, output_file, tt_home):
+def main(input_dir, document_key, language_code, tagger, output_file, tt_home):
     """ Perform part-of-speech (POS) tagging over an input corpus.
     """
     pos_tagger = PosTagger(language_code, tagger, tt_home)
