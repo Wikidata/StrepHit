@@ -76,7 +76,7 @@ def main(input_dir, document_key, language_code, tagger, output_file, tt_home):
     """
     pos_tagger = PosTagger(language_code, tagger, tt_home)
     corpus = load_corpus(input_dir, document_key)
-    for tagged_document in pos_tagger.tag_many(corpus):
+    for i, tagged_document in enumerate(pos_tagger.tag_many(corpus)):
         output_file.write(json.dumps(tagged_document) + '\n')
     return 0
 
