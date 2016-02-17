@@ -47,6 +47,7 @@ def setup():
                 'formatter': 'strephit',
                 'level': 'DEBUG', 
                 'filename': 'strephit-debug.log', 
+                'mode': 'w',
                 'class': 'logging.FileHandler', 
                 'encoding': 'utf8'
             }

@@ -32,7 +32,7 @@ class PosTagger():
             Works only with TreeTagger.
         """
         def finalize_batch(jobs):
-            for i, (text, job) in enumerate(jobs):
+            for i, job in enumerate(jobs):
                 job.wait_finished()
                 tags = []
                 tagged = make_tags(job.result)
@@ -41,7 +41,6 @@ class PosTagger():
                 for tag in tagged:
                     if type(tag) == NotTag:
                         logger.warn("Non-tag found: '%s'. Skipping ..." % tag)
-                        logger.debug('text is: ' + text)
                     else:
                         tags.append(tag)
                 yield tags
@@ -52,7 +51,7 @@ class PosTagger():
             try:
                 jobs = []
                 for i, text in enumerate(texts):
-                    jobs.append((text, tt_pool.tag_text_async(text)))
+                    jobs.append(tt_pool.tag_text_async(text))
                     if i % batch_size == 0:
                         for each in finalize_batch(jobs):
                             yield each
