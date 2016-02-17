@@ -3,15 +3,17 @@
 
 import click
 import json
+import logging
 from collections import defaultdict, OrderedDict
 from sys import exit
-from commons.pos_tag import PosTagger
-from commons.io_utils import load_corpus
-from commons.logger import logger
+from strephit.commons.pos_tag import PosTagger
+from strephit.commons.io import load_corpus
 from numpy import average
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 
+
+logger = logging.getLogger(__name__)
 
 VERBAL_PREFIXES = {
     'en': 'V'
@@ -96,7 +98,7 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
 @click.option('-o', '--output-file', type=click.File('wb'), default='verbs.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
 def main(corpus_path, document_key, language_code, tagger, output_file, tt_home):
-    """ Perform part-of-speech (POS) tagging over an input corpus.
+    """ Compute verb rankings of the input corpus.
     """
     pos_tagger = PosTagger(language_code, tagger, tt_home)
     # Need to create the corpus generator twice,
