@@ -3,8 +3,7 @@ import click
 import yaml
 import sys
 import strephit
-from strephit.commons import logging, cli
-from strephit.web_sources_corpus import cli
+from strephit.commons import logging
 
 
 CLI_COMMANDS = {
