@@ -2,13 +2,14 @@ from __future__ import absolute_import
 import click
 import yaml
 import sys
-from strephit import commons, web_sources_corpus
-from strephit.commons import logging
+import strephit
+from strephit.commons import logging, cli
+from strephit.web_sources_corpus import cli
 
 
 CLI_COMMANDS = {
-    'commons': commons.cli,
-    'web_sources_corpus': web_sources_corpus.cli,
+    'commons': strephit.commons.cli.cli,
+    'web_sources_corpus': strephit.web_sources_corpus.cli.cli,
 }
 
 
