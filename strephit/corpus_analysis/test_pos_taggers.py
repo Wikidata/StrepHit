@@ -46,7 +46,8 @@ def main(input_file, output_file, tt_home):
     output = []
     source = json.load(input_file)
     logger.info("Loaded input file '%s'" % input_file.name)
-    nltk_total_execution = tt_total_execution = float()
+    nltk_total_execution = float()
+    tt_total_execution = float()
     for item in source:
         output_item = item
         text = item.get('bio')
