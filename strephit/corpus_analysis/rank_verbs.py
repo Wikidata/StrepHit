@@ -96,7 +96,7 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
 @click.argument('corpus_path', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document_key')
 @click.argument('language_code')
-@click.option('-v', '--verbs', type=click.File(), default='verbs.json')
+@click.option('-v', '--verbs', type=click.File())
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
 @click.option('-o', '--output-file', type=click.File('w'), default='verbs.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
