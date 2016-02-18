@@ -65,11 +65,13 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
         :return: 2 rankings (ordered dicts), one with average TF/IDF scores and one with average standard deviation scores
         :rtype: tuple
     """
-    avg_ranking = stdev_ranking = {}
+    avg_ranking = {}
+    stdev_ranking = {}
     for lemma, tokens in verbs.iteritems():
         logger.debug("Computing scores for lemma '%s' ..." % lemma)
         # Lemma-based scores lists to be filled with token-based scores
-        tf_idfs = st_devs = []
+        tf_idfs = []
+        st_devs = []
         # Token-based scores are computed against the whole corpus
         for token in tokens:
             # TF/IDF
