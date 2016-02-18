@@ -96,24 +96,33 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
 @click.argument('corpus_path', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document_key')
 @click.argument('language_code')
+@click.option('-v', '--verbs', type=click.File(), default='verbs.json')
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
-@click.option('-o', '--output-file', type=click.File('wb'), default='verbs.json')
+@click.option('-o', '--output-file', type=click.File('w'), default='verbs.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
-def main(corpus_path, document_key, language_code, tagger, output_file, tt_home):
+def main(corpus_path, document_key, language_code, verbs, tagger, output_file, tt_home):
     """ Compute verb rankings of the input corpus.
     """
     pos_tagger = PosTagger(language_code, tagger, tt_home)
     # Need to create the corpus generator twice,
     # as it will be consumed by 2 functions, i.e., compute_tf_idf_matrix and pos_tagger.tag_many
-    corpus = load_corpus(corpus_path, document_key)
     corpus_for_tf_idf = load_corpus(corpus_path, document_key)
     logger.info("Computing TF/IDF matrix ...")
     vectorizer, tf_idf_matrix = compute_tf_idf_matrix(corpus_for_tf_idf)
-    logger.info("Starting part-of-speech (POS) tagging ...")
-    tagged_corpus = [tagged_document for tagged_document in pos_tagger.tag_many(corpus)]
-    corpus_verbs = extract_verbs(tagged_corpus, language_code)
-    logger.debug("Corpus verbs: %s" % corpus_verbs)
-    json.dump(corpus_verbs, output_file, indent=2)
+    corpus_verbs = {}
+    # Use the cached verbs file if it exists
+    if verbs:
+        logger.info("Using cached verbs file '%s' ..." % verbs.name)
+        corpus_verbs = json.load(verbs)
+    else:
+        corpus = load_corpus(corpus_path, document_key)
+        logger.info("Starting part-of-speech (POS) tagging ...")
+        tagged_corpus = [tagged_document for tagged_document in pos_tagger.tag_many(corpus)]
+        corpus_verbs = extract_verbs(tagged_corpus, language_code)
+        logger.debug("Corpus verbs: %s" % corpus_verbs)
+        logger.info("Writing extracted verbs to '%s' ..." % output_file.name)
+        json.dump(corpus_verbs, output_file, indent=2)
+    logger.info("Computing verb rankings ...")
     avg_ranking, stdev_ranking = compute_ranking(corpus_verbs, vectorizer, tf_idf_matrix)
     logger.info("Ranking based on average TF/IDF scores: %s" % json.dumps(avg_ranking, indent=2))
     logger.info("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking, indent=2))
