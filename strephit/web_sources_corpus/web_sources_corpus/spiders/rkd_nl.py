@@ -9,7 +9,7 @@ from web_sources_corpus.spiders.BaseSpider import BaseSpider
 
 class RKDArtistsSpider(BaseSpider):
     """A spider for RKD Netherlands Institute for Art History website"""
-    name = 'rkd'
+    name = 'rkd_nl'
     allowed_domains = ['rkd.nl']
     start_urls = ['https://rkd.nl/en/explore/artists']
     

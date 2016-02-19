@@ -9,7 +9,7 @@ from web_sources_corpus.utils import clean
 
 class DesignAndArtAustraliaOnlineSpider(Spider):
     """A spider for the Design & Art Australia Online website"""
-    name = 'daao'
+    name = 'design_and_art_australia_online'
     allowed_domains = ['www.daao.org.au']
     start_urls = ['https://www.daao.org.au/search/?q&selected_facets=record_type_exact%3APerson&page=1&advanced=false&view=view_list&results_per_page=100']
     

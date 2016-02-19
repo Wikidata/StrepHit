@@ -9,7 +9,7 @@ from web_sources_corpus.items import WebSourcesCorpusItem
 
 class AustralianDictionaryOfBiographySpider(Spider):
     """A spider for the Australian Dictionary of Biography website"""
-    name = 'adb'
+    name = 'australian_dictionary_of_biography'
     allowed_domains = ['adb.anu.edu.au']
     start_urls = ['http://adb.anu.edu.au/biographies/name/']
     
