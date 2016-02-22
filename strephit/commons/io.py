@@ -9,6 +9,7 @@ import json
 import os
 import logging
 import tarfile
+from strephit.commons import cache
 
 
 logger = logging.getLogger(__name__)
@@ -79,8 +80,6 @@ def get_and_cache(url, cache=True, cache_base='strephit_cache', **kwargs):
     Raises all HTTP errors
     :param url: URL of the page to retrieve
     :param cache: Whether to use cache
-    :param cache_base: Base directory of the cached file. Can be absolute or
-    relative, in which case it is referred to the system's temp dir.
     :param **kwargs: keyword arguments to pass to `requests.get`
     :return: The content page at the given URL, unicode
     """
@@ -89,20 +88,9 @@ def get_and_cache(url, cache=True, cache_base='strephit_cache', **kwargs):
         r.raise_for_status()
         content = r.text
     else:
-        name = hashlib.sha1(url + json.dumps(kwargs)).hexdigest()
-        if os.path.isabs(cache_base):
-            cache_dir = os.path.join(cache_base, name[:3])
-        else:
-            cache_dir = os.path.join(tempfile.gettempdir(), cache_base, name[:3])
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
-        cache_location = os.path.join(cache_dir, name)
-
-        if os.path.exists(cache_location):
-            with open(cache_location) as f:
-                content = f.read().decode('utf8')
-        else:
-            content = get_and_cache(url, cache=False, **kwargs)
-            with open(cache_location, 'w') as f:
-                f.write(content.encode('utf8'))
+        key = url + json.dumps(kwargs)
+        content = cache.get(key)
+        if content is None:
+            content = get_anc_cache(url, cache=False, **kwargs)
+            cache.set(key, content)
     return content
