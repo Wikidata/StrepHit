@@ -98,14 +98,14 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
 @click.argument('language_code')
 @click.option('-v', '--verbs', type=click.File())
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
-@click.option('-o', '--output-file', type=click.File('w'), default='verbs.json')
+@click.option('--dump-verbs', type=click.File('w'), default='verbs.json')
+@click.option('--dump-tf-idf', type=click.File('w'), default='tf_idf_ranking.json')
+@click.option('--dump-stdev', type=click.File('w'), default='stdev_ranking.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
-def main(corpus_path, document_key, language_code, verbs, tagger, output_file, tt_home):
+def main(corpus_path, document_key, language_code, verbs, tagger, dump_verbs, dump_tf_idf, dump_stdev, tt_home):
     """ Compute verb rankings of the input corpus.
     """
     pos_tagger = PosTagger(language_code, tagger, tt_home)
-    # Need to create the corpus generator twice,
-    # as it will be consumed by 2 functions, i.e., compute_tf_idf_matrix and pos_tagger.tag_many
     corpus_for_tf_idf = load_corpus(corpus_path, document_key)
     logger.info("Computing TF/IDF matrix ...")
     vectorizer, tf_idf_matrix = compute_tf_idf_matrix(corpus_for_tf_idf)
@@ -115,17 +115,22 @@ def main(corpus_path, document_key, language_code, verbs, tagger, output_file, t
         logger.info("Using cached verbs file '%s' ..." % verbs.name)
         corpus_verbs = json.load(verbs)
     else:
+        # Need to create another corpus generator,
+        # as the first was consumed by 'compute_tf_idf_matrix'
         corpus = load_corpus(corpus_path, document_key)
         logger.info("Starting part-of-speech (POS) tagging ...")
         tagged_corpus = [tagged_document for tagged_document in pos_tagger.tag_many(corpus)]
         corpus_verbs = extract_verbs(tagged_corpus, language_code)
         logger.debug("Corpus verbs: %s" % corpus_verbs)
-        logger.info("Writing extracted verbs to '%s' ..." % output_file.name)
-        json.dump(corpus_verbs, output_file, indent=2)
+        logger.info("Dumping extracted verbs to '%s' ..." % dump_verbs.name)
+        json.dump(corpus_verbs, dump_verbs, indent=2)
     logger.info("Computing verb rankings ...")
-    avg_ranking, stdev_ranking = compute_ranking(corpus_verbs, vectorizer, tf_idf_matrix)
-    logger.info("Ranking based on average TF/IDF scores: %s" % json.dumps(avg_ranking, indent=2))
-    logger.info("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking, indent=2))
+    tf_idf_ranking, stdev_ranking = compute_ranking(corpus_verbs, vectorizer, tf_idf_matrix)
+    logger.debug("Ranking based on average TF/IDF scores: %s" % json.dumps(tf_idf_ranking, indent=2))
+    logger.debug("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking, indent=2))
+    logger.info("Dumping rankings to '%s' (TF/IDF) and '%s' (stdev) ..." %(dump_tf_idf.name, dump_stdev.name))
+    json.dump(tf_idf_ranking, dump_tf_idf, indent=2)
+    json.dump(stdev_ranking, dump_stdev, indent=2)
     return 0
 
 
