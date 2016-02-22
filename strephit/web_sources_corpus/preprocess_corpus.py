@@ -27,7 +27,7 @@ def preprocess_corpus(corpus_dir, document_key, output_dir, items_per_file, min_
             count += 1
             if count % items_per_file == 0:
                 fname = filename % (count / items_per_file)
-                logger.info('processed %d items so far, continuing in %s' % (count, fname) )
+                logger.info('processed %d items so far, continuing in %s' % (count, fname))
                 current_file.close()
                 current_file = open(os.path.join(output_dir, fname), 'w')
             item['id'] = hashlib.sha1(item[document_key].encode('utf8')).hexdigest()

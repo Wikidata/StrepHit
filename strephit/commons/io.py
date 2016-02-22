@@ -26,6 +26,7 @@ def load_scraped_items(items_dir):
                         yield json.loads(line)
                     except ValueError:
                         logger.warn('cannot load item at row %d of file %s' % (n, name))
+    logger.debug('all items loaded')
 
 
 def load_corpus(items_dir, document_key):
