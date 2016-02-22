@@ -89,7 +89,7 @@ def get_and_cache(url, cache=True, cache_base='strephit_cache', **kwargs):
         r.raise_for_status()
         content = r.text
     else:
-        name = hashlib.sha1(url).hexdigest()
+        name = hashlib.sha1(url + json.dumps(kwargs)).hexdigest()
         if os.path.isabs(cache_base):
             cache_dir = os.path.join(cache_base, name[:3])
         else:
