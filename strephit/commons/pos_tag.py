@@ -84,7 +84,7 @@ def get_pos_tagger(language, **kwargs):
 @click.argument('document-key')
 @click.argument('language-code')
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
-@click.option('-o', '--output-file', type=click.File('wb'), default='pos_tagged.json')
+@click.option('-o', '--output-file', type=click.File('w'), default='pos_tagged.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
 @click.option('--batch-size', '-b', default=10000)
 def main(input_dir, document_key, language_code, tagger, output_file, tt_home, batch_size):
