@@ -1,8 +1,9 @@
 import click
-from strephit.commons import pos_tag, io
+from strephit.commons import tokenize, pos_tag, io
 
 
 CLI_COMMANDS = {
+    'tokenize': tokenize.main,
     'pos_tag': pos_tag.main,
 }
 
