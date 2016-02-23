@@ -1,31 +1,60 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
+import tempfile
+import requests
+import hashlib
 import click
 import json
 import os
 import logging
+import tarfile
+from strephit.commons import cache
 
 
 logger = logging.getLogger(__name__)
 
 
-def load_scraped_items(items_dir):
-    """ Loads all the items from a directory. All the files in that directory
-        should contain JSON-serialized items, one per line.
-        :param str items_dir: Local path containing the data files.
+def load_scraped_items(location):
+    """ Loads all the items from a directory or file.
+    :param location: Where is the corpus. If it is a directory, all files with extension
+    jsonlines will be loaded. Otherwise, if it is a file, it can be either a jsonlines
+    of a tar compressed file.
     """
-    for name in os.listdir(items_dir):
-        if name.endswith('.jsonl') or name.endswith('.jsonlines'):
-            f = os.path.join(items_dir, name)
-            with open(f) as source:
-                logger.info("Loaded input file '%s'" % name)
-                for n, line in enumerate(source):
-                    logger.debug("Processing item #%d ..." % n)
-                    try:
-                        yield json.loads(line)
-                    except ValueError:
-                        logger.warn('cannot load item at row %d of file %s' % (n, name))
+    def list_files():
+        if os.path.isfile(location):
+            if tarfile.is_tarfile(location):
+                tar = tarfile.open(location)
+                for file in tar:
+                    yield file.name, tar.extractfile(file)
+            else:
+                yield location, location
+        else:
+            for name in os.listdir(location):
+                if name.endswith('.jsonl') or name.endswith('.jsonlines'):
+                    yield name, os.path.join(location, name)
+
+    def process_stream(name, stream):
+        logger.info("Loaded input file '%s'" % name)
+        for n, line in enumerate(stream):
+            logger.debug("Processing item #%d ..." % n)
+            try:
+                yield json.loads(line)
+            except ValueError:
+                logger.warn('cannot load item at row %d of file %s' % (n, name))
+
+    for name, file in list_files():
+        if hasattr(file, 'read'):
+            try:
+                for each in process_stream(name, file):
+                    yield each
+            finally:
+                file.close()
+        else:
+            with open(file) as f:
+                for each in process_stream(name, f):
+                    yield each
+
     logger.debug('all items loaded')
 
 
@@ -41,3 +70,27 @@ def load_corpus(items_dir, document_key):
         else:
             logger.warning("Skipped item with no textual document")
             logger.debug("Item: '%s'. Provided item key: '%s'" % (item, document_key))
+
+
+def get_and_cache(url, use_cache=True, cache_base='strephit_cache', **kwargs):
+    """
+    Perform an HTTP GET request to the given url and optionally cache the
+    result somewhere in the file system. The cached content will be used
+    in the subsequent requests.
+    Raises all HTTP errors
+    :param url: URL of the page to retrieve
+    :param use_cache: Whether to use cache
+    :param **kwargs: keyword arguments to pass to `requests.get`
+    :return: The content page at the given URL, unicode
+    """
+    if not use_cache:
+        r = requests.get(url, **kwargs)
+        r.raise_for_status()
+        content = r.text
+    else:
+        key = url + json.dumps(kwargs)
+        content = cache.get(key)
+        if content is None:
+            content = get_and_cache(url, use_cache=False, **kwargs)
+            cache.set(key, content)
+    return content
