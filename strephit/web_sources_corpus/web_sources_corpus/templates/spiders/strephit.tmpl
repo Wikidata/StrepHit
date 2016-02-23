@@ -1,0 +1,24 @@
+# -*- coding: utf-8 -*-
+from web_sources_corpus.spiders import BaseSpider
+from web_sources_corpus.items import WebSourcesCorpusItem
+
+
+class $classname(BaseSpider):
+    name = "$name"
+    allowed_domains = ["$domain"]
+    start_urls = (
+        'http://www.$domain/',
+    )
+
+    list_page_selectors = 'xpath: ...'
+    detail_page_selectors = 'xpath: ...'
+    next_page_selectors = 'xpath: ...'
+
+    item_class = WebSourcesCorpusItem
+    item_fields = {
+        'name': 'xpath: ...',
+        'bio': 'xpath: ...',
+    }
+
+    def refine_item(self, response, item):
+        return super($classname, self).refine_item(response, item)

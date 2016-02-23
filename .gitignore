@@ -61,9 +61,6 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-# vim swap files
-*.swp
-
 # Test stuff
 test
 
