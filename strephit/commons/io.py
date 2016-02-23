@@ -72,18 +72,18 @@ def load_corpus(items_dir, document_key):
             logger.debug("Item: '%s'. Provided item key: '%s'" % (item, document_key))
 
 
-def get_and_cache(url, cache=True, cache_base='strephit_cache', **kwargs):
+def get_and_cache(url, use_cache=True, cache_base='strephit_cache', **kwargs):
     """
     Perform an HTTP GET request to the given url and optionally cache the
     result somewhere in the file system. The cached content will be used
     in the subsequent requests.
     Raises all HTTP errors
     :param url: URL of the page to retrieve
-    :param cache: Whether to use cache
+    :param use_cache: Whether to use cache
     :param **kwargs: keyword arguments to pass to `requests.get`
     :return: The content page at the given URL, unicode
     """
-    if not cache:
+    if not use_cache:
         r = requests.get(url, **kwargs)
         r.raise_for_status()
         content = r.text
@@ -91,6 +91,6 @@ def get_and_cache(url, cache=True, cache_base='strephit_cache', **kwargs):
         key = url + json.dumps(kwargs)
         content = cache.get(key)
         if content is None:
-            content = get_anc_cache(url, cache=False, **kwargs)
+            content = get_and_cache(url, use_cache=False, **kwargs)
             cache.set(key, content)
     return content
