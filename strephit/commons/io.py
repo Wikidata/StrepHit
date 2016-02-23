@@ -58,7 +58,7 @@ def load_scraped_items(location):
     logger.debug('all items loaded')
 
 
-def load_corpus(items_dir, document_key):
+def load_corpus(items_dir, document_key, text_only=False):
     """Load an input corpus from a directory with scraped items, in a memory-efficient way.
        Each input file must contain one JSON object per line.
        :param str document_key: a scraped item dictionary key holding textual documents
@@ -66,7 +66,11 @@ def load_corpus(items_dir, document_key):
     for item in load_scraped_items(items_dir):
         document = item.get(document_key)
         if document:
-            yield document
+            if text_only:
+                yield document
+            else:
+                # Do not lose essential metadata, i.e., name and URL
+                yield {'name': item.get('name'), 'url': item.get('url'), document_key: document}
         else:
             logger.warning("Skipped item with no textual document")
             logger.debug("Item: '%s'. Provided item key: '%s'" % (item, document_key))
