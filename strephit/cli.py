@@ -8,8 +8,9 @@ from strephit.commons import logging, cache
 
 CLI_COMMANDS = {
     'commons': strephit.commons.cli.cli,
-    'web_sources_corpus': strephit.web_sources_corpus.cli.cli,
+    'corpus_analysis': strephit.corpus_analysis.cli.cli,
     'extraction': strephit.extraction.cli.cli,
+    'web_sources_corpus': strephit.web_sources_corpus.cli.cli,
 }
 
 
