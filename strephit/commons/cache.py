@@ -7,11 +7,11 @@ import hashlib
 BASE_DIR = os.path.join(tempfile.gettempdir(), 'strephit-cache')
 
 
-def hash_for(key):
+def _hash_for(key):
     return hashlib.sha1(key.encode('utf8')).hexdigest()
 
 
-def path_for(hashed_key):
+def _path_for(hashed_key):
     """ Computes the path in which the given key should be stored.
         :return: tuple (full path, base path, file name)
     """
@@ -20,7 +20,7 @@ def path_for(hashed_key):
 
 
 def get(key, default=None):
-    loc, _, _ = path_for(hash_for(key))
+    loc, _, _ = _path_for(_hash_for(key))
     if os.path.exists(loc):
         with open(loc) as f:
             return f.read().decode('utf8')
@@ -29,7 +29,7 @@ def get(key, default=None):
 
 
 def set(key, value, overwrite=True):
-    loc, path, fname = path_for(hash_for(key))
+    loc, path, fname = _path_for(_hash_for(key))
     if overwrite or not os.path.exists(loc):
         if not os.path.exists(path):
             os.makedirs(path)
