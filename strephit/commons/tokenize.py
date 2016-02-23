@@ -30,13 +30,13 @@ class Tokenizer():
         
 
     def tokenize(self, sentence):
-        """ Tokenize and normalize (lowercase) the given sentence.
+        """ Tokenize the given sentence.
             You can also pass a generic text, but you will lose the sentence segmentation.
             :param str sentence: a natural language sentence or text to be tokenized
             :return: the list of tokens
             :rtype: list
         """
-        tokens = regex.split(self.tokenization_regex, unicode(sentence.lower()))
+        tokens = regex.split(self.tokenization_regex, unicode(sentence))
         logger.debug("'%s' tokenized into %s using regex %s" % (sentence, tokens, self.tokenization_regex))
         # Skip empty tokens
         return [token for token in tokens if token]
