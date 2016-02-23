@@ -4,7 +4,7 @@ import click
 import json
 import logging
 from collections import defaultdict
-from strephit.commons import io, wikidata
+from strephit.commons import io, wikidata, parallel
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def fix_name(name):
     except ValueError:
         pass
 
-    return name, honorifics
+    return name.strip(), honorifics
 
 
 def strip_honorifics(name):
@@ -39,7 +39,7 @@ def strip_honorifics(name):
     while changed:
         changed = False
         for prefix in ['prof', 'dr', 'phd', 'sir', 'mr', 'mrs', 'miss', 'mister',
-                       'bishop', 'st', 'hon', 'rav']:
+                       'bishop', 'arcibishop', 'st', 'hon', 'rav']:
             if name.startswith(prefix):
                 honorifics.append(prefix)
                 changed = True
@@ -49,59 +49,61 @@ def strip_honorifics(name):
     return name, honorifics
 
 
+def serialize_item((i, item, cache, language)):
+    _id = item.get('id', i)
+    name = item.get('name')
+    other = item.get('other', {})
+
+    if not name:
+        logger.debug('item %s has no name, skipping' % _id)
+        return
+
+    data = {}
+    try:
+        data = json.loads(other)
+    except ValueError:
+        pass
+    except TypeError:
+        if isinstance(other, dict):
+            data = other
+
+    name, honorifics = fix_name(name)
+    wid = get_wikidata_id(name, cache, language)
+    if not wid:
+        logger.debug('cannod find wikidata id for item %s (%s), skipping' % (
+            _id, name)
+        )
+        return
+
+    data.update(item)
+
+    for key, value in data.iteritems():
+        statement = wikidata.finalize_statement(wid, key, value, language,
+                                                item.get('url'))
+        if statement:
+            yield statement
+        else:
+            logger.debug('skipped property %s of %s (%s)' % (key, _id, name))
+
+    for each in honorifics:
+        statement = wikidata.finalize_statement(wid, 'honorific', each, language,
+                                                item.get('url'))
+        if statement:
+            yield statement
+
+
 @click.command()
 @click.argument('corpus-dir', type=click.Path())
 @click.argument('out-file', type=click.File('w'))
 @click.option('--cache/--no-cache', default=True, help='Cache HTTP requests')
 @click.option('--language', default='en', help='The names are searched in this language')
-def process_semistructured(corpus_dir, out_file, cache, language):
+@click.option('--processes', '-p', default=0)
+def process_semistructured(corpus_dir, out_file, cache, language, processes):
     """ Processes the corpus and extracts semistructured data serialized into quick statements
     """
-    skipped_properties = defaultdict(int)
-    count = skipped = 0
-    for i, item in enumerate(io.load_scraped_items(corpus_dir)):
-        count += 1
-        _id = item.get('id', i)
-        name = item.get('name')
-        other = item.get('other', {})
 
-        if not name:
-            logger.debug('item %s has no name, skipping' % _id)
-            skipped += 1
-            continue
-
-        data = {}
-        try:
-            data = json.loads(other)
-        except ValueError:
-            pass
-        except TypeError:
-            if isinstance(other, dict):
-                data = other
-
-        name, honorifics = fix_name(name)
-        wid = get_wikidata_id(name, cache, language)
-        if not wid:
-            skipped += 1
-            logger.debug('cannod find wikidata id for item %s (%s), skipping' % (
-                _id, name)
-            )
-            continue
-
-        data.update(item)
-        for key, value in data.iteritems():
-            statement = wikidata.finalize_statement(wid, key, value, language,
-                                                    item.get('url'))
-            if statement:
-                out_file.write(statement.encode('utf8') + '\n')
-            else:
-                logger.debug('skipped property %s of %s (%s)' % (key, _id, name))
-
-        for each in honorifics:
-            statement = wikidata.finalize_statement(wid, 'honorific', each, language,
-                                                    item.get('url'))
-            if statement:
-                out_file.write(statement.encode('utf8') + '\n')
-
-    logger.info('Total items: %d - Skipped items: %d' % (count, skipped))
-    print skipped_properties
+    params = ((i, item, cache, language)
+             for i, item in enumerate(io.load_scraped_items(corpus_dir)))
+    for statement in parallel.map(serialize_item, params, processes, flatten=True):
+        out_file.write(statement.encode('utf8'))
+        out_file.write('\n')

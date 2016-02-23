@@ -166,7 +166,7 @@ def finalize_statement(subject, property, value, language, url=None,
 
     statement = '%s\t%s\t%s' % (subject, property, value)
     if url:
-        pass  # fixme add statement source
+        statement += '\tS854\t"%s"' % url
 
     return statement
 
