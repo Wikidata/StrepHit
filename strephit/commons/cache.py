@@ -4,7 +4,7 @@ import os
 import hashlib
 
 
-BASE_DIR = tempfile.gettempdir()
+BASE_DIR = os.path.join(tempfile.gettempdir(), 'strephit-cache')
 
 
 def hash_for(key):
