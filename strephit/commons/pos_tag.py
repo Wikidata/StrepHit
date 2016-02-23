@@ -6,11 +6,12 @@ import click
 import json
 import logging
 from sys import exit
-from strephit.commons.io import load_corpus
 from treetaggerwrapper import TreeTagger, make_tags
 from treetaggerpoll import TaggerProcessPoll
 from treetaggerwrapper import make_tags, NotTag
 from nltk import pos_tag, word_tokenize, pos_tag_sents
+from strephit.commons.io import load_corpus
+from strephit.commons.tokenize import Tokenizer
 
 
 logger = logging.getLogger(__name__)
@@ -37,15 +38,53 @@ class TTPosTagger():
     def __init__(self, language, tt_home=None, **kwargs):
         self.language = language
         self.tt_home = tt_home
-        self.tagger = TreeTagger(TAGLANG=language, TAGDIR=tt_home, **kwargs)
+        self.tokenizer = Tokenizer(language)
+        self.tagger = TreeTagger(
+            TAGLANG=language,
+            TAGDIR=tt_home,
+            # Explicit TAGOPT: the default has the '-no-unknown' option,
+            # which prints the token rather than '<unknown>' for unknown lemmas
+            # We'd rather skip unknown lemmas, as they are likely to be wrong tags
+            TAGOPT=u'-token -lemma -sgml -quiet',
+            # Use our tokenization logic (CHUNKERPROC here)
+            CHUNKERPROC=self._tokenizer_wrapper,
+            **kwargs
+        )
+
+    def _tokenizer_wrapper(self, tagger, text_list):
+        """ Wrap the tokenization logic with the signature required by the TreeTagger CHUNKERPROC kwarg
+        """
+        tokens = []
+        for text in text_list:
+            for token in self.tokenizer.tokenize(text):
+                tokens.append(token)
+        return tokens
+
+    def _postprocess_tags(self, tags, skip_unknown=True):
+        """ Clean tagged data from non-tags and unknown lemmas (optionally) """
+        clean_tags = []
+        for tag in tags:
+            if type(tag) == NotTag:
+                logger.warn("Non-tag found: %s. Skipping ..." % repr(tag))
+                continue
+            if skip_unknown and tag.lemma == u'<unknown>':
+                logger.warn("Unknown lemma found: %s. Skipping ..." % repr(tag))
+                continue
+            clean_tags.append(tag)
+        return clean_tags
 
     def tag_one(self, text, **kwargs):
-        """ POS-Tags the given text """
-        return make_tags(self.tagger.tag_text(text))
+        """ POS-Tags the given text, eventually skipping unknown lemmas """
+        return self._postprocess_tags(make_tags(self.tagger.tag_text(text)))
 
     def tag_many(self, documents, batch_size=10000, **kwargs):
         """ POS-Tags many text documents. Use this for massive text tagging """
-        tt_pool = TaggerProcessPoll(TAGLANG=self.language, TAGDIR=self.tt_home)
+        tt_pool = TaggerProcessPoll(
+            TAGLANG=self.language,
+            TAGDIR=self.tt_home,
+            TAGOPT=u'-token -lemma -sgml -quiet',
+            CHUNKERPROC=self._tokenizer_wrapper
+        )
         try:
             jobs = []
             for i, text in enumerate(documents):
@@ -62,16 +101,7 @@ class TTPosTagger():
     def _finalize_batch(self, jobs):
         for job in jobs:
             job.wait_finished()
-            tags = []
-            tagged = make_tags(job.result)
-            # TreeTagger may find non-tags, probably some scraped garbage
-            # Skip them, but keep a trace in the log
-            for tag in tagged:
-                if type(tag) == NotTag:
-                    logger.warn("Non-tag found: '%s'. Skipping ..." % tag)
-                else:
-                    tags.append(tag)
-            yield tags
+            yield self._postprocess_tags(make_tags(job.result))
 
 
 def get_pos_tagger(language, **kwargs):
