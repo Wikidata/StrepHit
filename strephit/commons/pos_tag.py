@@ -73,12 +73,14 @@ class TTPosTagger():
             clean_tags.append(tag)
         return clean_tags
 
-    def tag_one(self, text, **kwargs):
-        """ POS-Tags the given text, eventually skipping unknown lemmas """
-        return self._postprocess_tags(make_tags(self.tagger.tag_text(text)))
+    def tag_one(self, item, document_key, **kwargs):
+        """ POS-Tags the text document of the given item, eventually skipping unknown lemmas """
+        item['pos_tagged'] = self._postprocess_tags(make_tags(self.tagger.tag_text(item[document_key])))
+        item.pop(document_key)
+        return item
 
-    def tag_many(self, documents, batch_size=10000, **kwargs):
-        """ POS-Tags many text documents. Use this for massive text tagging """
+    def tag_many(self, items, document_key, batch_size=10000, **kwargs):
+        """ POS-Tags many text documents of the given items. Use this for massive text tagging """
         tt_pool = TaggerProcessPoll(
             TAGLANG=self.language,
             TAGDIR=self.tt_home,
@@ -87,14 +89,18 @@ class TTPosTagger():
         )
         try:
             jobs = []
-            for i, text in enumerate(documents):
-                jobs.append(tt_pool.tag_text_async(text, **kwargs))
+            for i, item in enumerate(items):
+                jobs.append(tt_pool.tag_text_async(item[document_key], **kwargs))
                 if i % batch_size == 0:
                     for each in self._finalize_batch(jobs):
-                        yield each
+                        item['pos_tagged'] = each
+                        item.pop(document_key)
+                        yield item
                     jobs = []
             for each in self._finalize_batch(jobs):
-                yield each
+                item['pos_tagged'] = each
+                item.pop(document_key)
+                yield item
         finally:
             tt_pool.stop_poll()
 
