@@ -11,5 +11,5 @@ CLI_COMMANDS = {
 @click.group(name='extraction', commands=CLI_COMMANDS)
 @click.pass_context
 def cli(ctx):
-    """ Corpus retrieval from the web """
+    """ Data extraction from the corpus """
     pass
