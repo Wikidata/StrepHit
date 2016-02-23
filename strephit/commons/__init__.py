@@ -5,3 +5,4 @@ import logging
 import cache
 import wikidata
 import datetime
+import parallel

@@ -32,7 +32,7 @@ def set(key, value, overwrite=True):
     loc, path, fname = path_for(hash_for(key))
     if overwrite or not os.path.exists(loc):
         if not os.path.exists(path):
-            os.mkdir(path)
+            os.makedirs(path)
         with open(loc, 'w') as f:
             f.write(value.encode('utf8'))
 
