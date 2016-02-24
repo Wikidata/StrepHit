@@ -65,18 +65,18 @@ class TTPosTagger():
         clean_tags = []
         for tag in tags:
             if type(tag) == NotTag:
-                logger.warn("Non-tag found: %s. Skipping ..." % repr(tag))
+                logger.debug("Non-tag found: %s. Skipping ..." % repr(tag))
                 continue
             if skip_unknown and tag.lemma == u'<unknown>':
-                logger.warn("Unknown lemma found: %s. Skipping ..." % repr(tag))
+                logger.debug("Unknown lemma found: %s. Skipping ..." % repr(tag))
                 continue
             clean_tags.append(tag)
         return clean_tags
 
     def tag_one(self, item, document_key, **kwargs):
         """ POS-Tags the text document of the given item, eventually skipping unknown lemmas """
-        item['pos_tagged'] = self._postprocess_tags(make_tags(self.tagger.tag_text(item[document_key])))
-        item.pop(document_key)
+        # Replace text document with POS-tagged document
+        item[document_key] = self._postprocess_tags(make_tags(self.tagger.tag_text(item[document_key])))
         return item
 
     def tag_many(self, items, document_key, batch_size=10000, **kwargs):
@@ -93,13 +93,12 @@ class TTPosTagger():
                 jobs.append(tt_pool.tag_text_async(item[document_key], **kwargs))
                 if i % batch_size == 0:
                     for each in self._finalize_batch(jobs):
-                        item['pos_tagged'] = each
-                        item.pop(document_key)
+                        # Replace text document with POS-tagged document
+                        item[document_key] = each
                         yield item
                     jobs = []
             for each in self._finalize_batch(jobs):
-                item['pos_tagged'] = each
-                item.pop(document_key)
+                item[document_key] = each
                 yield item
         finally:
             tt_pool.stop_poll()
