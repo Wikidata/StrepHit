@@ -20,21 +20,36 @@ def _path_for(hashed_key):
 
 
 def get(key, default=None):
-    loc, _, _ = _path_for(_hash_for(key))
+    hashed = _hash_for(key)
+    loc, _, _ = _path_for(hashed)
     if os.path.exists(loc):
         with open(loc) as f:
-            return f.read().decode('utf8')
+            stored_key = f.readline().decode('utf8')[:-1]
+            if stored_key == key:
+                return f.read().decode('utf8')
+            else:
+                return get(key + hashed, default)
     else:
         return default
 
 
 def set(key, value, overwrite=True):
-    loc, path, fname = _path_for(_hash_for(key))
-    if overwrite or not os.path.exists(loc):
-        if not os.path.exists(path):
-            os.makedirs(path)
+    hashed = _hash_for(key)
+    loc, path, fname = _path_for(hashed)
+    if not os.path.exists(loc):
+        os.makedirs(path)
         with open(loc, 'w') as f:
+            f.write(key.encode('utf8') + '\n')
             f.write(value.encode('utf8'))
+    else:
+        with open(loc, 'r+') as f:
+            stored_key = f.readline().decode('utf8')[:-1]
+            if stored_key == key:
+                if overwrite:
+                    f.write(value.encode('utf8'))
+                    f.truncate()
+                return
+        set(key + hashed, value, overwrite)
 
 
 def cached(function):

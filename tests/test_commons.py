@@ -117,7 +117,24 @@ class TestCache(unittest.TestCase):
         cache.set(u'\u84c4\u3048\u3066 \u304f\u3060\u3055\u3044',
                   u'\u304a\u75b2\u308c\u3055\u307e')
         self.assertEqual(cache.get(u'\u84c4\u3048\u3066 \u304f\u3060\u3055\u3044'),
-                         u'\u304a\u75b2\u308c\u3055\u307e')
+                                   u'\u304a\u75b2\u308c\u3055\u307e')
+
+    def test_collisions(self):
+        old_hash = cache._hash_for
+        def collision_hash(key):
+            if key in {'key-1', 'key-2'}:
+                return 'the same hashed value'
+            else:
+                return old_hash(key)
+        cache._hash_for = collision_hash
+
+        cache.set('key-1', 'value-1')
+        cache.set('key-2', 'value-2')
+
+        self.assertEqual(cache.get('key-1'), 'value-1')
+        self.assertEqual(cache.get('key-2'), 'value-2')
+
+        cache._hash_for = old_hash
 
 
 class TestWikidata(unittest.TestCase):
