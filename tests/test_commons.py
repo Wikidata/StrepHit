@@ -5,7 +5,7 @@ import tempfile
 import random
 import unittest
 import itertools
-from strephit.commons import parallel, cache
+from strephit.commons import parallel, cache, wikidata
 from collections import Counter
 
 
@@ -114,6 +114,33 @@ class TestCache(unittest.TestCase):
             self.assertEqual(val, self.not_entirely_random_hex_string(128))
 
     def test_unicode(self):
-        cache.set(u'蓄えて ください',  u'お疲れさま')
-        self.assertEqual(cache.get(u'蓄えて ください', u'お疲れさま'),
-                         u'お疲れさま')
+        cache.set(u'\u84c4\u3048\u3066 \u304f\u3060\u3055\u3044',
+                  u'\u304a\u75b2\u308c\u3055\u307e')
+        self.assertEqual(cache.get(u'\u84c4\u3048\u3066 \u304f\u3060\u3055\u3044'),
+                         u'\u304a\u75b2\u308c\u3055\u307e')
+
+
+class TestWikidata(unittest.TestCase):
+    def test_width(self):
+        self.assertEqual(wikidata.format_date(1967, 1, 17),
+                         '+00000001967-01-17T00:00:00Z/11')
+
+    def test_negative(self):
+        self.assertEqual(wikidata.format_date(-100, None, None),
+                         '-00000000100-01-01T00:00:00Z/9')
+        self.assertRaises(ValueError, wikidata.format_date, 100, -1, 1)
+        self.assertRaises(ValueError, wikidata.format_date, 100, 1, -1)
+
+    def test_missing(self):
+        self.assertRaises(ValueError, wikidata.format_date, None, None, None)
+        self.assertRaises(ValueError, wikidata.format_date, None, None, 1)
+        self.assertRaises(ValueError, wikidata.format_date, None, 1, None)
+        self.assertRaises(ValueError, wikidata.format_date, 1, None, 1)
+
+        try:
+            wikidata.format_date(1, 1, 1)
+            wikidata.format_date(1, 1, None)
+            wikidata.format_date(1, None, None)
+            wikidata.format_date(None, 1, 1)
+        except ValueError:
+            self.fail('date should be accepted')

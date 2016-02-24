@@ -76,6 +76,7 @@ def serialize_item((i, item, cache, language)):
         return
 
     data.update(item)
+    data['name'] = name
 
     for key, value in data.iteritems():
         statement = wikidata.finalize_statement(wid, key, value, language,
