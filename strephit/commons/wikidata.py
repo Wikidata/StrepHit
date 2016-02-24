@@ -131,7 +131,7 @@ def date_resolver(property, value, language):
         return None
     try:
         res = datetime.parse(value)
-        return format_date(res)
+        return format_date(**res)
     except ValueError:
         logger.debug('cannot parse date ' + value)
         return None
@@ -171,27 +171,42 @@ def finalize_statement(subject, property, value, language, url=None,
     return statement
 
 
-def format_date(date):
-    """ Formats a date according to Wikidata syntax
-        :param date: dictionary with keys `year`, `month` and `day`
+def format_date(year, month, day):
+    """ Formats a date according to Wikidata syntax. Assumes that the date is mostly
+        correct. The allowed values of the parameters are shown in the following
+        truth table
+
+            y m d ok
+            --------
+            1 1 1  1
+            1 1 0  1
+            1 0 1  0
+            1 0 0  1
+            --------
+            0 1 1  1
+            0 1 0  0
+            0 0 1  0
+            0 0 0  0
+
+        :param year: year of the date
+        :param month: month of the date. Only positive values allowed
+        :param day: day of the date. Only positive values allowed
     """
-    year, month, day = date.get('year'), date.get('month'), date.get('day')
     if day:
         precision = 11
     elif month:
         precision = 10
-    elif year:
+    elif year is not None:
         precision = 9
     else:
         raise ValueError('empty date')
 
-    if year and month and day:
-        return '+0000000%s-%s-%sT00:00:00Z/%s' % (year, month, day, precision)
-    elif year and month and not day:
-        return '+0000000%s-%s-01T00:00:00Z/%s' % (year, month, precision)
-    elif year and not month and not day:
-        return '+0000000%s-01-01T00:00:00Z/%s' % (year, precision)
-    elif not year and month and day:
-        return '+00000000000-%s-%sT00:00:00Z/%s' % (year, month, precision)
-    else:
-        raise ValueError('don\'t know how to format' + date)
+    if (month and day) or (year is not None and not day):
+        year = int(year) if year is not None else 0
+        month = int(month) if month else 1
+        day = int(day) if day else 1
+
+        if month > 0 and day > 0:
+            return '%+012d-%02d-%02dT00:00:00Z/%d' % (year, month, day, precision)
+
+    raise ValueError('don\'t know how to format')

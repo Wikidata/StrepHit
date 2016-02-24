@@ -3,11 +3,14 @@
 
 import click
 import json
-from commons.logger import logger
+import logging
 from sys import exit
 from time import time
 from nltk import pos_tag, word_tokenize
 from treetaggerwrapper import TreeTagger, make_tags
+
+
+logger = logging.getLogger(__name__)
 
 
 def tag(text, tt_home):
