@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict, OrderedDict
 from sys import exit
 from strephit.commons.pos_tag import TTPosTagger
-from strephit.commons.io import load_corpus
+from strephit.commons.io import load_corpus, load_dumped_corpus, dump_corpus
 from numpy import average
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
@@ -95,50 +95,62 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
     return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)), OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
 
 
+
 @click.command()
 @click.argument('corpus_path', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document_key')
 @click.argument('language_code')
-@click.option('--pos-tagged', '-p', type=click.File(), help="Cached POS-tagged JSON file, to avoid POS-tagging again")
-@click.option('--dump-pos-tagged', type=click.File('w'), default='pos_tagged.json')
-@click.option('--dump-verbs', type=click.File('w'), default='verbs.json')
-@click.option('--dump-tf-idf', type=click.File('w'), default='tf_idf_ranking.json')
-@click.option('--dump-stdev', type=click.File('w'), default='stdev_ranking.json')
+@click.option('--pre-processed-corpus', '-c', type=click.File(), help="Load a pre-processed corpus JSON file, to avoid reloading")
+@click.option('--pos-tagged', '-p', type=click.File(), help="POS-tagged JSON file, to avoid POS-tagging again")
+@click.option('--corpus', type=click.File('w'), default='corpus.jsonlines')
+@click.option('--pos', type=click.File('w'), default='pos_tagged.json')
+@click.option('--verbs', type=click.File('w'), default='verbs.json')
+@click.option('--tf-idf', type=click.File('w'), default='tf_idf_ranking.json')
+@click.option('--stdev', type=click.File('w'), default='stdev_ranking.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
-def main(corpus_path, document_key, language_code, pos_tagged, dump_pos_tagged, dump_verbs, dump_tf_idf, dump_stdev, tt_home):
+def main(corpus_path, document_key, language_code, pre_processed_corpus, pos_tagged, corpus, pos, verbs, tf_idf, stdev, tt_home):
     """ Compute verb rankings of the input corpus.
     """
-    pos_tagger = TTPosTagger(language_code, tt_home)
-    corpus_for_tf_idf = load_corpus(corpus_path, document_key, text_only=True)
+    if pre_processed_corpus:
+        logger.info("Loading pre-processed corpus from '%s' ..." % pre_processed_corpus.name)
+        # TODO 2 generators for 2 tasks ain't no good, refactor this
+        corpus_for_tf_idf = load_dumped_corpus(pre_processed_corpus, document_key, text_only=True)
+        corpus_for_pos = load_dumped_corpus(pre_processed_corpus, document_key)
+    else:
+        # TODO 3 generators for 3 tasks ain't no good, refactor this
+        corpus_for_tf_idf = load_corpus(corpus_path, document_key, text_only=True)
+        corpus_for_pos = load_corpus(corpus_path, document_key)
+        corpus_to_dump = load_corpus(corpus_path, document_key)
+        dump_corpus(corpus_to_dump, corpus)
     logger.info("Computing TF/IDF matrix ...")
     vectorizer, tf_idf_matrix = compute_tf_idf_matrix(corpus_for_tf_idf)
     corpus_verbs = defaultdict(set)
     # Use the cached POS-tagged file if it exists
     if pos_tagged:
-        logger.info("Loading cached POS-tagged file '%s' ..." % verbs.name)
+        logger.info("Loading POS-tagged file '%s' ..." % verbs.name)
         tagged_corpus = json.load(pos_tagged)
         for tagged_item in tagged_corpus:
             logger.debug("Extracting verbs from POS-tagged document: %s" % tagged_item[document_key])
             corpus_verbs = extract_verbs(tagged_item, document_key, language_code, corpus_verbs)
     else:
-        logger.info("The POS-tagged corpus will be dumped to '%s'" % dump_pos_tagged.name)
-        corpus = load_corpus(corpus_path, document_key)
+        logger.info("The POS-tagged corpus will be dumped to '%s'" % pos.name)
         logger.info("Starting part-of-speech (POS) tagging ...")
-        for tagged in pos_tagger.tag_many(corpus, document_key):
-            dump_pos_tagged.write(json.dumps(tagged, indent=2))
+        pos_tagger = TTPosTagger(language_code, tt_home)
+        for tagged in pos_tagger.tag_many(corpus_for_pos, document_key):
+            pos.write(json.dumps(tagged))
             corpus_verbs = extract_verbs(tagged, document_key, language_code, corpus_verbs)
     # sets are not JSON serializable, so cast them to lists
     dumpable_corpus_verbs = {lemma: list(tokens) for lemma, tokens in corpus_verbs.iteritems()}
     logger.debug("Corpus verbs: %s" % corpus_verbs)
-    logger.info("Dumping extracted verbs to '%s' ..." % dump_verbs.name)
-    json.dump(dumpable_corpus_verbs, dump_verbs, indent=2)
+    logger.info("Dumping extracted verbs to '%s' ..." % verbs.name)
+    json.dump(dumpable_corpus_verbs, verbs, indent=2)
     logger.info("Computing verb rankings ...")
     tf_idf_ranking, stdev_ranking = compute_ranking(corpus_verbs, vectorizer, tf_idf_matrix)
     logger.debug("Ranking based on average TF/IDF scores: %s" % json.dumps(tf_idf_ranking, indent=2))
     logger.debug("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking, indent=2))
-    logger.info("Dumping rankings to '%s' (TF/IDF) and '%s' (stdev) ..." %(dump_tf_idf.name, dump_stdev.name))
-    json.dump(tf_idf_ranking, dump_tf_idf, indent=2)
-    json.dump(stdev_ranking, dump_stdev, indent=2)
+    logger.info("Dumping rankings to '%s' (TF/IDF) and '%s' (stdev) ..." %(tf_idf.name, stdev.name))
+    json.dump(tf_idf_ranking, tf_idf, indent=2)
+    json.dump(stdev_ranking, stdev, indent=2)
     return 0
 
 
