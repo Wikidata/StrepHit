@@ -72,8 +72,7 @@ def load_corpus(items_dir, document_key, text_only=False):
                 # Do not lose essential metadata, i.e., name and URL
                 yield {'name': item.get('name'), 'url': item.get('url'), document_key: document}
         else:
-            logger.warning("Skipped item with no textual document")
-            logger.debug("Item: '%s'. Provided item key: '%s'" % (item, document_key))
+            logger.debug("Skipped item with no text document: '%s'. Provided item key: '%s'" % (item, document_key))
 
 
 def get_and_cache(url, use_cache=True, cache_base='strephit_cache', **kwargs):
