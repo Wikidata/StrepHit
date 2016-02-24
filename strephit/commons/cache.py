@@ -37,7 +37,9 @@ def set(key, value, overwrite=True):
     hashed = _hash_for(key)
     loc, path, fname = _path_for(hashed)
     if not os.path.exists(loc):
-        os.makedirs(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         with open(loc, 'w') as f:
             f.write(key.encode('utf8') + '\n')
             f.write(value.encode('utf8'))

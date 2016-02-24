@@ -80,11 +80,15 @@ class TestCache(unittest.TestCase):
 
     def setUp(self):
         self.cache_loc = self.random_hex_string(8)
+        self.cache_hash_for = cache._hash_for
+        self.cache_path_for = cache._path_for
         cache.BASE_DIR = os.path.join(tempfile.gettempdir(), self.cache_loc)
         os.makedirs(cache.BASE_DIR)
 
     def tearDown(self):
         shutil.rmtree(cache.BASE_DIR)
+        cache._hash_for = self.cache_hash_for
+        cache._path_for = self.cache_path_for
 
     def test_path(self):
         hashed = 'hashed key'
@@ -120,12 +124,11 @@ class TestCache(unittest.TestCase):
                                    u'\u304a\u75b2\u308c\u3055\u307e')
 
     def test_collisions(self):
-        old_hash = cache._hash_for
         def collision_hash(key):
             if key in {'key-1', 'key-2'}:
                 return 'the same hashed value'
             else:
-                return old_hash(key)
+                return self.cache_hash_for(key)
         cache._hash_for = collision_hash
 
         cache.set('key-1', 'value-1')
@@ -134,7 +137,14 @@ class TestCache(unittest.TestCase):
         self.assertEqual(cache.get('key-1'), 'value-1')
         self.assertEqual(cache.get('key-2'), 'value-2')
 
-        cache._hash_for = old_hash
+    def test_folder_creation(self):
+        def same_prefix_path(hashed):
+            base = os.path.join(cache.BASE_DIR, 'some prefix')
+            return os.path.join(base, hashed), base, hashed
+        cache._path_for = same_prefix_path
+
+        cache.set('key1', 'value1')
+        cache.set('key2', 'valie2')
 
 
 class TestWikidata(unittest.TestCase):
