@@ -18,7 +18,7 @@ class NndbComSpider(BaseSpider):
 
     item_class = WebSourcesCorpusItem
     item_fields = {
-        'name': 'clean:xpath:.//table//td[1]//table//tr[3]//table//td//b1/text()'
+        'name': 'clean:xpath:.//td/font/b/text()',
     }
 
     def refine_item(self, response, item):
@@ -40,6 +40,7 @@ class NndbComSpider(BaseSpider):
 
         item['birth'] = data.get('born')
         item['death'] = data.get('died')
+        item['other'] = data
         if not item['bio']:
             del item['bio']
 
