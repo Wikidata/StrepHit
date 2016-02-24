@@ -59,20 +59,42 @@ def load_scraped_items(location):
 
 
 def load_corpus(items_dir, document_key, text_only=False):
-    """Load an input corpus from a directory with scraped items, in a memory-efficient way.
-       Each input file must contain one JSON object per line.
-       :param str document_key: a scraped item dictionary key holding textual documents
+    """ Load an input corpus from a directory with scraped items, in a memory-efficient way.
+        Each input file must contain one JSON object per line.
+        :param str document_key: a scraped item dictionary key holding textual documents
     """
     for item in load_scraped_items(items_dir):
         document = item.get(document_key)
         if document:
             if text_only:
-                yield document
+                # Sometimes the document may be a list of strings, depending on how it was scraped
+                if type(document) == list:
+                    yield '\n'.join(document)
+                else:
+                    yield document
             else:
                 # Do not lose essential metadata, i.e., name and URL
                 yield {'name': item.get('name'), 'url': item.get('url'), document_key: document}
         else:
             logger.debug("Skipped item with no text document: '%s'. Provided item key: '%s'" % (item, document_key))
+
+
+def load_dumped_corpus(dump_file_handle, document_key, text_only=False):
+    """ Load a previously dumped corpus file, in a memory-efficient way. """
+    for line in dump_file_handle:
+        item = json.loads(line)
+        if text_only:
+            yield item[document_key]
+        else:
+            yield item
+
+
+def dump_corpus(corpus, dump_file_handle):
+    """ Dump a loaded corpus to a file with one JSON object per line ."""
+    logger.info("Will dump corpus to '%s' ... Format: JSON objects with metadata, one per line" % dump_file_handle.name)
+    for item in corpus:
+        dump_file_handle.write(json.dumps(item) + '\n')
+    return 0
 
 
 def get_and_cache(url, use_cache=True, cache_base='strephit_cache', **kwargs):
