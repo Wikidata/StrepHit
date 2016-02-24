@@ -32,7 +32,7 @@ def parse(string):
 
 
 _custom_patterns = map(lambda (pattern, transform): (re.compile(pattern), transform), [
-    ('b\.c\. (?P<y>\d+)', lambda match: {'year': '-' + match.group('y')})
+    ('b\.c\. (?P<y>\d+)', lambda match: {'year': int('-' + match.group('y'))}),
 ])
 
 

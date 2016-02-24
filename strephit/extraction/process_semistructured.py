@@ -22,13 +22,13 @@ def get_wikidata_id(name, cache, language):
 def fix_name(name):
     name = name.lower()
 
-    name, honorifics = strip_honorifics(name)
-
     try:
         last_name, first_name = name.split(',', 1)
         name = first_name.strip() + ' ' + last_name.strip()
     except ValueError:
         pass
+
+    name, honorifics = strip_honorifics(name)
 
     return name.strip(), honorifics
 
@@ -39,13 +39,14 @@ def strip_honorifics(name):
     while changed:
         changed = False
         for prefix in ['prof', 'dr', 'phd', 'sir', 'mr', 'mrs', 'miss', 'mister',
-                       'bishop', 'arcibishop', 'st', 'hon', 'rav']:
+                       'bishop', 'arcibishop', 'st', 'hon', 'rev', 'prof']:
             if name.startswith(prefix):
                 honorifics.append(prefix)
                 changed = True
                 name = name[len(prefix):]
                 if name[0] == '.':
-                    name = name[1:].strip()
+                    name = name[1:]
+                name = name.strip()
     return name, honorifics
 
 
@@ -76,7 +77,7 @@ def serialize_item((i, item, cache, language)):
         return
 
     data.update(item)
-    data['name'] = name
+    data['name'] = name  # use the fixed name
 
     for key, value in data.iteritems():
         statement = wikidata.finalize_statement(wid, key, value, language,

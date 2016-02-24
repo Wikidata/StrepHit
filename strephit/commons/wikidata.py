@@ -84,8 +84,7 @@ def resolve(property, value, language):
     if property in PROPERTY_RESOLVERS:
         return PROPERTY_RESOLVERS[property](property, value, language)
     else:
-        val  = identity_resolver(property, value, language)  # fixme remove once mapping is done
-        return '"%s"' % val if val else None
+        return identity_resolver(property, value, language)  # fixme remove once mapping is done
         logger.warn("don't know how to resolve value %s of property %s" % (
             repr(value), property
         ))
@@ -94,7 +93,7 @@ def resolve(property, value, language):
 
 @resolver('P1035')
 def identity_resolver(property, value, language):
-    return value
+    return '"%s"' % value
 
 
 @cache.cached

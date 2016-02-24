@@ -5,7 +5,7 @@ import tempfile
 import random
 import unittest
 import itertools
-from strephit.commons import parallel, cache, wikidata
+from strephit.commons import parallel, cache, wikidata, datetime
 from collections import Counter
 
 
@@ -143,8 +143,11 @@ class TestCache(unittest.TestCase):
             return os.path.join(base, hashed), base, hashed
         cache._path_for = same_prefix_path
 
-        cache.set('key1', 'value1')
-        cache.set('key2', 'valie2')
+        try:
+            cache.set('key1', 'value1')
+            cache.set('key2', 'value2')
+        except OSError:
+            self.fail('failed to set cache')
 
 
 class TestWikidata(unittest.TestCase):
@@ -171,3 +174,24 @@ class TestWikidata(unittest.TestCase):
             wikidata.format_date(None, 1, 1)
         except ValueError:
             self.fail('date should be accepted')
+
+    def test_gender_resolver(self):
+        self.assertEqual(wikidata.gender_resolver('P21', 'male', 'en'), 'Q6581097')
+        self.assertEqual(wikidata.gender_resolver('P21', 'maschio', 'it'), 'Q6581097')
+        self.assertEqual(wikidata.gender_resolver('P21', 'female', 'en'), 'Q6581072')
+        self.assertEqual(wikidata.gender_resolver('P21', 'femmina', 'it'), 'Q6581072')
+
+    def test_resolvers(self):
+        self.assertEqual(wikidata.resolve('P21', 'male', 'en'), 'Q6581097')
+        self.assertEqual(wikidata.resolve('P570', 'Feb 24, 2016', 'en'),
+                         '+00000002016-02-24T00:00:00Z/11')
+
+
+class TestDatetime(unittest.TestCase):
+    def test_simple(self):
+        self.assertEqual(datetime.parse('24/2/2016'),
+                         {'year': 2016, 'month': 2, 'day': 24})
+
+    def test_fallbacks(self):
+        self.assertEqual(datetime.parse('b.c. 123'),
+                         {'year': -123, 'day': None, 'month': None})
