@@ -139,11 +139,12 @@ def main(corpus_path, document_key, language_code, pre_processed_corpus, pos_tag
         for tagged in pos_tagger.tag_many(corpus_for_pos, document_key):
             pos.write(json.dumps(tagged))
             corpus_verbs = extract_verbs(tagged, document_key, language_code, corpus_verbs)
-    # sets are not JSON serializable, so cast them to lists
+    # Sets are not JSON serializable, so cast them to lists
     dumpable_corpus_verbs = {lemma: list(tokens) for lemma, tokens in corpus_verbs.iteritems()}
     logger.debug("Corpus verbs: %s" % corpus_verbs)
     logger.info("Dumping extracted verbs to '%s' ..." % verbs.name)
-    json.dump(dumpable_corpus_verbs, verbs, indent=2)
+    # Alphabetically sort lemmas (keys)
+    json.dump(OrderedDict(sorted(dumpable_corpus_verbs.items(), key=lambda t: t[0])), verbs, indent=2)
     logger.info("Computing verb rankings ...")
     tf_idf_ranking, stdev_ranking = compute_ranking(corpus_verbs, vectorizer, tf_idf_matrix)
     logger.debug("Ranking based on average TF/IDF scores: %s" % json.dumps(tf_idf_ranking, indent=2))
