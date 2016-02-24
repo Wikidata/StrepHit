@@ -69,6 +69,7 @@ def load_corpus(items_dir, document_key, text_only=False):
             if text_only:
                 # Sometimes the document may be a list of strings, depending on how it was scraped
                 if type(document) == list:
+                    logger.debug("Text document as a list, will convert it into a string: %s" % document)
                     yield '\n'.join(document)
                 else:
                     yield document
