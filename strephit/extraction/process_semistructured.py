@@ -50,10 +50,15 @@ def strip_honorifics(name):
     return name, honorifics
 
 
-def serialize_item((i, item, cache, language)):
+def serialize_item((i, item, cache, language, sourced_only)):
     _id = item.get('id', i)
     name = item.get('name')
     other = item.get('other', {})
+    url = item.get('url')
+
+    if sourced_only and not url:
+        logger.debug('item %s has no url, skipping' % _id)
+        return
 
     if not name:
         logger.debug('item %s has no name, skipping' % _id)
@@ -98,13 +103,14 @@ def serialize_item((i, item, cache, language)):
 @click.argument('corpus-dir', type=click.Path())
 @click.argument('out-file', type=click.File('w'))
 @click.option('--cache/--no-cache', default=True, help='Cache HTTP requests')
+@click.option('--sourced-only/--allow-unsourced', default=True)
 @click.option('--language', default='en', help='The names are searched in this language')
 @click.option('--processes', '-p', default=0)
-def process_semistructured(corpus_dir, out_file, cache, language, processes):
+def process_semistructured(corpus_dir, out_file, cache, language, processes, sourced_only):
     """ Processes the corpus and extracts semistructured data serialized into quick statements
     """
 
-    params = ((i, item, cache, language)
+    params = ((i, item, cache, language, sourced_only)
              for i, item in enumerate(io.load_scraped_items(corpus_dir)))
     for statement in parallel.map(serialize_item, params, processes, flatten=True):
         out_file.write(statement.encode('utf8'))
