@@ -66,3 +66,7 @@ test
 
 # vim
 *.swp
+
+# RopeMate autocompletion
+.ropeproject/
+
