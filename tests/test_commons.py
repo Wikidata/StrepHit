@@ -149,6 +149,20 @@ class TestCache(unittest.TestCase):
         except OSError:
             self.fail('failed to set cache')
 
+    def test_decorator_key(self):
+        @cache.cached
+        def function1(x):
+            return 'something from function 1'
+
+        @cache.cached
+        def function2(x):
+            return 'something from function 2'
+
+        function1('value')
+        function2('value')
+
+        self.assertNotEqual(function1('value'), function2('value'))
+
 
 class TestWikidata(unittest.TestCase):
     def test_width(self):
