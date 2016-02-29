@@ -65,7 +65,7 @@ def resolve(property, value, language):
 
 
 @resolver('P509', 'P26', 'P734', 'P40', 'P1038', 'P742', 'P735', 'P108', 'P97',
-          'P106', 'P27', 'P742', 'P1477', 'P1035')
+          'P106', 'P27', 'P1477', 'P1035')
 def identity_resolver(property, value, language):
     """ Default resolver, converts to unicode and surrounds with double quotes """
     return '"%s"' % unicode(value).replace('"', '\\"') if value else None

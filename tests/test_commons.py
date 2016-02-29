@@ -5,7 +5,7 @@ import tempfile
 import random
 import unittest
 import itertools
-from strephit.commons import parallel, cache, wikidata, datetime
+from strephit.commons import parallel, cache, wikidata, datetime, text
 from collections import Counter
 
 
@@ -211,3 +211,26 @@ class TestDatetime(unittest.TestCase):
                          {'year': -123, 'day': None, 'month': None})
         self.assertEqual(datetime.parse('123Bc'),
                          {'year': -123, 'day': None, 'month': None})
+
+
+class TestText(unittest.TestCase):
+    cases = [
+        ('b. 1234', '1234', None),
+        ('b. ca. 1234', '1234', None),
+        ('b. c. 1234', '1234', None),
+        ('d. 1234', None, '1234'),
+        ('d. ca. 1234', None, '1234'),
+        ('d. c. 1234', None, '1234'),
+        ('19th century', '1801', '1900'),
+        ('1234-5678', '1234', '5678'),
+        ('ca. 1234-5678', '1234', '5678'),
+        ('c. 1234-5678', '1234', '5678'),
+        ('1234-ca. 5678', '1234', '5678'),
+        ('1234-c. 5678', '1234', '5678'),
+    ]
+
+    def test(self):
+        for string, birth, death in self.cases:
+            b, d = text.parse_birth_death(string)
+            self.assertEqual(birth, b)
+            self.assertEqual(death, d)

@@ -3,7 +3,7 @@
 import click
 import json
 import logging
-from web_sources_corpus import utils
+from strephit.commons.io import get_and_cache
 
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ def main(out_file, use_cache, step):
     while not finished:
         print 'processed %d records' % offset
         url = query_url.format(limit=step, offset=offset)
-        result = json.loads(utils.get_and_cache(url, use_cache))
+        result = json.loads(get_and_cache(url, use_cache))
         offset += step
         finished = len(result['results']['bindings']) < step
 

@@ -70,3 +70,4 @@ test
 # RopeMate autocompletion
 .ropeproject/
 
+.idea/

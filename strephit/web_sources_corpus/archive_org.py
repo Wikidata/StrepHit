@@ -6,7 +6,7 @@ import click
 import json
 import os
 import requests
-from web_sources_corpus import utils
+from strephit.commons.io import get_and_cache
 
 
 def parse_and_save(text, separator, out_file):
@@ -48,7 +48,7 @@ def american_bio(ctx):
         print 'Volume', volume
         volume_url = 'https://archive.org/download/biographicaldict{volume:02d}johnuoft/' \
                      'biographicaldict{volume:02d}johnuoft_djvu.txt'.format(volume=volume)
-        vol = utils.get_and_cache(volume_url, use_cache)
+        vol = get_and_cache(volume_url, use_cache)
         parse_and_save(vol, ur'([A-Z]+, [A-Z][a-z]+ ?),[^,]+,', out_file)
 
 
@@ -60,7 +60,7 @@ def who_was_who(ctx):
 
     url = 'https://archive.org/download/whowaswhocompani01londuoft/' \
           'whowaswhocompani01londuoft_djvu.txt'
-    text = utils.get_and_cache(url, use_cache)
+    text = get_and_cache(url, use_cache)
     parse_and_save(text, ur'([A-Z]+, ([0-9A-Z][. \-a-z]+)+),[^,]+[,;]', out_file)
     
 
