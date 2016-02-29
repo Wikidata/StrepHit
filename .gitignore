@@ -61,7 +61,7 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-# Test stuff
+# Test directory for data files
 test
 
 # vim
