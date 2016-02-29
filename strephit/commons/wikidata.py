@@ -12,50 +12,24 @@ logger = logging.getLogger(__name__)
 WIKIDATA_API_URL = 'https://www.wikidata.org/w/api.php'
 PROPERTY_TO_WIKIDATA = {
     'Died of:': 'P509',  # check
-    'Patronage': '',
     'Marriage': 'P26',  # check
     'Last Name': 'P734',
     'Children': 'P40',  # check
     'Place of death': 'P20',
     'Relatives': 'P1038',  # check
     'Year died': 'P570',
-    'Collaborators': '',
-    'Published sources': '',
     'alt. Names': 'P742',
-    'Country of Activity': '',
     'Year born': 'P569',
-    'Sample(s)': '',
     'Given Name': 'P735',
     'First name(s)': 'P735',
-    'other': '',
     'Worked for': 'P108',  # check
-    'Techniques': '',
-    'biography': '',
     'title': 'P97',  # check
-    'Principal Co-Consecrators:': '',
-    'Principal Consecrator:': '',
-    'Episcopal Lineage / Apostolic Succession:': '',
-    'http://erlangen-crm.org/current/P12i_was_present_at': '',
-    'microdata': '',
-    'bio': '',
-    'how-to-cite': '',
-    'oup': '',
-    'short-desc': '',
-    'sources': '',
-    'http://erlangen-crm.org/current/P100_died_in': '',
-    'http://erlangen-crm.org/current/P98i_was_born': '',
-    'http://collection.britishmuseum.org/id/ontology/PX_profession': 'P106',
-    'http://collection.britishmuseum.org/id/ontology/PX_nationality': 'P27',
-    'http://erlangen-crm.org/current/P3_has_note': '',
-    'http://collection.britishmuseum.org/id/ontology/PX_gender': 'P21',
-    'http://erlangen-crm.org/current/P131_is_identified_by': 'P742',  # check
-    'http://www.w3.org/2004/02/skos/core#inScheme': '',
-    'http://www.w3.org/2004/02/skos/core#prefLabel': '',
-    'http://www.w3.org/1999/02/22-rdf-syntax-ns#type': '',
+    'lblProfession': 'P106',
+    'lblNationality': 'P27',
+    'gender': 'P21',
+    'lblIdentifier': 'P742',  # check
     'Place of origin:': 'P19',  # check
     'Gender:': 'P21',
-    'Age:': '',
-    'trivia': '',
     'death': 'P570',
     'birth': 'P569',
     'name': 'P1477',
@@ -84,16 +58,17 @@ def resolve(property, value, language):
     if property in PROPERTY_RESOLVERS:
         return PROPERTY_RESOLVERS[property](property, value, language)
     else:
-        return identity_resolver(property, value, language)  # fixme remove once mapping is done
         logger.warn("don't know how to resolve value %s of property %s" % (
             repr(value), property
         ))
         return None
 
 
-@resolver('P1035')
+@resolver('P509', 'P26', 'P734', 'P40', 'P1038', 'P742', 'P735', 'P108', 'P97',
+          'P106', 'P27', 'P742', 'P1477', 'P1035')
 def identity_resolver(property, value, language):
-    return '"%s"' % value
+    """ Default resolver, converts to unicode and surrounds with double quotes """
+    return '"%s"' % unicode(value).replace('"', '\\"') if value else None
 
 
 @cache.cached
@@ -114,7 +89,6 @@ def place_resolver(property, value, language):
     results = search(value, language)
     if results:
         _id = results[0]['id']
-        cache.set(language + property + value, _id)
         return _id
     else:
         logger.warn('cannot resolve %s (%s)' % (value, property))
@@ -124,13 +98,14 @@ def place_resolver(property, value, language):
 @cache.cached
 @resolver('P569', 'P570')
 def date_resolver(property, value, language):
+    """ Resolves dates """
     value = value.lower().replace('(circa)', '').replace('(probable)', '') \
-                .replace('(presumed)', '').strip()
+                .replace('(presumed)', '').replace('c.', '').strip()
     if not value:
         return None
     try:
         res = datetime.parse(value)
-        return format_date(**res)
+        return format_date(res.get('year'), res.get('month'), res.get('day'))
     except ValueError:
         logger.debug('cannot parse date ' + value)
         return None
@@ -146,6 +121,10 @@ def call_api(action, cache=True, **kwargs):
 
 
 def search(term, language):
+    """ Uses the wikidata APIs to search for a term
+        :param term: The term to look for
+        :param language: Search in this language
+    """
     return call_api('wbsearchentities', search=term, language=language).get('search', [])
 
 

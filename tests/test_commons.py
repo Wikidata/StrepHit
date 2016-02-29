@@ -209,3 +209,5 @@ class TestDatetime(unittest.TestCase):
     def test_fallbacks(self):
         self.assertEqual(datetime.parse('b.c. 123'),
                          {'year': -123, 'day': None, 'month': None})
+        self.assertEqual(datetime.parse('123Bc'),
+                         {'year': -123, 'day': None, 'month': None})

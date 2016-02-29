@@ -10,14 +10,10 @@ def parse(string):
         """ Hackish way to extract extract day, month and year only when
             they were defined in the original string
         """
-        result = {'year': None, 'month': None, 'day': None}
-        success = False
+        result = {}
 
-        def replace(self, day=None, month=None, year=None):
-            self.success = bool(day or month or year)
-            self.result['day'] = day
-            self.result['month'] = month
-            self.result['year'] = year
+        def replace(self, **kwargs):
+            self.result.update(kwargs)
 
     parsed = CustomDatetime()
     try:
@@ -25,15 +21,19 @@ def parse(string):
     except ValueError:
         pass
 
-    if parsed.success:
+    if parsed.result:
         return parsed.result
     else:
         return _fallback(string)
 
 
-_custom_patterns = map(lambda (pattern, transform): (re.compile(pattern), transform), [
-    ('b\.c\. (?P<y>\d+)', lambda match: {'year': int('-' + match.group('y'))}),
-])
+_custom_patterns = map(
+    lambda (pattern, transform): (re.compile(pattern, re.UNICODE | re.IGNORECASE),
+                                  transform), [
+        (r'b\.c\. (?P<y>\d+)', lambda match: {'year': int('-' + match.group('y'))}),
+        (r'(?P<y>\d+)\s*bc', lambda match: {'year': int('-' + match.group('y'))}),
+    ]
+)
 
 
 def _fallback(string):

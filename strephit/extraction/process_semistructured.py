@@ -13,13 +13,17 @@ logger = logging.getLogger(__name__)
 def get_wikidata_id(name, cache, language):
     results = wikidata.call_api('wbsearchentities',  search=name, language=language)
     for r in results.get('search', []):
-        if r.get('label').lower() == name.lower():
+        if r.get('label', '').lower() == name.lower():
             return r['id']
     else:
         return None
 
 
 def fix_name(name):
+    """ tries to normalize a name so that it can be searched with the wikidata APIs
+        :param name: The name to normalize
+        :returns: a tuple with the normalized name and a list of honorifics
+    """
     name = name.lower()
 
     try:
@@ -34,6 +38,10 @@ def fix_name(name):
 
 
 def strip_honorifics(name):
+    """ Removes honorifics from the name
+        :param name: The name
+        :returns: a tuple with the name without honorifics and a list of honorifics
+    """
     honorifics = []
     changed = True
     while changed:
@@ -51,10 +59,12 @@ def strip_honorifics(name):
 
 
 def serialize_item((i, item, cache, language, sourced_only)):
-    _id = item.get('id', i)
-    name = item.get('name')
-    other = item.get('other', {})
-    url = item.get('url')
+    """ Converts an item to quick statements. Takes a single tuple as parameter
+    """
+    _id = item.pop('id', i)
+    name = item.pop('name')
+    other = item.pop('other', {})
+    url = item.pop('url', '')
 
     if sourced_only and not url:
         logger.debug('item %s has no url, skipping' % _id)
@@ -72,6 +82,8 @@ def serialize_item((i, item, cache, language, sourced_only)):
     except TypeError:
         if isinstance(other, dict):
             data = other
+        else:
+            return
 
     name, honorifics = fix_name(name)
     wid = get_wikidata_id(name, cache, language)
@@ -85,16 +97,18 @@ def serialize_item((i, item, cache, language, sourced_only)):
     data['name'] = name  # use the fixed name
 
     for key, value in data.iteritems():
-        statement = wikidata.finalize_statement(wid, key, value, language,
-                                                item.get('url'))
-        if statement:
-            yield statement
-        else:
-            logger.debug('skipped property %s of %s (%s)' % (key, _id, name))
+        if not isinstance(value, list):
+            value = [value]
+
+        for val in value:
+            statement = wikidata.finalize_statement(wid, key, val, language, url)
+            if statement:
+                yield statement
+            else:
+                logger.debug('skipped property %s of %s (%s): %s' % (key, _id, name, val))
 
     for each in honorifics:
-        statement = wikidata.finalize_statement(wid, 'honorific', each, language,
-                                                item.get('url'))
+        statement = wikidata.finalize_statement(wid, 'honorific', each, language, url)
         if statement:
             yield statement
 
