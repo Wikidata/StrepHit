@@ -1,4 +1,5 @@
 """ Very simple cache for utf8 textual content """
+import sys
 import tempfile
 import os
 import hashlib
@@ -57,7 +58,7 @@ def set(key, value, overwrite=True):
 def cached(function):
     """ Decorator to cache function results based on its arguments """
     def wrapper(*args, **kwargs):
-        key = str(args) + str(kwargs)
+        key = str([function.__module__]) + function.__name__ + str(args) + str(kwargs)
         res = get(key)
         if res is None:
             res = function(*args, **kwargs)
