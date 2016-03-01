@@ -1,10 +1,12 @@
 # -*- encoding: utf-8 -*-
 import click
 from strephit.web_sources_corpus.preprocess_corpus import preprocess_corpus
+from strephit.web_sources_corpus import run_all
 
 
 CLI_COMMANDS = {
     'preprocess_corpus': preprocess_corpus,
+    'run_all': run_all.main,
 }
 
 

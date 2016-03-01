@@ -6,3 +6,4 @@ import cache
 import wikidata
 import datetime
 import parallel
+import text
