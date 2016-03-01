@@ -58,7 +58,7 @@ def resolve(property, value, language):
     if property in PROPERTY_RESOLVERS:
         return PROPERTY_RESOLVERS[property](property, value, language)
     else:
-        logger.warn("don't know how to resolve value %s of property %s" % (
+        logger.debug("don't know how to resolve value %s of property %s" % (
             repr(value), property
         ))
         return None
@@ -83,7 +83,7 @@ def gender_resolver(property, value, language):
 
 
 @cache.cached
-@resolver('P19')
+@resolver('P19', 'P20')
 def place_resolver(property, value, language):
     """ Resolves place names """
     results = search(value, language)
@@ -91,7 +91,7 @@ def place_resolver(property, value, language):
         _id = results[0]['id']
         return _id
     else:
-        logger.warn('cannot resolve %s (%s)' % (value, property))
+        logger.debug('cannot resolve %s (%s)' % (value, property))
         return ''  # cache, but do not serialize
 
 
