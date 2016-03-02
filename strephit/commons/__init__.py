@@ -7,3 +7,4 @@ import wikidata
 import datetime
 import parallel
 import text
+import entity_linking
