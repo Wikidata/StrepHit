@@ -70,4 +70,8 @@ test
 # RopeMate autocompletion
 .ropeproject/
 
+# PyCharm IDE
 .idea/
+
+# API credentials
+secrets.py
