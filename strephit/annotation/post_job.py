@@ -10,6 +10,7 @@ from pkg_resources import resource_stream
 from sys import exit
 from urllib import unquote_plus
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +28,7 @@ def _log_request_data(r):
 def create_job(title, instructions, cml, custom_js):
     """
      Create an empty CrowdFlower job with the specified title and instructions.
-     Raises any HTTP error that may occur.
+     Raise any HTTP error that may occur.
      :param str title: plain text title
      :param str instructions: instructions, can contain HTML
      :param str cml: worker interface CML template. See https://success.crowdflower.com/hc/en-us/articles/202817989-CML-CrowdFlower-Markup-Language-Overview
