@@ -27,18 +27,17 @@ def intersect_verbs_with_framenet(corpus_verb_lemmas):
     """
     Intersect verb lemmas extracted from the input corpus with FrameNet Lexical Units (LUs).
     :param list corpus_verb_lemmas: List of verb lemmas
-    :return: a list of corpus lemmas enriched with FrameNet LUs data (dicts)
-    :rtype: list
+    :return: a dictionary of corpus lemmas enriched with FrameNet LUs data (dicts)
+    :rtype: dict
     """
-    enriched = []
+    # Each FrameNet LU triggers one frame, so assign them to the same corpus lemma
+    enriched = defaultdict(list)
     for corpus_lemma in corpus_verb_lemmas:
         # Look up the FrameNet LUs given the corpus lemma
         # Ensure exact match, as the lookup can be done only via regex
         lus = framenet.lus(r'^%s\.' % corpus_lemma)
         if lus:
             logger.debug("Found %d FrameNet Lexical Units (LUs) that match the corpus lemma '%s': %s" % (len(lus), corpus_lemma, lus))
-            # Each LU triggers one frame, so assign them to the same corpus lemma
-            enriched_lemma = defaultdict(list)
             for lu in lus:
                 lu_label = lu['name']
                 logger.debug("Processing FrameNet LU '%s' ..." % lu_label)
@@ -70,16 +69,15 @@ def intersect_verbs_with_framenet(corpus_verb_lemmas):
                     'core_fes': core_fes,
                     'extra_fes': extra_fes
                 }
-                enriched_lemma[corpus_lemma].append(intersected_lu)
-            logger.debug("Corpus lemma enriched with frame data: %s" % json.dumps(enriched_lemma, indent=2))
-            enriched.append(enriched_lemma)
+                enriched[corpus_lemma].append(intersected_lu)
+                logger.debug("Corpus lemma '%s' enriched with frame data: %s" % (corpus_lemma, json.dumps(intersected_lu, indent=2)))
     return enriched
 
 
 @click.command()
 @click.argument('corpus_lus', type=click.File('rb'))
 @click.option('--top-n', '-n', default=50)
-@click.option('--output-file', '-o', type=click.File('w'), default='framenet_lus.json')
+@click.option('--output-file', '-o', type=click.File('w'), default='framenet_lus.jsonlines')
 def main(corpus_lus, top_n, output_file):
     """
     Extract FrameNet data given a ranking of corpus Lexical Units (lemmas)
