@@ -7,6 +7,7 @@ from strephit.commons import logging, cache
 
 
 CLI_COMMANDS = {
+    'annotation': strephit.annotation.cli.cli,
     'commons': strephit.commons.cli.cli,
     'corpus_analysis': strephit.corpus_analysis.cli.cli,
     'extraction': strephit.extraction.cli.cli,

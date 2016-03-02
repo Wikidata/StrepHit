@@ -61,7 +61,7 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-# Test stuff
+# Test directory for data files
 test
 
 # vim
@@ -70,4 +70,8 @@ test
 # RopeMate autocompletion
 .ropeproject/
 
+# PyCharm IDE
 .idea/
+
+# API credentials
+secrets.py

@@ -1,10 +1,11 @@
 import click
-from strephit.commons import tokenize, pos_tag, io
+from strephit.commons import tokenize, pos_tag, io, entity_linking
 
 
 CLI_COMMANDS = {
     'tokenize': tokenize.main,
     'pos_tag': pos_tag.main,
+    'entity_linking': entity_linking.main,
 }
 
 
