@@ -5,7 +5,7 @@ import tempfile
 import random
 import unittest
 import itertools
-from strephit.commons import parallel, cache, wikidata, datetime, text
+from strephit.commons import *
 from collections import Counter
 
 

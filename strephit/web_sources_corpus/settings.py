@@ -3,7 +3,7 @@ BOT_NAME = 'strephit'
 
 SPIDER_MODULES = ['strephit.web_sources_corpus.spiders']
 NEWSPIDER_MODULE = 'strephit.web_sources_corpus.spiders'
-TEMPLATES_DIR = 'templates/'
+TEMPLATES_DIR = 'strephit/web_sources_corpus/templates/'
 
 USER_AGENT = 'strephit (+https://github.com/Wikidata/StrepHit)'
 CONCURRENT_REQUESTS=8

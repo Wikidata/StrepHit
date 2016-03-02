@@ -8,7 +8,7 @@ from strephit.web_sources_corpus import run_all, spiders
 
 
 @click.command()
-@click.argument('spider-name', nargs=-1)
+@click.argument('spider-name', nargs=-1, required=True)
 @click.argument('results-dir', type=click.Path(resolve_path=True, file_okay=False))
 def crawl(spider_name, results_dir):
     """ Run one or more spiders """
