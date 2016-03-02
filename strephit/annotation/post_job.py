@@ -5,7 +5,7 @@ import click
 import json
 import logging
 import requests
-import secrets
+from strephit.commons import secrets
 from pkg_resources import resource_stream
 from sys import exit
 from urllib import unquote_plus
