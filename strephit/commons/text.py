@@ -111,3 +111,41 @@ def extract_dict(response, keys_selector, values_selector, keys_extractor='.//te
     return dict(zip((clean_extract(k, keys_extractor, **kwargs) for k in keys),
                     (clean_extract(v, values_extractor, **kwargs) for v in values)))
 
+
+def fix_name(name):
+    """ tries to normalize a name so that it can be searched with the wikidata APIs
+        :param name: The name to normalize
+        :returns: a tuple with the normalized name and a list of honorifics
+    """
+    name = name.lower()
+
+    try:
+        last_name, first_name = name.split(',', 1)
+        name = first_name.strip() + ' ' + last_name.strip()
+    except ValueError:
+        pass
+
+    name, honorifics = strip_honorifics(name)
+
+    return name.strip(), honorifics
+
+
+def strip_honorifics(name):
+    """ Removes honorifics from the name
+        :param name: The name
+        :returns: a tuple with the name without honorifics and a list of honorifics
+    """
+    honorifics = []
+    changed = True
+    while changed:
+        changed = False
+        for prefix in ['prof', 'dr', 'phd', 'sir', 'mr', 'mrs', 'miss', 'mister',
+                       'bishop', 'arcibishop', 'st', 'hon', 'rev', 'prof']:
+            if name.startswith(prefix):
+                honorifics.append(prefix)
+                changed = True
+                name = name[len(prefix):]
+                if name and name[0] == '.':
+                    name = name[1:]
+                name = name.strip()
+    return name, honorifics

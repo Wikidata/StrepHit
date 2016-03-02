@@ -214,23 +214,39 @@ class TestDatetime(unittest.TestCase):
 
 
 class TestText(unittest.TestCase):
-    cases = [
-        ('b. 1234', '1234', None),
-        ('b. ca. 1234', '1234', None),
-        ('b. c. 1234', '1234', None),
-        ('d. 1234', None, '1234'),
-        ('d. ca. 1234', None, '1234'),
-        ('d. c. 1234', None, '1234'),
-        ('19th century', '1801', '1900'),
-        ('1234-5678', '1234', '5678'),
-        ('ca. 1234-5678', '1234', '5678'),
-        ('c. 1234-5678', '1234', '5678'),
-        ('1234-ca. 5678', '1234', '5678'),
-        ('1234-c. 5678', '1234', '5678'),
-    ]
-
     def test(self):
-        for string, birth, death in self.cases:
+        for string, birth, death in [
+                    ('b. 1234', '1234', None),
+                    ('b. ca. 1234', '1234', None),
+                    ('b. c. 1234', '1234', None),
+                    ('d. 1234', None, '1234'),
+                    ('d. ca. 1234', None, '1234'),
+                    ('d. c. 1234', None, '1234'),
+                    ('19th century', '1801', '1900'),
+                    ('1234-5678', '1234', '5678'),
+                    ('ca. 1234-5678', '1234', '5678'),
+                    ('c. 1234-5678', '1234', '5678'),
+                    ('1234-ca. 5678', '1234', '5678'),
+                    ('1234-c. 5678', '1234', '5678'),
+                ]:
             b, d = text.parse_birth_death(string)
             self.assertEqual(birth, b)
             self.assertEqual(death, d)
+
+    def test_honoricifs(self):
+        for full, cleaned in [('rev. john eddowes', 'john eddowes'),
+                              ('sir john ware edgar', 'john ware edgar'),
+                              ('hon. sir malcolm fraser', 'malcolm fraser'),
+                              ]:
+            self.assertEqual(text.strip_honorifics(full)[0],
+                             cleaned)
+
+    def test_fix_name(self):
+        self.assertEqual(text.fix_name('  Colin Fraser    '),
+                         ('colin fraser', []))
+        self.assertEqual(text.fix_name('Fraser, Colin'),
+                         ('colin fraser', []))
+        self.assertEqual(text.fix_name('Sir Colin Fraser'),
+                         ('colin fraser', ['sir']))
+        self.assertEqual(text.fix_name('Fraser, Sir Colin'),
+                         ('colin fraser', ['sir']))

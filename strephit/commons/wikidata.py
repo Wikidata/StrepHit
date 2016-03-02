@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime
 from collections import defaultdict
-from strephit.commons import cache, io, datetime
+from strephit.commons import cache, io, datetime, text
 
 
 logger = logging.getLogger(__name__)
@@ -11,24 +11,24 @@ logger = logging.getLogger(__name__)
 
 WIKIDATA_API_URL = 'https://www.wikidata.org/w/api.php'
 PROPERTY_TO_WIKIDATA = {
-    'Died of:': 'P509',  # check
-    'Marriage': 'P26',  # check
+    'Died of:': 'P509',
+    'Marriage': 'P26',
     'Last Name': 'P734',
-    'Children': 'P40',  # check
+    'Children': 'P40',
     'Place of death': 'P20',
-    'Relatives': 'P1038',  # check
+    'Relatives': 'P1038',
     'Year died': 'P570',
     'alt. Names': 'P742',
     'Year born': 'P569',
     'Given Name': 'P735',
     'First name(s)': 'P735',
-    'Worked for': 'P108',  # check
-    'title': 'P97',  # check
+    'Worked for': 'P108',
+    'title': 'P97',
     'lblProfession': 'P106',
     'lblNationality': 'P27',
     'gender': 'P21',
-    'lblIdentifier': 'P742',  # check
-    'Place of origin:': 'P19',  # check
+    'lblIdentifier': 'P742',
+    'Place of origin:': 'P19',
     'Gender:': 'P21',
     'death': 'P570',
     'birth': 'P569',
@@ -39,7 +39,7 @@ PROPERTY_TO_WIKIDATA = {
 
 PROPERTY_RESOLVERS = {}
 def resolver(*properties):
-    """ Decorator to register a class as resolver for the given property.
+    """ Decorator to register a function as resolver for the given property.
     """
     def decorator(function):
         for property in properties:
@@ -64,8 +64,7 @@ def resolve(property, value, language):
         return None
 
 
-@resolver('P509', 'P26', 'P734', 'P40', 'P1038', 'P742', 'P735', 'P108', 'P97',
-          'P106', 'P27', 'P1477', 'P1035')
+@resolver('P509', 'P734', 'P742', 'P735', 'P1477')
 def identity_resolver(property, value, language):
     """ Default resolver, converts to unicode and surrounds with double quotes """
     return '"%s"' % unicode(value).replace('"', '\\"') if value else None
@@ -79,20 +78,7 @@ def gender_resolver(property, value, language):
     if results and results[0]['label'] in {'male', 'female'}:
         return results[0]['id']
     else:
-        return None
-
-
-@cache.cached
-@resolver('P19', 'P20')
-def place_resolver(property, value, language):
-    """ Resolves place names """
-    results = search(value, language)
-    if results:
-        _id = results[0]['id']
-        return _id
-    else:
-        logger.debug('cannot resolve %s (%s)' % (value, property))
-        return ''  # cache, but do not serialize
+        return   # cache, but do not serialize
 
 
 @cache.cached
@@ -111,6 +97,25 @@ def date_resolver(property, value, language):
         return None
 
 
+@cache.cached
+@resolver('P26', 'P40', 'P1038')
+def name_resolver(property, value, language):
+    """  Resolves people names """
+    name, _ = text.fix_name(value)
+    results = search(name, language, label_exact=True)
+    return results[0]['id'] if results else ''  # cache, but do not serialize
+
+
+@cache.cached
+@resolver('P108', 'P97', 'P106', 'P19', 'P20', 'P27', 'P1035')
+def generic_search_resolver(property, value, language):
+    """ Last-hope resolver, searches wikidata hoping to find something
+        which exactly matches the given value
+    """
+    results = search(value, language, label_exact=True)
+    return results[0]['id'] if results else None
+
+
 def call_api(action, cache=True, **kwargs):
     """ Invoke the given method of wikidata APIs with the given parameters
     """
@@ -120,12 +125,19 @@ def call_api(action, cache=True, **kwargs):
     return json.loads(resp)
 
 
-def search(term, language):
+def search(term, language, label_exact=False):
     """ Uses the wikidata APIs to search for a term
         :param term: The term to look for
         :param language: Search in this language
+        :param label_exact: If true, return only items whose label
+        exactly matches (case insensitive) the search term
+        :returns: list of results
     """
-    return call_api('wbsearchentities', search=term, language=language).get('search', [])
+    term = term.strip().lower()
+    results = call_api('wbsearchentities', search=term, language=language).get('search', [])
+    if label_exact:
+        results = [r for r in results if r.get('label', '').lower() == term]
+    return results
 
 
 def finalize_statement(subject, property, value, language, url=None,
