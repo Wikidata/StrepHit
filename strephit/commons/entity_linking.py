@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 # Data to be POSTed to Dandelion APIs
 NEX_DATA = {
-    '$app_id': secrets.NEX_APPID,
-    '$app_key': secrets.NEX_APPKEY,
+    '$app_id': secrets.NEX_ID,
+    '$app_key': secrets.NEX_KEY,
     'include': 'types,alternate_labels'
     }
 
