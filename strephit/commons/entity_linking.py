@@ -13,11 +13,7 @@ from sys import exit
 logger = logging.getLogger(__name__)
 
 # Data to be POSTed to Dandelion APIs
-NEX_DATA = {
-    '$app_id': secrets.NEX_ID,
-    '$app_key': secrets.NEX_KEY,
-    'include': 'types,alternate_labels'
-    }
+NEX_DATA = {}
 
 
 def link(text):
@@ -73,6 +69,9 @@ def main(input_file, language, output, confidence):
         Links having confidence score below the given
         threshold are discarded.
     """
+    NEX_DATA['$app_id'] = secrets.NEX_ID
+    NEX_DATA['$app_key'] = secrets.NEX_KEY
+    NEX_DATA['include'] = 'types,alternate_labels'
     NEX_DATA['min_confidence'] = confidence
     NEX_DATA['lang'] = language
     logger.info("Will perform entity linking over '%s' sentences" % input_file.name)
