@@ -74,4 +74,4 @@ test
 .idea/
 
 # API credentials
-secrets.py
+secret_keys.py
