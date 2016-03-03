@@ -6,6 +6,6 @@ import logging
 
 
 try:
-    from secret_keys import *
+    from strephit.commons.secret_keys import *
 except (ImportError, AttributeError):
     logging.warn("Some or all secret keys are missing, some components will not work!")
