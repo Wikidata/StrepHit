@@ -6,23 +6,12 @@ import json
 import logging
 import requests
 from strephit.commons import secrets
+from strephit.commons.logging import log_request_data
 from pkg_resources import resource_stream
 from sys import exit
 from urllib import unquote_plus
 
-
 logger = logging.getLogger(__name__)
-
-
-def _log_request_data(r):
-    sent_request = {
-        'method': r.request.method,
-        'url': r.request.url,
-        'headers': r.request.headers,
-        'decoded_body': unquote_plus(repr(r.request.body))
-    }
-    logger.debug("Request sent: %s" % sent_request)
-    return 0
 
 
 def create_job(title, instructions, cml, custom_js):
@@ -43,8 +32,8 @@ def create_job(title, instructions, cml, custom_js):
         'job[cml]': cml,
         'job[js]': custom_js
     }
-    r = requests.post(secrets.CF_JOB_CREATION_URL, data=data)
-    _log_request_data(r)
+    r = requests.post(secrets.CF_JOBS_URL, data=data)
+    log_request_data(r, logger)
     r.raise_for_status()
     return r.json()
 
@@ -61,7 +50,7 @@ def upload_units(job_id, csv_data):
     headers = {'Content-Type': 'text/csv'}
     params = { 'key': secrets.CF_KEY }
     r = requests.put(secrets.CF_JOB_UPLOAD_URL % job_id, data=csv_data, headers=headers, params=params)
-    _log_request_data(r)
+    log_request_data(r, logger)
     r.raise_for_status()
     return r.json()
 
@@ -72,10 +61,10 @@ def upload_units(job_id, csv_data):
 @click.option('--instructions', '-i', type=click.File(), default=resource_stream(__name__, 'resources/instructions.html'))
 @click.option('--cml', '-c', type=click.File(), default=resource_stream(__name__, 'resources/cml.html'))
 @click.option('--javascript', '-j', type=click.File(), default=resource_stream(__name__, 'resources/randomize.js'))
-def main(csv_data, title, instructions, cml):
+def main(csv_data, title, instructions, cml, javascript):
     """ Post a CrowdFlower annotation job with title, instructions, CML interface template, custom JavaSctipt, and data units """
     logger.info("Creating CrowdFlower job ...")
-    job = create_job(title, ''.join(instructions.readlines()), ''.join(cml.readlines()))
+    job = create_job(title, ''.join(instructions.readlines()), ''.join(cml.readlines()), ''.join(javascript.readlines()))
     logger.debug("Job object response from CrowdFlower: %s" % json.dumps(job, indent=2))
     job_id = job['id']
     logger.info("Uploading data units from '%s' to job ID %d ..." % (csv_data.name, job_id))
