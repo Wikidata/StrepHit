@@ -21,7 +21,7 @@ VERBAL_PREFIXES = {
 
 
 def extract_verbs(tagged_item, document_key, language, corpus_verbs):
-    """ Extract verb lemmas and surface forms from the POS-tagged document of the given item and update the given corpus verbs
+    """ Extract verb lemmas and surface forms from the POS-tagged document of the given item and update the given corpus verbs. Both lemmas and surface forms are lowercased.
         :param dict tagged_item: document represented as a list of tagged tokens
         :param str document_key: `tagged_item` dict key containing the text document
         :param str language: language code used to extract suitable tags
@@ -31,7 +31,7 @@ def extract_verbs(tagged_item, document_key, language, corpus_verbs):
     """
     for tag in tagged_item[document_key]:
         if tag.pos.startswith(VERBAL_PREFIXES[language]):
-            corpus_verbs[tag.lemma].add(tag.word)
+            corpus_verbs[tag.lemma.lower()].add(tag.word.lower())
     return corpus_verbs
 
 
