@@ -19,6 +19,7 @@ class Tokenizer():
     tokenization_regexps = {
         'en': ur'[^\p{L}\p{N}]+'
     }
+
     
     def __init__(self, language):
         self.language = language
@@ -26,7 +27,7 @@ class Tokenizer():
         if tokenization_regex:
             self.tokenization_regex = tokenization_regex
         else:
-            raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported languages: %s" % (language, self.tokenization_regexps.keys()))
+            raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (language, self.tokenization_regexps.keys()))
         
 
     def tokenize(self, sentence):
@@ -51,7 +52,7 @@ def main(input_dir, document_key, language_code, output_file):
     """ Tokenize an input corpus.
         Sentence splitting is not performed.
     """
-    corpus = load_corpus(input_dir, language_code)
+    corpus = load_corpus(input_dir, document_key)
     t = Tokenizer(language_code)
     logger.info("Starting Tokenization of the input corpus ...")
     for i, document in enumerate(corpus):
