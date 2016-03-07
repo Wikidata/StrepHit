@@ -54,13 +54,20 @@ class SentenceSplitter():
     
     def split_text(self, text):
         """
-        Split the given text into sentences
+        Split the given text into sentences. First, newline characters are interpreted as sentence boundaries. Then, the sentence splitter is run.
         :param str text: Text to be split
         :return: a list of sentences
         :rtype: list
         """
-        sentences = self.splitter.tokenize(text)
-        logger.debug("Sentences: %s\nText: %s" % (sentences, text))
+        sentences = []
+        logger.debug("Splitting text into sentences: %s" % text)
+        sentences_by_newline = text.split('\n')
+        logger.debug("%d sentences split by the newline character: %s" % (len(sentences_by_newline), sentences_by_newline))
+        for each in sentences_by_newline:
+            split = self.splitter.tokenize(each)
+            for sentence in split:
+                sentences.append(sentence)
+        logger.debug("%d total sentences: %s" % (len(sentences), sentences))
         return sentences
 
 
