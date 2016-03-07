@@ -52,7 +52,7 @@ class SentenceSplitter():
             raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (language, self.supported_models.keys()))
     
     
-    def split_text(self, text):
+    def split(self, text):
         """
         Split the given text into sentences. First, newline characters are interpreted as sentence boundaries. Then, the sentence splitter is run.
         :param str text: Text to be split
@@ -82,7 +82,7 @@ def main(input_dir, document_key, language_code, output_file):
     s = SentenceSplitter(language_code)
     logger.info("Starting sentence splitting of the input corpus ...")
     for i, document in enumerate(corpus):
-        sentences = s.tokenize(document)
+        sentences = s.split(document)
         output_file.write(json.dumps({i: sentences}, indent=2) + '\n')
     return 0
 
