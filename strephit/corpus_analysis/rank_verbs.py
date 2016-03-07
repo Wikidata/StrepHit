@@ -95,7 +95,6 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
     return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)), OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
 
 
-
 @click.command()
 @click.argument('corpus_path', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document_key')
