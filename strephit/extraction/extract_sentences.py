@@ -6,6 +6,7 @@ import json
 import logging
 from strephit.commons.io import load_dumped_corpus
 from strephit.commons.tokenize import Tokenizer
+from strephit.commons.split_sentences import SentenceSplitter
 from sys import exit
 
 logger = logging.getLogger(__name__)
@@ -16,37 +17,38 @@ def extract_sentences(corpus, document_key, language, matches):
     Extract sentences from the given corpus by matching tokens against a given set.
     :param corpus: Iterable of documents containing text and metadata
     :param str document_key: dict key to get the text documents
-    :param str language: language code used for tokenization and sentence splitting
+    :param str language: ISO 639-1 language code used for tokenization and sentence splitting
     :param dict matches: Dict with corpus lemmas as keys and tokens to be matched as values
     :return: the corpus, updated with the extracted sentences
     :rtype: dict
     """
     sentence_id = 0
+    splitter = SentenceSplitter(language)
+    tokenizer = Tokenizer(language)
     for item in corpus:
         extracted = 0
         item['sentences'] = []
         # Each input item should always contain text documents
         # Raise KeyError otherwise
         document = item[document_key]
-        # TODO inject sentence splitter here
-        sentence = document
-        tokenizer = Tokenizer(language)
-        # Remember to lowercase
-        sentence_tokens = [token.lower() for token in tokenizer.tokenize(document)]
-        for lemma, match_tokens in matches.iteritems():
+        sentences = splitter.split(document)
+        for sentence in sentences:
             # Remember to lowercase
-            for match in match_tokens:
-                if match.lower() in sentence_tokens:
-                # if any(match.lower() in sentence_tokens for match in match_tokens):
-                    logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
-                    extracted += 1
-                    matched_sentence = {
-                        'id': sentence_id,
-                        'lu': lemma,
-                        'text': sentence
-                    }
-                    item['sentences'].append(matched_sentence)
-                    sentence_id += 1
+            sentence_tokens = [token.lower() for token in tokenizer.tokenize(sentence)]
+            for lemma, match_tokens in matches.iteritems():
+                # Remember to lowercase
+                for match in match_tokens:
+                    if match.lower() in sentence_tokens:
+                    # if any(match.lower() in sentence_tokens for match in match_tokens):
+                        logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
+                        extracted += 1
+                        matched_sentence = {
+                            'id': sentence_id,
+                            'lu': lemma,
+                            'text': sentence
+                        }
+                        item['sentences'].append(matched_sentence)
+                        sentence_id += 1
         if extracted > 0:
             logger.debug("%d sentences extracted. Removing the full text ..." % extracted)
             # Remove text key
