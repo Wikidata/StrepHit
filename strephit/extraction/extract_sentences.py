@@ -64,7 +64,9 @@ def extract_sentences(corpus, document_key, language, matches):
 @click.option('--output', '-o', type=click.File('w'), default='sentences.jsonlines')
 def main(corpus, document_key, language_code, matches, output):
     """ Extract corpus sentences containing at least one token in the given set. """
+    logger.info("Loading corpus dump from '%s' ..." % corpus.name)
     loaded = load_dumped_corpus(corpus, document_key)
+    logger.info("Starting sentence extraction. Matches will be loaded from '%s'" % matches.name)
     updated = extract_sentences(loaded, document_key, language_code, json.load(matches))
     total = 0
     for item, extracted in updated:
