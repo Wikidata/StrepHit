@@ -35,16 +35,22 @@ def extract_sentences(corpus, document_key, language, matches):
         sentence_tokens = [token.lower() for token in tokenizer.tokenize(document)]
         for lemma, match_tokens in matches.iteritems():
             # Remember to lowercase
-            if any(match.lower() in sentence_tokens for match in match_tokens):
-                # logger.debug("Token '%s' appears in sentence '%s'" % (match, sentence))
-                extracted += 1
-                matched_sentence = {
-                    'id': sentence_id,
-                    'lu': lemma,
-                    'text': sentence
-                }
-                item['sentences'].append(matched_sentence)
-                sentence_id += 1
+            for match in match_tokens:
+                if match.lower() in sentence_tokens:
+                # if any(match.lower() in sentence_tokens for match in match_tokens):
+                    logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
+                    extracted += 1
+                    matched_sentence = {
+                        'id': sentence_id,
+                        'lu': lemma,
+                        'text': sentence
+                    }
+                    item['sentences'].append(matched_sentence)
+                    sentence_id += 1
+        if extracted > 0:
+            logger.debug("%d sentences extracted. Removing the full text ..." % extracted)
+            # Remove text key
+            item.pop(document_key)
         yield item, extracted
 
 
