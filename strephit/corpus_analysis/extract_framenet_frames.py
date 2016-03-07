@@ -23,16 +23,16 @@ def get_top_n_lus(ranked_lus, n):
     return ranked_lus.keys()[:n]
 
 
-def intersect_verbs_with_framenet(corpus_verb_lemmas):
+def intersect_lemmas_with_framenet(corpus_lemmas):
     """
     Intersect verb lemmas extracted from the input corpus with FrameNet Lexical Units (LUs).
-    :param list corpus_verb_lemmas: List of verb lemmas
+    :param list corpus_lemmas: List of verb lemmas
     :return: a dictionary of corpus lemmas enriched with FrameNet LUs data (dicts)
     :rtype: dict
     """
     # Each FrameNet LU triggers one frame, so assign them to the same corpus lemma
     enriched = defaultdict(list)
-    for corpus_lemma in corpus_verb_lemmas:
+    for corpus_lemma in corpus_lemmas:
         # Look up the FrameNet LUs given the corpus lemma
         # Ensure exact match, as the lookup can be done only via regex
         lus = framenet.lus(r'^%s\.' % corpus_lemma)
@@ -74,26 +74,46 @@ def intersect_verbs_with_framenet(corpus_verb_lemmas):
     return enriched
 
 
+def extract_top_corpus_tokens(enriched_lemmas, all_lemma_tokens):
+    """
+    Extract the subset of corpus lemmas with tokens gievn the set of top lemmas
+    :param list enriched_lemmas: Dist returned by :func:`intersect_lemmas_with_framenet`
+    :param dict all_lemma_tokens: Dict of all corpus lemmas with tokens
+    :return: the top lemmas with tokens dict
+    :rtype: dict
+    """
+    top_lemmas_tokens = {}
+    for top in enriched_lemmas:
+        tokens = all_lemma_tokens.get(top)
+        if tokens:
+            top_lemmas_tokens[top] = tokens
+    return top_lemmas_tokens
+
+
 @click.command()
-@click.argument('corpus_lus', type=click.File('rb'))
+@click.argument('ranking', type=click.File())
+@click.argument('all_lemmas', type=click.File())
 @click.option('--top-n', '-n', default=50)
-@click.option('--output-file', '-o', type=click.File('w'), default='framenet_lus.jsonlines')
-def main(corpus_lus, top_n, output_file):
+@click.option('--dump-enriched', '-e', type=click.File('w'), default='framenet_lus.json')
+@click.option('--dump-top-lemmas', '-t', type=click.File('w'), default='top_lemma_tokens.json')
+def main(ranking, all_lemmas, top_n, dump_enriched, dump_top_lemmas):
     """
     Extract FrameNet data given a ranking of corpus Lexical Units (lemmas)
     """
-    logger.info("Loading ranked corpus Lexical Units (LUs) from '%s' ..." % corpus_lus.name)
+    logger.info("Loading ranked corpus Lexical Units (LUs) from '%s' ..." % ranking.name)
     # Remember to preserve the order
-    lus = json.load(corpus_lus, object_pairs_hook=OrderedDict)
+    lus = json.load(ranking, object_pairs_hook=OrderedDict)
     logger.info("Loaded %d LUs" % len(lus))
     logger.info("Will consider the top %d LUs" % top_n)
     top = get_top_n_lus(lus, top_n)
     logger.debug("Top LUs: %s" % top)
-    enriched = intersect_verbs_with_framenet(top)
+    enriched = intersect_lemmas_with_framenet(top)
     logger.info("Managed to enrich %d LUs with FrameNet data" % len(enriched))
-    logger.debug("Enriched LUs: %s" % enriched)
-    logger.info("Dumping enriched LUs to '%s' ..." % output_file.name)
-    json.dump(enriched, output_file, indent=2)
+    logger.info("Dumping top enriched LUs to '%s' ..." % dump_enriched.name)
+    json.dump(enriched, dump_enriched, indent=2)
+    top = extract_top_corpus_tokens(enriched, json.load(all_lemmas))
+    logger.info("Dumping top lemmas with tokens to '%s' ..." % dump_top_lemmas.name)
+    json.dump(top, dump_top_lemmas, indent=2)
     return 0
 
 
