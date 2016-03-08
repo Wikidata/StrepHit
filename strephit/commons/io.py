@@ -66,13 +66,12 @@ def load_corpus(items_dir, document_key, text_only=False):
     for item in load_scraped_items(items_dir):
         document = item.get(document_key)
         if document:
+            # Sometimes the document may be a list of strings, depending on how it was scraped
+            if type(document) == list:
+                logger.debug("Text document as a list, will convert it into a string: %s" % document)
+                document = '\n'.join(document)
             if text_only:
-                # Sometimes the document may be a list of strings, depending on how it was scraped
-                if type(document) == list:
-                    logger.debug("Text document as a list, will convert it into a string: %s" % document)
-                    yield '\n'.join(document)
-                else:
-                    yield document
+                yield document
             else:
                 # Do not lose essential metadata, i.e., name and URL
                 yield {'name': item.get('name'), 'url': item.get('url'), document_key: document}
