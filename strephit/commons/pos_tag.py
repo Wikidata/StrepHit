@@ -5,16 +5,17 @@ from __future__ import absolute_import
 import click
 import json
 import logging
+import treetaggerwrapper
 from sys import exit
-from treetaggerwrapper import TreeTagger, make_tags
 from treetaggerpoll import TaggerProcessPoll
-from treetaggerwrapper import make_tags, NotTag
+from treetaggerwrapper import make_tags, NotTag, TreeTagger
 from nltk import pos_tag, word_tokenize, pos_tag_sents
 from strephit.commons.io import load_corpus
 from strephit.commons.tokenize import Tokenizer
 
 
 logger = logging.getLogger(__name__)
+treetaggerwrapper.logger.setLevel(logging.WARN)  # they are too verbose
 
 
 class NLTKPosTagger():
@@ -87,6 +88,7 @@ class TTPosTagger():
             TAGOPT=u'-token -lemma -sgml -quiet',
             CHUNKERPROC=self._tokenizer_wrapper
         )
+        logging.getLogger('TreeTagger').setLevel(logging.WARNING)
         try:
             jobs = []
             for i, item in enumerate(items):
@@ -131,7 +133,7 @@ def main(input_dir, document_key, language_code, tagger, output_file, tt_home, b
         pos_tagger = NLTKPosTagger(language_code)
 
     corpus = load_corpus(input_dir, document_key)
-    for i, tagged_document in enumerate(pos_tagger.tag_many(corpus, batch_size)):
+    for i, tagged_document in enumerate(pos_tagger.tag_many(corpus, document_key, batch_size)):
         output_file.write(json.dumps(tagged_document) + '\n')
     return 0
 
