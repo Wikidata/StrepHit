@@ -22,16 +22,14 @@ def _master(function, iterable, processes, task_queue, result_queue, flatten):
             else:
                 task_queue.put(each)
     except KeyboardInterrupt:
-        logger.error('KeyboardInterrupt, stopping workers')
-        while True:
-            try:
-                task_queue.get_nowait()
-            except Queue.Empty:
-                break
-
-    for _ in xrange(processes):
-        task_queue.put(None)
-    [p.join() for p in workers]
+        logger.error('caught KeyboardInterrupt, brutally slaughtering workers')
+        result_queue.cancel_join_thread()
+        task_queue.cancel_join_thread()
+        [p.terminate() for p in workers]
+    else:
+        for _ in xrange(processes):
+            task_queue.put(None)
+        [p.join() for p in workers]
 
     result_queue.put(None)
 
@@ -74,7 +72,7 @@ def _process_task(function, task, flatten, raise_exc):
 def map(function, iterable, processes=0, flatten=False, raise_exc=True):
     """ Applies the given function to each element of the iterable in parallel.
         `None` values are not allowed in the iterable nor as return values, they will
-        simply be discarded. Can be safely stopped with a keboard interrupt.
+        simply be discarded. Can be "safely" stopped with a keboard interrupt.
         :param function: the function used to transform the elements of the iterable
         :param processes: how many items to process in parallel. Use zero or a negative
         number to use all the available processors. No additional processes will be used
