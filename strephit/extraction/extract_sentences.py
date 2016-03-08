@@ -72,9 +72,9 @@ def main(corpus, document_key, language_code, matches, output):
     for item, extracted in updated:
         total += extracted
         output.write(json.dumps(item) + '\n')
-    logger.info("Total sentences extracted: %d" % extracted)
+    logger.info("Total sentences extracted: %d" % total)
     return 0
 
-    
+
 if __name__ == '__main__':
     exit(main())

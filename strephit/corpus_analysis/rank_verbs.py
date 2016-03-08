@@ -56,7 +56,7 @@ def get_similarity_scores(verb_token, vectorizer, tf_idf_matrix):
     # cf. http://scikit-learn.org/stable/modules/metrics.html#cosine-similarity
     scores = linear_kernel(verb_token_vector, tf_idf_matrix)
     logger.debug("Corpus-wide TF/IDF scores for '%s': %s" % (verb_token, scores))
-    logger.info("Average TF/IDF score for '%s': %f" % (verb_token, average(scores)))
+    logger.debug("Average TF/IDF score for '%s': %f" % (verb_token, average(scores)))
     return scores
 
 
@@ -92,7 +92,8 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
         stdev_ranking[lemma] = stdev_final
         logger.debug("Average TF/IDF score: %f" % tf_idf_final)
         logger.debug("Average stdev score: %f" % stdev_final)
-    return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)), OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
+    return OrderedDict(sorted(avg_ranking.items(), key=lambda x: x[1], reverse=True)),\
+           OrderedDict(sorted(stdev_ranking.items(), key=lambda x: x[1], reverse=True))
 
 
 @click.command()
@@ -143,14 +144,14 @@ def main(corpus_path, document_key, language_code, pre_processed_corpus, pos_tag
     logger.debug("Corpus verbs: %s" % corpus_verbs)
     logger.info("Dumping extracted verbs to '%s' ..." % verbs.name)
     # Alphabetically sort lemmas (keys)
-    json.dump(OrderedDict(sorted(dumpable_corpus_verbs.items(), key=lambda t: t[0])), verbs, indent=2)
+    json.dump(OrderedDict(sorted(dumpable_corpus_verbs.items(), key=lambda t: t[0])), verbs)
     logger.info("Computing verb rankings ...")
     tf_idf_ranking, stdev_ranking = compute_ranking(corpus_verbs, vectorizer, tf_idf_matrix)
-    logger.debug("Ranking based on average TF/IDF scores: %s" % json.dumps(tf_idf_ranking, indent=2))
-    logger.debug("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking, indent=2))
+    logger.debug("Ranking based on average TF/IDF scores: %s" % json.dumps(tf_idf_ranking))
+    logger.debug("Ranking based on average standard deviation scores: %s" % json.dumps(stdev_ranking))
     logger.info("Dumping rankings to '%s' (TF/IDF) and '%s' (stdev) ..." %(tf_idf.name, stdev.name))
-    json.dump(tf_idf_ranking, tf_idf, indent=2)
-    json.dump(stdev_ranking, stdev, indent=2)
+    json.dump(tf_idf_ranking, tf_idf)
+    json.dump(stdev_ranking, stdev)
     return 0
 
 

@@ -98,7 +98,7 @@ def dump_corpus(corpus, dump_file_handle):
     return 0
 
 
-def get_and_cache(url, use_cache=True, cache_base='strephit_cache', **kwargs):
+def get_and_cache(url, use_cache=True, **kwargs):
     """
     Perform an HTTP GET request to the given url and optionally cache the
     result somewhere in the file system. The cached content will be used
