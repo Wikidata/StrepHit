@@ -250,3 +250,9 @@ class TestText(unittest.TestCase):
                          ('colin fraser', ['sir']))
         self.assertEqual(text.fix_name('Fraser, Sir Colin'),
                          ('colin fraser', ['sir']))
+
+class TestSplitter(unittest.TestCase):
+    def test(self):
+        splitter = SentenceSplitter('en')
+        self.assertListEqual(splitter.split('hello world. this is another sentence! got it?'),
+                             ['hello world.', 'this is another sentence!', 'got it?'])
