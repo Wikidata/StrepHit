@@ -9,6 +9,7 @@ import json
 from sys import exit
 from nltk.data import load
 from strephit.commons.io import load_corpus
+from strephit.commons import parallel
 
 
 logger = logging.getLogger(__name__)
@@ -77,14 +78,17 @@ class SentenceSplitter():
 @click.argument('document-key')
 @click.argument('language-code')
 @click.option('--output-file', '-o', type=click.File('w'), default='-')
-def main(input_dir, document_key, language_code, output_file):
+@click.option('--processes', '-p', default=0)
+def main(input_dir, document_key, language_code, output_file, processes):
     """ Split an input corpus into sentences """
     corpus = load_corpus(input_dir, document_key, text_only=True)
     s = SentenceSplitter(language_code)
     logger.info("Starting sentence splitting of the input corpus ...")
-    for i, document in enumerate(corpus):
-        sentences = s.split(document)
-        output_file.write(json.dumps({i: sentences}) + '\n')
+
+    for sentences in parallel.map(lambda (i, text): json.dumps({i: s.split(text)}), enumerate(corpus), processes):
+        output_file.write(sentences)
+        output_file.write('\n')
+
     return 0
 
 
