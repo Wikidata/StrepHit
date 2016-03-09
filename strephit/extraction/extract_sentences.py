@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 def _add_match(match, sentence, extracted, sentence_id, lemma, item):
     logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
-    extracted += 1
     matched_sentence = {
         'id': sentence_id,
         'lu': lemma,
@@ -24,7 +23,8 @@ def _add_match(match, sentence, extracted, sentence_id, lemma, item):
     }
     item['sentences'].append(matched_sentence)
     sentence_id += 1
-    return 0
+    extracted += 1
+    return sentence_id, extracted
 
 
 def extract_sentences(corpus, document_key, language, matches, strategy):
@@ -34,10 +34,10 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
     :param str document_key: dict key to get the text documents
     :param str language: ISO 639-1 language code used for tokenization and sentence splitting
     :param dict matches: Dict with corpus lemmas as keys and tokens to be matched as values
+    :param str strategy: One of the 3 extraction strategies ['121', 'n2n', 'syntactic']
     :return: the corpus, updated with the extracted sentences
     :rtype: dict
     """
-    sentence_id = 0
     splitter = SentenceSplitter(language)
     tokenizer = Tokenizer(language)
     # Strategy check
@@ -53,7 +53,6 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
                 all_match_tokens.add(match_token)
                 token_to_lemma[match_token] = lemma
         logger.debug("All match tokens: %s" % all_match_tokens)
-    # TODO syntactic analysis
     elif strategy == 'syntactic':
         logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
         pass
@@ -61,6 +60,7 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
     else:
         raise ValueError("Malformed or unsupported extraction strategy: please use one of ['121', 'n2n', or 'syntactic']")
 
+    sentence_id = 0
     for item in corpus:
         extracted = 0
         item['sentences'] = []
@@ -78,24 +78,35 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
                         for match in match_tokens:
                             # Remember to lowercase
                             if match.lower() in sentence_tokens:
-                                _add_match(match, sentence, extracted, sentence_id, lemma, item)
+                                current_id, current_extracted = _add_match(match, sentence, extracted, sentence_id, lemma, item)
+                                sentence_id = current_id
+                                extracted = current_extracted
             # 121 extraction strategy: 1 sentence per 1 LU
             # N.B.: the same sentence will appear only once
             # the sentence is assigned to a RANDOM LU
             elif strategy == '121':
-                if any(match.lower() in sentence_tokens for match in all_match_tokens):
-                    assigned_token = random.choice(all_match_tokens)
+                matched = []
+                for match in all_match_tokens:
+                    if match.lower() in sentence_tokens:
+                            matched.append(match)
+                if matched:
+                    assigned_token = choice(matched)
                     assigned_lu = token_to_lemma[assigned_token]
-                    _add_match(assigned_token, sentence, extracted, sentence_id, assigned_lu, item)
+                    current_id, current_extracted = _add_match(assigned_token, sentence, extracted, sentence_id, assigned_lu, item)
+                    sentence_id = current_id
+                    extracted = current_extracted
             # TODO syntactic analysis extraction strategy
             elif strategy == 'syntactic':
                 logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
                 pass
         if extracted > 0:
-            logger.debug("%d sentences extracted. Removing the full text ..." % extracted)
+            logger.debug("%d sentences extracted. Removing the full text from the item ..." % extracted)
             # Remove text key
             item.pop(document_key)
-        yield item, extracted
+            yield item, extracted
+        else:
+            logger.debug("No sentences extracted. Skipping the whole item ...")
+            pass
 
 
 @click.command()
@@ -104,7 +115,7 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
 @click.argument('language_code')
 @click.argument('matches', type=click.File())
 @click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'syntactic']), default='n2n')
-@click.option('--output', '-o', type=click.File('w'), default='sentences.jsonlines')
+@click.option('--output', '-o', type=click.File('w'), default='dev/sentences.jsonlines')
 def main(corpus, document_key, language_code, matches, strategy, output):
     """ Extract corpus sentences containing at least one token in the given set. """
     logger.info("Loading corpus dump from '%s' ..." % corpus.name)
@@ -121,3 +132,4 @@ def main(corpus, document_key, language_code, matches, strategy, output):
 
 if __name__ == '__main__':
     exit(main())
+
