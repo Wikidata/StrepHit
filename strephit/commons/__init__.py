@@ -9,4 +9,5 @@ import parallel
 import text
 import entity_linking
 import secrets
+import download
 from split_sentences import SentenceSplitter
