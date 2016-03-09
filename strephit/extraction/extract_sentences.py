@@ -4,6 +4,7 @@
 import click
 import json
 import logging
+from random import choice
 from strephit.commons.io import load_dumped_corpus
 from strephit.commons.tokenize import Tokenizer
 from strephit.commons.split_sentences import SentenceSplitter
@@ -13,9 +14,8 @@ from sys import exit
 logger = logging.getLogger(__name__)
 
 
-def _add_match(sentence, extracted, sentence_id, lemma, item, match=None):
-    if match:
-        logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
+def _add_match(match, sentence, extracted, sentence_id, lemma, item):
+    logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
     extracted += 1
     matched_sentence = {
         'id': sentence_id,
@@ -41,15 +41,18 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
     splitter = SentenceSplitter(language)
     tokenizer = Tokenizer(language)
     # Strategy check
-    if strategy == '121':
+    if strategy == 'n2n':
+        logger.info("Will extract sentences using the 'many to many' strategy: the same sentence is likely to appear multiple times, with different LUs.")
+    elif strategy == '121':
         logger.info("Will extract sentences using the 'one to one' strategy: the same sentence will appear only once.")
         all_match_tokens = set()
-        for match_tokens in matches.values():
+        # dict token: lemma
+        token_to_lemma = {}
+        for lemma, match_tokens in matches.iteritems():
             for match_token in match_tokens:
                 all_match_tokens.add(match_token)
+                token_to_lemma[match_token] = lemma
         logger.debug("All match tokens: %s" % all_match_tokens)
-    elif strategy == 'n2n':
-        logger.info("Will extract sentences using the 'many to many' strategy: the same sentence is likely to appear multiple times, with different LUs.")
     # TODO syntactic analysis
     elif strategy == 'syntactic':
         logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
@@ -68,19 +71,22 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
         for sentence in sentences:
             # Remember to lowercase
             sentence_tokens = [token.lower() for token in tokenizer.tokenize(sentence)]
-            # 121 extraction strategy: 1 sentence per 1 LU
-            # N.B.: the same sentence will appear only once
-            if strategy == '121':
-                if any(match.lower() in sentence_tokens for match in all_match_tokens):
-                    _add_match(sentence, extracted, sentence_id, lemma, item)
             # n2n extraction strategy: many sentences per many LUs
             # N.B.: the same sentence is likely to appear multiple times
-            elif strategy == 'n2n':
+            if strategy == 'n2n':
                 for lemma, match_tokens in matches.iteritems():
                         for match in match_tokens:
                             # Remember to lowercase
                             if match.lower() in sentence_tokens:
-                                _add_match(sentence, extracted, sentence_id, lemma, item, match=match)
+                                _add_match(match, sentence, extracted, sentence_id, lemma, item)
+            # 121 extraction strategy: 1 sentence per 1 LU
+            # N.B.: the same sentence will appear only once
+            # the sentence is assigned to a RANDOM LU
+            elif strategy == '121':
+                if any(match.lower() in sentence_tokens for match in all_match_tokens):
+                    assigned_token = random.choice(all_match_tokens)
+                    assigned_lu = token_to_lemma[assigned_token]
+                    _add_match(assigned_token, sentence, extracted, sentence_id, assigned_lu, item)
             # TODO syntactic analysis extraction strategy
             elif strategy == 'syntactic':
                 logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
@@ -97,7 +103,7 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
 @click.argument('document_key')
 @click.argument('language_code')
 @click.argument('matches', type=click.File())
-@click.option('--strategy', '-s', type=click.Choice(['121', 'n2n', 'syntactic']), default='121')
+@click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'syntactic']), default='n2n')
 @click.option('--output', '-o', type=click.File('w'), default='sentences.jsonlines')
 def main(corpus, document_key, language_code, matches, strategy, output):
     """ Extract corpus sentences containing at least one token in the given set. """
