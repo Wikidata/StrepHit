@@ -5,10 +5,11 @@ from __future__ import absolute_import
 
 import click
 import logging
+import json
 from sys import exit
 from nltk.data import load
-from nltk.tokenize.punkt import PunktSentenceTokenizer
 from strephit.commons.io import load_corpus
+from strephit.commons import parallel
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,6 @@ class SentenceSplitter():
         'tr': model_path % 'turkish'
     }
     
-    
     def __init__(self, language):
         """
         :param str language: ISO 639-1 language code. See https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
@@ -50,8 +50,7 @@ class SentenceSplitter():
             self.splitter = load(model)
         else:
             raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (language, self.supported_models.keys()))
-    
-    
+
     def split(self, text):
         """
         Split the given text into sentences.
@@ -78,15 +77,18 @@ class SentenceSplitter():
 @click.argument('input-dir', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document-key')
 @click.argument('language-code')
-@click.option('--output-file', '-o', type=click.File('w'), default='sentence_split.json')
-def main(input_dir, document_key, language_code, output_file):
+@click.option('--output-file', '-o', type=click.File('w'), default='-')
+@click.option('--processes', '-p', default=0)
+def main(input_dir, document_key, language_code, output_file, processes):
     """ Split an input corpus into sentences """
-    corpus = load_corpus(input_dir, document_key)
+    corpus = load_corpus(input_dir, document_key, text_only=True)
     s = SentenceSplitter(language_code)
     logger.info("Starting sentence splitting of the input corpus ...")
-    for i, document in enumerate(corpus):
-        sentences = s.split(document)
-        output_file.write(json.dumps({i: sentences}, indent=2) + '\n')
+
+    for sentences in parallel.map(lambda (i, text): json.dumps({i: s.split(text)}), enumerate(corpus), processes):
+        output_file.write(sentences)
+        output_file.write('\n')
+
     return 0
 
 

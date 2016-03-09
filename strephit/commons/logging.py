@@ -2,12 +2,9 @@
 # -*- encoding: utf-8 -*-
 
 from __future__ import absolute_import
-import tempfile
-import sys
 import logging
-import logging.config
-import yaml
 import os
+import logging.config
 from urllib import unquote_plus
 
 LEVELS = {
@@ -20,40 +17,48 @@ LEVELS = {
 }
 
 
-def setup():
-    logging.config.dictConfig({
-        'version': 1, 
-        'disable_existing_loggers': False, 
-        'loggers': {
-            '': {
-                'level': 'WARNING', 
-                'handlers': ['console', 'debug_file_handler']
-            }, 
-            'strephit': {
-                'level': 'INFO', 
-            },
-        }, 
-        'formatters': {
-            'strephit': {
-                'format': '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s'
-            }
-        }, 
-        'handlers': {
-            'console': {
-                'formatter': 'strephit', 
-                'class': 'logging.StreamHandler', 
-                'level': 'DEBUG'
-            }, 
-            'debug_file_handler': {
-                'formatter': 'strephit',
-                'level': 'DEBUG', 
-                'filename': 'strephit_debug.log', 
-                'mode': 'w',
-                'class': 'logging.FileHandler', 
-                'encoding': 'utf8'
-            }
+DEFAULT_CONF = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'loggers': {
+        '': {
+            'level': 'WARNING',
+            'handlers': ['console', 'debug_file_handler']
+        },
+        'strephit': {
+            'level': 'INFO',
+        },
+    },
+    'formatters': {
+        'strephit': {
+            'format': '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s'
         }
-    })
+    },
+    'handlers': {
+        'console': {
+            'formatter': 'strephit',
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG'
+        },
+        'debug_file_handler': {
+            'formatter': 'strephit',
+            'level': 'DEBUG',
+            'filename': 'debug.log',
+            'mode': 'w',
+            'class': 'logging.FileHandler',
+            'encoding': 'utf8'
+        }
+    }
+}
+
+
+def setup():
+    conf_path = os.path.abspath(os.path.join('dev', 'logging.ini'))
+    if os.path.exists(conf_path):
+        logging.config.fileConfig(conf_path, DEFAULT_CONF,
+                                  disable_existing_loggers=False)
+    else:
+        logging.config.dictConfig(DEFAULT_CONF)
 
 
 def setLogLevel(module, level):
