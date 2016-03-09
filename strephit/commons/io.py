@@ -58,6 +58,15 @@ def load_scraped_items(location):
     logger.debug('all items loaded')
 
 
+# Sometimes the document may be a list of strings, depending on how it was scraped
+def _join_text(document):
+    if type(document) == list:
+        logger.debug("Text document as a list, will convert it into a string: %s" % document)
+        return '\n'.join(document)
+    else:
+        return document
+
+
 def load_corpus(items_dir, document_key, text_only=False):
     """ Load an input corpus from a directory with scraped items, in a memory-efficient way.
         Each input file must contain one JSON object per line.
@@ -66,10 +75,7 @@ def load_corpus(items_dir, document_key, text_only=False):
     for item in load_scraped_items(items_dir):
         document = item.get(document_key)
         if document:
-            # Sometimes the document may be a list of strings, depending on how it was scraped
-            if type(document) == list:
-                logger.debug("Text document as a list, will convert it into a string: %s" % document)
-                document = '\n'.join(document)
+            document = _join_text(document)
             if text_only:
                 yield document
             else:
@@ -83,9 +89,12 @@ def load_dumped_corpus(dump_file_handle, document_key, text_only=False):
     """ Load a previously dumped corpus file, in a memory-efficient way. """
     for line in dump_file_handle:
         item = json.loads(line)
+        # The document key should always exist here, so raise KeyError if not
+        document = _join_text(item[document_key])
         if text_only:
-            yield item[document_key]
+            yield document
         else:
+            item[document_key] = document
             yield item
 
 
