@@ -74,10 +74,10 @@ class TTPosTagger():
             clean_tags.append(tag)
         return clean_tags
 
-    def tag_one(self, item, document_key, **kwargs):
+    def tag_one(self, item, document_key, skip_unknown=True, **kwargs):
         """ POS-Tags the text document of the given item, eventually skipping unknown lemmas """
         # Replace text document with POS-tagged document
-        item[document_key] = self._postprocess_tags(make_tags(self.tagger.tag_text(item[document_key])))
+        item[document_key] = self._postprocess_tags(make_tags(self.tagger.tag_text(item[document_key], skip_unknown)))
         return item
 
     def tag_many(self, items, document_key, batch_size=10000, **kwargs):
