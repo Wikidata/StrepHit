@@ -13,8 +13,9 @@ from sys import exit
 logger = logging.getLogger(__name__)
 
 
-def _add_match(match, sentence, extracted, sentence_id, lemma, item):
-    logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
+def _add_match(sentence, extracted, sentence_id, lemma, item, match=None):
+    if match:
+        logger.debug("Token '%s' matches sentence '%s'" % (match, sentence))
     extracted += 1
     matched_sentence = {
         'id': sentence_id,
@@ -70,9 +71,8 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
             # 121 extraction strategy: 1 sentence per 1 LU
             # N.B.: the same sentence will appear only once
             if strategy == '121':
-                for match in all_match_tokens:
-                    if any(match.lower() in sentence_tokens):
-                        _add_match(match, sentence, extracted, sentence_id, lemma, item)
+                if any(match.lower() in sentence_tokens for match in all_match_tokens):
+                    _add_match(sentence, extracted, sentence_id, lemma, item)
             # n2n extraction strategy: many sentences per many LUs
             # N.B.: the same sentence is likely to appear multiple times
             elif strategy == 'n2n':
@@ -80,7 +80,7 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
                         for match in match_tokens:
                             # Remember to lowercase
                             if match.lower() in sentence_tokens:
-                                _add_match(match, sentence, extracted, sentence_id, lemma, item)
+                                _add_match(sentence, extracted, sentence_id, lemma, item, match=match)
             # TODO syntactic analysis extraction strategy
             elif strategy == 'syntactic':
                 logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
