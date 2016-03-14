@@ -56,6 +56,30 @@ class TestExtractSentences(unittest.TestCase):
             self.assertIn(sentence['lu'], missing_lus)
             missing_lus.remove(sentence['lu'])
 
-    @unittest.skip('implement this strategt first')
     def test_syntactic(self):
-        pass
+        extracted = [x for x in extract_sentences.extract_sentences([
+            {'bio': 'this is part a1, and this is part a2'}
+        ], 'bio', 'en', {'be': ['is', 'are']}, 'syntactic')]
+
+        self.assertEqual(len(extracted), 1)
+        sentences, count = extracted[0]
+
+        self.assertEqual(count, 2)
+        self.assertEqual(len(sentences['sentences']), count)
+
+        missing_parts = {'a1', 'a2'}
+        for sentence in sentences['sentences']:
+            self.assertIn('text', sentence)
+            self.assertIn('lu', sentence)
+            self.assertEqual(sentence['lu'], 'be')
+
+            for p in missing_parts:
+                if p in sentence['text']:
+                    self.assertEqual(sentence['text'], 'this is part ' + p)
+                    missing_parts.remove(p)
+                    break
+            else:
+                self.fail('Extracted unexpected sentence: %s' % repr(sentence))
+
+        if missing_parts:
+            self.fail('Did not find parts: %s' % repr(missing_parts))

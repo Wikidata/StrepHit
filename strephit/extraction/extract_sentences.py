@@ -5,6 +5,9 @@ import click
 import json
 import logging
 from random import choice
+from itertools import imap
+from nltk.parse.stanford import StanfordParser
+from nltk.tree import Tree
 from strephit.commons.io import load_dumped_corpus
 from strephit.commons.tokenize import Tokenizer
 from strephit.commons.split_sentences import SentenceSplitter
@@ -74,7 +77,7 @@ def extract_121(corpus, document_key, language, matches):
 
 
 def extract_n2n(corpus, document_key, language, matches):
-    """n2n extraction strategy: many sentences per many LUs
+    """ n2n extraction strategy: many sentences per many LUs
         N.B.: the same sentence is likely to appear multiple times
     """
 
@@ -108,6 +111,77 @@ def extract_n2n(corpus, document_key, language, matches):
         else:
             logger.debug("No sentences extracted. Skipping the whole item ...")
 
+def extract_syntactic(corpus, document_key, language, matches):
+    """ Tries to split sentences into sub-sentences so that each of them
+        contains only one LU
+    """
+    def find_sub_sentences(tree):
+        # sub-sentences are the lowest S nodes
+        if not isinstance(tree, Tree):
+            return []
+
+        s = reduce(lambda x, y: x + y, map(find_sub_sentences, iter(tree)), [])
+        if tree.label() == 'S':
+            return s or [tree]
+        else:
+            return s
+
+    def find_terminals(tree, label=None):
+        # finds all terminals in the tree with the given label prefix
+        if len(tree) == 1 and not isinstance(tree[0], Tree):
+            if label is None or tree.label().startswith(label):
+                yield (tree.label(), tree[0])
+        else:
+            for child in tree:
+                for each in find_terminals(child, label):
+                    yield each
+
+    splitter = SentenceSplitter(language)
+    parser = StanfordParser(path_to_jar='dev/stanford-corenlp-3.6.0.jar',
+                            path_to_models_jar='dev/stanford-corenlp-3.6.0-models.jar',
+                            java_options=' -mx1G -Djava.ext.dirs=dev/')  # no way to make classpath work
+
+    token_to_lemma = {}
+    for lemma, tokens in matches.iteritems():
+        for t in tokens:
+            token_to_lemma[t] = lemma
+    all_verbs = set(token_to_lemma.keys())
+
+    count = 0
+    for item in corpus:
+        extracted = []
+        bio = item[document_key].lower()
+        for root in parser.raw_parse_sents(splitter.split(bio)):
+            root = root.next()
+            sub_sents = find_sub_sentences(root)
+
+            for sub in sub_sents:
+                text = ' '.join(chunk for _, chunk in find_terminals(sub))
+                verbs = set(chunk for _, chunk in find_terminals(sub, 'V'))
+                found = verbs.intersection(all_verbs)
+
+                if len(found) == 0:
+                    logger.debug('No matching verbs found in sub sentence ' + text)
+                elif len(found) == 1:
+                    extracted.append({
+                        'id': count,
+                        'lu': token_to_lemma[found.pop()],
+                        'text': text,
+                    })
+                    count += 1
+                else:
+                    logger.debug('More than one matching verbs found in sentence %s: %s',
+                                 text, repr(found))
+
+        if extracted:
+            logger.debug("%d sentences extracted. Removing the full text from the item ...",
+                         len(extracted))
+            item['sentences'] = extracted
+            item.pop(document_key)
+            yield item, len(extracted)
+        else:
+            logger.debug("No sentences extracted. Skipping the whole item ...")
+
 
 def extract_sentences(corpus, document_key, language, matches, strategy):
     """
@@ -129,7 +203,7 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
         extract = extract_121
     elif strategy == 'syntactic':
         logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
-        pass
+        extract = extract_syntactic
     else:
         raise ValueError("Malformed or unsupported extraction strategy: please use one of ['121', 'n2n', or 'syntactic']")
 
