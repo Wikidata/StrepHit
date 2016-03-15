@@ -70,7 +70,7 @@ def about_sources(corpus, processes, with_bio):
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        logger.warn('Cannot import matplotlib, skipping pie chart')
+        logger.warn('Cannot import matplotlib, skipping chart')
         return
 
     count = sum(c for s, c in aggregated_sources)
@@ -81,4 +81,31 @@ def about_sources(corpus, processes, with_bio):
     values.append(count - sum(values))
     plt.pie(values, labels=sources)
     plt.axis('equal')
+    plt.show()
+
+
+@main.command()
+@click.argument('corpus', type=click.Path(exists=True))
+def about_biographies(corpus):
+    count = with_bio = characters = 0
+    for doc in load_scraped_items(corpus):
+        count += 1
+        if doc.get('bio') and len(doc['bio']) > 5:
+            with_bio += 1
+            characters += len(doc['bio'])
+
+    print 'Total number of items:', count
+    print 'Items with a biography %d (%.2f %%)' % (with_bio, 100. * with_bio / count)
+    print 'Cumulative length of biographies: %d characters' % characters
+
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        logger.warn('Cannot import matplotlib, skipping chart')
+        return
+
+    plt.bar([0, 1], [count - with_bio, with_bio], width=0.75)
+    plt.xticks([0.375, 1.375], ['Without Biography', 'With Biography'])
+    plt.grid(True, axis='y')
+    plt.xlim((-0.5, 2.25))
     plt.show()
