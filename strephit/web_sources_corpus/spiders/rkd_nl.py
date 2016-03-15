@@ -19,7 +19,6 @@ class RKDArtistsSpider(BaseSpider):
     item_class = WebSourcesCorpusItem
     # There seems to be semi-structured data only here
     item_fields = {
-        'url': 'xpath:.//div[@class="right"]/div[@class="fieldGroup"]//dd/a/@href',
         'name': 'clean:xpath:.//h2/text()'
     }
 
@@ -34,7 +33,6 @@ class RKDArtistsSpider(BaseSpider):
                 logging.debug("Couldn't extract key or value from pair node '%s'" % pair)
         return item
 
-    
     def refine_item(self, response, item):
         item['other'] = {}
         name = item['name']
