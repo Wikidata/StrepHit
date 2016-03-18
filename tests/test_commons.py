@@ -163,6 +163,11 @@ class TestCache(unittest.TestCase):
 
         self.assertNotEqual(function1('value'), function2('value'))
 
+    def test_objects(self):
+        obj = {'this': ['is', ['a']], 'complex': 'object'}
+        cache.set('obj', obj)
+        self.assertEqual(obj, cache.get('obj'))
+
 
 class TestWikidata(unittest.TestCase):
     def test_width(self):

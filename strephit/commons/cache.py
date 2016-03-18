@@ -1,8 +1,8 @@
-""" Very simple cache for utf8 textual content """
 import sys
 import tempfile
 import os
 import hashlib
+import json
 
 
 BASE_DIR = os.path.join(tempfile.gettempdir(), 'strephit-cache')
@@ -27,7 +27,7 @@ def get(key, default=None):
         with open(loc) as f:
             stored_key = f.readline().decode('utf8')[:-1]
             if stored_key == key:
-                return f.read().decode('utf8')
+                return json.loads(f.read().decode('utf8'))
             else:
                 return get(key + hashed, default)
     else:
@@ -43,13 +43,13 @@ def set(key, value, overwrite=True):
 
         with open(loc, 'w') as f:
             f.write(key.encode('utf8') + '\n')
-            f.write(value.encode('utf8'))
+            f.write(json.dumps(value).encode('utf8'))
     else:
         with open(loc, 'r+') as f:
             stored_key = f.readline().decode('utf8')[:-1]
             if stored_key == key:
                 if overwrite:
-                    f.write(value.encode('utf8'))
+                    f.write(json.dumps(value).encode('utf8'))
                     f.truncate()
                 return
         set(key + hashed, value, overwrite)
