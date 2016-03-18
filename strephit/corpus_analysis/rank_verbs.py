@@ -102,11 +102,11 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
 @click.argument('language_code')
 @click.option('--pre-processed-corpus', '-c', type=click.File(), help="Load a pre-processed corpus JSON file, to avoid reloading")
 @click.option('--pos-tagged', '-p', type=click.File(), help="POS-tagged JSON file, to avoid POS-tagging again")
-@click.option('--corpus', type=click.File('w'), default='corpus.jsonlines')
-@click.option('--pos', type=click.File('w'), default='pos_tagged.json')
-@click.option('--verbs', type=click.File('w'), default='verbs.json')
-@click.option('--tf-idf', type=click.File('w'), default='tf_idf_ranking.json')
-@click.option('--stdev', type=click.File('w'), default='stdev_ranking.json')
+@click.option('--corpus', type=click.File('w'), default='dev/corpus.jsonlines')
+@click.option('--pos', type=click.File('w'), default='dev/pos_tagged.json')
+@click.option('--verbs', type=click.File('w'), default='dev/verbs.json')
+@click.option('--tf-idf', type=click.File('w'), default='dev/tf_idf_ranking.json')
+@click.option('--stdev', type=click.File('w'), default='dev/stdev_ranking.json')
 @click.option('--tt-home', type=click.Path(exists=True, dir_okay=True, resolve_path=True), help="home directory for TreeTagger")
 def main(corpus_path, document_key, language_code, pre_processed_corpus, pos_tagged, corpus, pos, verbs, tf_idf, stdev, tt_home):
     """ Compute verb rankings of the input corpus.
