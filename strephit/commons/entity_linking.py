@@ -6,7 +6,7 @@ import click
 import logging
 import json
 import requests
-from strephit.commons import secrets
+from strephit.commons import secrets, cache
 from sys import exit
 
 
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 NEX_DATA = {}
 
 
+@cache.cached
 def link(text):
     """
      Run entity linking on the given text using Dandelion APIs.
