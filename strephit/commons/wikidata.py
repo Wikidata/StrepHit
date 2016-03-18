@@ -107,13 +107,36 @@ def name_resolver(property, value, language):
 
 
 @cache.cached
-@resolver('P108', 'P97', 'P106', 'P19', 'P20', 'P27', 'P1035')
+@resolver('P108', 'P97', 'P106', 'P19', 'P20', 'P27')
 def generic_search_resolver(property, value, language):
     """ Last-hope resolver, searches wikidata hoping to find something
         which exactly matches the given value
     """
     results = search(value, language, label_exact=True)
     return results[0]['id'] if results else None
+
+
+@resolver('P1035')
+def honorifics_resolver(property, value, language):
+    if language != 'en':
+        raise ValueError('only english honorifics are supported, sorry')
+
+    return {
+        'prof': 'Q121594',
+        'dr': 'Q4618975',
+        'phd': 'Q4618975',
+        'bishop': 'Q611644',
+        'arcibishop': 'Q611644',
+        'st': 'Q43115',
+        'hon': 'Q2746176',
+        'rev': 'Q42603',
+        'prof': 'Q121594',
+        'miss': 'Q13359947',
+        'mrs': 'Q313549',
+        'mister': 'Q177053',
+        'mr': 'Q177053',
+        'sir': 'Q209690',
+    }.get(value.strip().lower(), None)
 
 
 def call_api(action, cache=True, **kwargs):

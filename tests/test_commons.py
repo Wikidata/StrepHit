@@ -196,9 +196,33 @@ class TestWikidata(unittest.TestCase):
         self.assertEqual(wikidata.gender_resolver('P21', 'femmina', 'it'), 'Q6581072')
 
     def test_resolvers(self):
+        self.assertEqual(wikidata.resolve('P1035', 'prof', 'en'), 'Q121594')
         self.assertEqual(wikidata.resolve('P21', 'male', 'en'), 'Q6581097')
         self.assertEqual(wikidata.resolve('P570', 'Feb 24, 2016', 'en'),
                          '+00000002016-02-24T00:00:00Z/11')
+
+    def test_honorifics_resolver(self):
+        for honorific, id_ in [
+                ('prof', 'Q121594'),
+                ('dr', 'Q4618975'),
+                ('phd', 'Q4618975'),
+                ('bishop', 'Q611644'),
+                ('arcibishop', 'Q611644'),
+                ('st', 'Q43115'),
+                ('hon', 'Q2746176'),
+                ('rev', 'Q42603'),
+                ('prof', 'Q121594'),
+                ('miss', 'Q13359947'),
+                ('mrs', 'Q313549'),
+                ('mister', 'Q177053'),
+                ('mr', 'Q177053'),
+                ('sir', 'Q209690')]:
+
+            self.assertEqual(wikidata.honorifics_resolver('P1035', honorific, 'en'),
+                             id_)
+
+        with self.assertRaises(ValueError):
+            _ = wikidata.honorifics_resolver('P1035', 'st', 'it')
 
 
 class TestDatetime(unittest.TestCase):
