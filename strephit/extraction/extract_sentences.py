@@ -139,7 +139,7 @@ def extract_syntactic(corpus, document_key, language, matches):
     splitter = SentenceSplitter(language)
     parser = StanfordParser(path_to_jar='dev/stanford-corenlp-3.6.0.jar',
                             path_to_models_jar='dev/stanford-corenlp-3.6.0-models.jar',
-                            java_options=' -mx1G -Djava.ext.dirs=dev/')  # no way to make classpath work
+                            java_options=' -mx2G -Djava.ext.dirs=dev/')  # no way to make classpath work
 
     token_to_lemma = {}
     for lemma, tokens in matches.iteritems():
@@ -151,17 +151,33 @@ def extract_syntactic(corpus, document_key, language, matches):
     for item in corpus:
         extracted = []
         bio = item[document_key].lower()
-        for root in parser.raw_parse_sents(splitter.split(bio)):
+        try:
+            roots = parser.raw_parse_sents(splitter.split(bio))
+        except (OSError, UnicodeDecodeError):
+            logger.exception('cannot parse biography, skipping')
+            continue
+
+        for root in roots:
             root = root.next()
-            sub_sents = find_sub_sentences(root)
+            try:
+                sub_sents = find_sub_sentences(root)
+            except:
+                logger.exception('cannot find sub-sentences')
+                continue
 
             for sub in sub_sents:
-                text = ' '.join(chunk for _, chunk in find_terminals(sub))
-                verbs = set(chunk for _, chunk in find_terminals(sub, 'V'))
+                try:
+                    text = ' '.join(chunk for _, chunk in find_terminals(sub))
+                    logger.debug('processing text ' + text)
+                    verbs = set(chunk for _, chunk in find_terminals(sub, 'V'))
+                except:
+                    logger.exception('cannot extract verbs or parse sentence')
+                    continue
+
                 found = verbs.intersection(all_verbs)
 
                 if len(found) == 0:
-                    logger.debug('No matching verbs found in sub sentence ' + text)
+                    logger.debug('No matching verbs found in sub sentence')
                 elif len(found) == 1:
                     extracted.append({
                         'id': count,

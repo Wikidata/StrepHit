@@ -23,7 +23,7 @@ def preprocess_corpus(corpus_dir, document_key, output_dir, items_per_file, min_
     current_file = open(os.path.join(output_dir, filename % 0), 'w')
 
     for item in load_scraped_items(corpus_dir):
-        if document_key in item and len(item[document_key]) >= min_length:
+        if item.get(document_key) and len(item[document_key]) > min_length:
             count += 1
             if count % items_per_file == 0:
                 fname = filename % (count / items_per_file)
