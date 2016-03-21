@@ -6,7 +6,7 @@ import json
 
 
 BASE_DIR = os.path.join(tempfile.gettempdir(), 'strephit-cache')
-
+ENABLED = True
 
 def _hash_for(key):
     return hashlib.sha1(key.encode('utf8')).hexdigest()
@@ -21,6 +21,9 @@ def _path_for(hashed_key):
 
 
 def get(key, default=None):
+    if not ENABLED:
+        return default
+
     hashed = _hash_for(key)
     loc, _, _ = _path_for(hashed)
     if os.path.exists(loc):
@@ -35,6 +38,9 @@ def get(key, default=None):
 
 
 def set(key, value, overwrite=True):
+    if not ENABLED:
+        return
+
     hashed = _hash_for(key)
     loc, path, fname = _path_for(hashed)
     if not os.path.exists(loc):
