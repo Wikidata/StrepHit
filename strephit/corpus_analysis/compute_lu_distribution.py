@@ -58,7 +58,7 @@ def worker_with_sentences(bio):
         if len(sent) < 5:
             continue
 
-        tagged = tagger.tag_one({'text': sent}, 'text')['text']
+        tagged = tagger.tag_one(sent)
         if not tagged:
             continue
 
