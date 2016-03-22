@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 import unittest
 from strephit.extraction import process_semistructured, extract_sentences
+from strephit.extraction.extract_sentences import OneToOneExtractor, ManyToManyExtractor, SyntacticExtractor
 from strephit.commons import cache
 
 class TestSemistructured(unittest.TestCase):
@@ -27,35 +28,30 @@ class TestSemistructured(unittest.TestCase):
 
 class TestExtractSentences(unittest.TestCase):
     def test_121(self):
-        extracted = [x for x in extract_sentences.extract_sentences([
-            {'text': 'tokens a1, a2'}
-        ], 'text', 'en', {'1': ['a1'], '2': ['a2']}, '121')]
+        items = list(OneToOneExtractor([{'text': 'tokens a1, a2'}], 'text', 'sentences',
+                                       'en', {'1': ['a1'], '2': ['a2']}).extract(1))
+        self.assertEqual(len(items), 1)
 
-        self.assertEqual(len(extracted), 1)
-        sentences, count = extracted[0]
+        sentences = items[0]['sentences']
+        self.assertEqual(len(sentences), 1)
 
-        self.assertEqual(count, 1)
-        self.assertEqual(len(sentences['sentences']), count)
-
-        sentence = sentences['sentences'][0]
+        sentence = sentences[0]
         self.assertIn('text', sentence)
         self.assertIn('lu', sentence)
         self.assertEqual('tokens a1, a2', sentence['text'])
         self.assertIn(sentence['lu'], {'1', '2'})
 
     def test_n2n(self):
-        extracted = [x for x in extract_sentences.extract_sentences([
-            {'text': 'tokens a1, a2'}
-        ], 'text', 'en', {'1': ['a1'], '2': ['a2']}, 'n2n')]
+        items = list(ManyToManyExtractor([{'text': 'tokens a1, a2'}], 'text', 'sentences',
+                                         'en', {'1': ['a1'], '2': ['a2']}).extract(1))
 
-        self.assertEqual(len(extracted), 1)
-        sentences, count = extracted[0]
+        self.assertEqual(len(items), 1)
 
-        self.assertEqual(count, 2)
-        self.assertEqual(len(sentences['sentences']), count)
+        sentences = items[0]['sentences']
+        self.assertEqual(len(sentences), 2)
 
         missing_lus = {'1', '2'}
-        for sentence in sentences['sentences']:
+        for sentence in sentences:
             self.assertIn('text', sentence)
             self.assertIn('lu', sentence)
             self.assertEqual('tokens a1, a2', sentence['text'])
@@ -63,18 +59,15 @@ class TestExtractSentences(unittest.TestCase):
             missing_lus.remove(sentence['lu'])
 
     def test_syntactic(self):
-        extracted = [x for x in extract_sentences.extract_sentences([
-            {'bio': 'this is part a1, and this is part a2'}
-        ], 'bio', 'en', {'be': ['is', 'are']}, 'syntactic')]
+        items = list(SyntacticExtractor([{'bio': 'this is part a1, and this is part a2'}],
+                                        'bio', 'sentences', 'en', {'be': ['is', 'are']}).extract(1))
+        self.assertEqual(len(items), 1)
 
-        self.assertEqual(len(extracted), 1)
-        sentences, count = extracted[0]
-
-        self.assertEqual(count, 2)
-        self.assertEqual(len(sentences['sentences']), count)
+        sentences = items[0]['sentences']
+        self.assertEqual(len(sentences), 2)
 
         missing_parts = {'a1', 'a2'}
-        for sentence in sentences['sentences']:
+        for sentence in sentences:
             self.assertIn('text', sentence)
             self.assertIn('lu', sentence)
             self.assertEqual(sentence['lu'], 'be')

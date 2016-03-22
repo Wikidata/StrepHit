@@ -89,7 +89,8 @@ def main(input_file, language, output, confidence):
                     logger.warn("No text for sentence #%d: skipping ..." % sentence['id'])
         else:
             logger.warn("No sentences to link for item with URL '%s': skipping ..." % item['url'])
-        json.dump(item, output, indent=2)
+        json.dump(item, output)
+        output.write('\n')
     logger.info("Linked entities added, will dump to '%s'" % output.name)
     return 0
 

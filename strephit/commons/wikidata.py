@@ -174,7 +174,7 @@ def name_resolver(property, value, language, **kwargs):
 
 
 @cache.cached
-@resolver('P108', 'P97', 'P106', 'P27')
+@resolver('P108', 'P97', 'P106', 'P27', 'P166')
 def generic_search_resolver(property, value, language, **kwargs):
     """ Last-hope resolver, searches wikidata hoping to find something
         which exactly matches the given value
