@@ -9,7 +9,7 @@ import requests
 from strephit.commons.io import get_and_cache
 
 
-def parse_and_save(text, separator, out_file):
+def parse_and_save(text, separator, out_file, url):
     current_item = None
     for line in text.split('\n'):
         if not line:
@@ -22,6 +22,7 @@ def parse_and_save(text, separator, out_file):
 
             print '%s' % match.group(1)
             current_item = {
+                'url': url,
                 'name': match.group(1),
                 'bio': '',
             }
@@ -49,7 +50,7 @@ def american_bio(ctx):
         volume_url = 'https://archive.org/download/biographicaldict{volume:02d}johnuoft/' \
                      'biographicaldict{volume:02d}johnuoft_djvu.txt'.format(volume=volume)
         vol = get_and_cache(volume_url, use_cache)
-        parse_and_save(vol, ur'([A-Z]+, [A-Z][a-z]+ ?),[^,]+,', out_file)
+        parse_and_save(vol, ur'([A-Z]+, [A-Z][a-z]+ ?),[^,]+,', out_file, volume_url)
 
 
 @cli.command()
@@ -61,8 +62,4 @@ def who_was_who(ctx):
     url = 'https://archive.org/download/whowaswhocompani01londuoft/' \
           'whowaswhocompani01londuoft_djvu.txt'
     text = get_and_cache(url, use_cache)
-    parse_and_save(text, ur'([A-Z]+, ([0-9A-Z][. \-a-z]+)+),[^,]+[,;]', out_file)
-    
-
-if __name__ == '__main__':
-    cli(obj={})
+    parse_and_save(text, ur'([A-Z]+, ([0-9A-Z][. \-a-z]+)+),[^,]+[,;]', out_file, url)

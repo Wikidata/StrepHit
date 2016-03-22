@@ -10,10 +10,22 @@ def parse(string):
         """ Hackish way to extract extract day, month and year only when
             they were defined in the original string
         """
-        result = {}
+        result = {'year': None, 'month': None, 'day': None}
 
         def replace(self, **kwargs):
             self.result.update(kwargs)
+
+        @property
+        def year(self):
+            return self.result['year']
+
+        @property
+        def month(self):
+            return self.result['month']
+
+        @property
+        def day(self):
+            return self.result['day']
 
     parsed = CustomDatetime()
     try:
@@ -21,7 +33,7 @@ def parse(string):
     except ValueError:
         pass
 
-    if parsed.result:
+    if parsed.result != {'year': None, 'month': None, 'day': None}:
         return parsed.result
     else:
         return _fallback(string)
@@ -32,6 +44,7 @@ _custom_patterns = map(
                                   transform), [
         (r'b\.c\. (?P<y>\d+)', lambda match: {'year': int('-' + match.group('y'))}),
         (r'(?P<y>\d+)\s*bc', lambda match: {'year': int('-' + match.group('y'))}),
+        (r'\d{4}', lambda match: {'year': int(match.group(0))}),
     ]
 )
 

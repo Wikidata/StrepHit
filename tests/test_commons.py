@@ -121,7 +121,7 @@ class TestCache(unittest.TestCase):
         cache.set(u'\u84c4\u3048\u3066 \u304f\u3060\u3055\u3044',
                   u'\u304a\u75b2\u308c\u3055\u307e')
         self.assertEqual(cache.get(u'\u84c4\u3048\u3066 \u304f\u3060\u3055\u3044'),
-                                   u'\u304a\u75b2\u308c\u3055\u307e')
+                         u'\u304a\u75b2\u308c\u3055\u307e')
 
     def test_collisions(self):
         def collision_hash(key):
@@ -163,17 +163,43 @@ class TestCache(unittest.TestCase):
 
         self.assertNotEqual(function1('value'), function2('value'))
 
+    def test_enabled(self):
+        cache.ENABLED = False
+        cache.set('key', 'value')
+        self.assertEqual(cache.get('key', 'something else'), 'something else')
+        cache.ENABLED = True
+
+    def test_objects(self):
+        obj = {'this': ['is', ['a']], 'complex': 'object'}
+        cache.set('obj', obj)
+        self.assertEqual(obj, cache.get('obj'))
+
 
 class TestWikidata(unittest.TestCase):
-    def test_width(self):
+
+    def setUp(self):
+        cache.ENABLED = False
+
+    def tearDown(self):
+        cache.ENABLED = True
+
+    def test_date_width(self):
         self.assertEqual(wikidata.format_date(1967, 1, 17),
                          '+00000001967-01-17T00:00:00Z/11')
 
-    def test_negative(self):
+    def test_negative_year(self):
         self.assertEqual(wikidata.format_date(-100, None, None),
                          '-00000000100-01-01T00:00:00Z/9')
         self.assertRaises(ValueError, wikidata.format_date, 100, -1, 1)
         self.assertRaises(ValueError, wikidata.format_date, 100, 1, -1)
+
+    def test_parse_date(self):
+        self.assertEqual(wikidata.parse_date('-00000000100-01-01T00:00:00Z/9'),
+                         {'year': -100, 'month': None, 'day': None})
+
+    def test_parse_date_with_precision(self):
+        self.assertEqual(wikidata.parse_date('+00000000101-02-03T00:00:00Z', precision=10),
+                         {'year': 101, 'month': 2, 'day': None})
 
     def test_missing(self):
         self.assertRaises(ValueError, wikidata.format_date, None, None, None)
@@ -196,15 +222,61 @@ class TestWikidata(unittest.TestCase):
         self.assertEqual(wikidata.gender_resolver('P21', 'femmina', 'it'), 'Q6581072')
 
     def test_resolvers(self):
+        self.assertEqual(wikidata.resolve('P1035', 'prof', 'en'), 'Q121594')
         self.assertEqual(wikidata.resolve('P21', 'male', 'en'), 'Q6581097')
         self.assertEqual(wikidata.resolve('P570', 'Feb 24, 2016', 'en'),
                          '+00000002016-02-24T00:00:00Z/11')
 
+    def test_honorifics_resolver(self):
+        for honorific, id_ in [
+                ('prof', 'Q121594'),
+                ('dr', 'Q4618975'),
+                ('phd', 'Q4618975'),
+                ('bishop', 'Q611644'),
+                ('arcibishop', 'Q611644'),
+                ('st', 'Q43115'),
+                ('hon', 'Q2746176'),
+                ('rev', 'Q42603'),
+                ('prof', 'Q121594'),
+                ('miss', 'Q13359947'),
+                ('mrs', 'Q313549'),
+                ('mister', 'Q177053'),
+                ('mr', 'Q177053'),
+                ('sir', 'Q209690')]:
+
+            self.assertEqual(wikidata.honorifics_resolver('P1035', honorific, 'en'),
+                             id_)
+
+        with self.assertRaises(ValueError):
+            _ = wikidata.honorifics_resolver('P1035', 'st', 'it')
+
+    def test_name_resolver_with_birth(self):
+        additional_info = {'P569': ['+1893-09-20T00:00:00Z/11']}
+        self.assertEqual(wikidata.name_resolver('P1477', 'colin fraser', 'en', **additional_info),
+                         'Q5145111')
+
+    def test_name_resolver_with_death(self):
+        additional_info = {'P570': ['+1958-08-15T00:00:00Z/11']}
+        self.assertEqual(wikidata.name_resolver('P1477', 'colin fraser', 'en', **additional_info),
+                         'Q5145111')
+
+    def test_name_resolver_with_gender(self):
+        additional_info = {'P21': ['Q6581097']}
+        self.assertEqual(wikidata.name_resolver('P1477', 'colin fraser', 'en', **additional_info),
+                         'Q5145111')
+
+    def test_place_resolver(self):
+        self.assertEqual(wikidata.place_resolver('Pwhatever', 'vaughan', 'en'), 'Q44013')
+
 
 class TestDatetime(unittest.TestCase):
-    def test_simple(self):
+    def test_simple_date(self):
         self.assertEqual(datetime.parse('24/2/2016'),
                          {'year': 2016, 'month': 2, 'day': 24})
+
+    def test_simply_year(self):
+        self.assertEqual(datetime.parse('1863'),
+                         {'year': 1863, 'month': None, 'day': None})
 
     def test_fallbacks(self):
         self.assertEqual(datetime.parse('b.c. 123'),

@@ -5,6 +5,9 @@ import click
 import json
 import logging
 from random import choice
+from itertools import imap
+from nltk.parse.stanford import StanfordParser
+from nltk.tree import Tree
 from strephit.commons.io import load_dumped_corpus
 from strephit.commons.tokenize import Tokenizer
 from strephit.commons.split_sentences import SentenceSplitter
@@ -27,38 +30,59 @@ def _add_match(match, sentence, extracted, sentence_id, lemma, item):
     return sentence_id, extracted
 
 
-def extract_sentences(corpus, document_key, language, matches, strategy):
-    """
-    Extract sentences from the given corpus by matching tokens against a given set.
-    :param corpus: Iterable of documents containing text and metadata
-    :param str document_key: dict key to get the text documents
-    :param str language: ISO 639-1 language code used for tokenization and sentence splitting
-    :param dict matches: Dict with corpus lemmas as keys and tokens to be matched as values
-    :param str strategy: One of the 3 extraction strategies ['121', 'n2n', 'syntactic']
-    :return: the corpus, updated with the extracted sentences
-    :rtype: dict
+def extract_121(corpus, document_key, language, matches):
+    """ 121 extraction strategy: 1 sentence per 1 LU
+        N.B.: the same sentence will appear only once
+        the sentence is assigned to a RANDOM LU
     """
     splitter = SentenceSplitter(language)
     tokenizer = Tokenizer(language)
-    # Strategy check
-    if strategy == 'n2n':
-        logger.info("Will extract sentences using the 'many to many' strategy: the same sentence is likely to appear multiple times, with different LUs.")
-    elif strategy == '121':
-        logger.info("Will extract sentences using the 'one to one' strategy: the same sentence will appear only once.")
-        all_match_tokens = set()
-        # dict token: lemma
-        token_to_lemma = {}
-        for lemma, match_tokens in matches.iteritems():
-            for match_token in match_tokens:
-                all_match_tokens.add(match_token)
-                token_to_lemma[match_token] = lemma
-        logger.debug("All match tokens: %s" % all_match_tokens)
-    elif strategy == 'syntactic':
-        logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
-        pass
-    # Wrong strategy parameter passed
-    else:
-        raise ValueError("Malformed or unsupported extraction strategy: please use one of ['121', 'n2n', or 'syntactic']")
+
+    all_match_tokens = set()
+    # dict token: lemma
+    token_to_lemma = {}
+    for lemma, match_tokens in matches.iteritems():
+        for match_token in match_tokens:
+            all_match_tokens.add(match_token)
+            token_to_lemma[match_token] = lemma
+    logger.debug("All match tokens: %s" % all_match_tokens)
+
+    sentence_id = 0
+    for item in corpus:
+        extracted = 0
+        item['sentences'] = []
+        # Each input item should always contain text documents
+        # Raise KeyError otherwise
+        document = item[document_key]
+        sentences = splitter.split(document)
+        for sentence in sentences:
+            sentence_tokens = [token.lower() for token in tokenizer.tokenize(sentence)]
+            matched = []
+            for match in all_match_tokens:
+                if match.lower() in sentence_tokens:
+                    matched.append(match)
+            if matched:
+                assigned_token = choice(matched)
+                assigned_lu = token_to_lemma[assigned_token]
+                current_id, current_extracted = _add_match(assigned_token, sentence, extracted, sentence_id, assigned_lu, item)
+                sentence_id = current_id
+                extracted = current_extracted
+
+        if extracted > 0:
+            logger.debug("%d sentences extracted. Removing the full text from the item ..." % extracted)
+            item.pop(document_key)  # Remove text key
+            yield item, extracted
+        else:
+            logger.debug("No sentences extracted. Skipping the whole item ...")
+
+
+def extract_n2n(corpus, document_key, language, matches):
+    """ n2n extraction strategy: many sentences per many LUs
+        N.B.: the same sentence is likely to appear multiple times
+    """
+
+    splitter = SentenceSplitter(language)
+    tokenizer = Tokenizer(language)
 
     sentence_id = 0
     for item in corpus:
@@ -71,42 +95,136 @@ def extract_sentences(corpus, document_key, language, matches, strategy):
         for sentence in sentences:
             # Remember to lowercase
             sentence_tokens = [token.lower() for token in tokenizer.tokenize(sentence)]
-            # n2n extraction strategy: many sentences per many LUs
-            # N.B.: the same sentence is likely to appear multiple times
-            if strategy == 'n2n':
-                for lemma, match_tokens in matches.iteritems():
-                        for match in match_tokens:
-                            # Remember to lowercase
-                            if match.lower() in sentence_tokens:
-                                current_id, current_extracted = _add_match(match, sentence, extracted, sentence_id, lemma, item)
-                                sentence_id = current_id
-                                extracted = current_extracted
-            # 121 extraction strategy: 1 sentence per 1 LU
-            # N.B.: the same sentence will appear only once
-            # the sentence is assigned to a RANDOM LU
-            elif strategy == '121':
-                matched = []
-                for match in all_match_tokens:
+
+            for lemma, match_tokens in matches.iteritems():
+                for match in match_tokens:
+                    # Remember to lowercase
                     if match.lower() in sentence_tokens:
-                            matched.append(match)
-                if matched:
-                    assigned_token = choice(matched)
-                    assigned_lu = token_to_lemma[assigned_token]
-                    current_id, current_extracted = _add_match(assigned_token, sentence, extracted, sentence_id, assigned_lu, item)
-                    sentence_id = current_id
-                    extracted = current_extracted
-            # TODO syntactic analysis extraction strategy
-            elif strategy == 'syntactic':
-                logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
-                pass
+                        current_id, current_extracted = _add_match(match, sentence, extracted, sentence_id, lemma, item)
+                        sentence_id = current_id
+                        extracted = current_extracted
+
         if extracted > 0:
             logger.debug("%d sentences extracted. Removing the full text from the item ..." % extracted)
-            # Remove text key
-            item.pop(document_key)
+            item.pop(document_key)  # Remove text key
             yield item, extracted
         else:
             logger.debug("No sentences extracted. Skipping the whole item ...")
-            pass
+
+def extract_syntactic(corpus, document_key, language, matches):
+    """ Tries to split sentences into sub-sentences so that each of them
+        contains only one LU
+    """
+    def find_sub_sentences(tree):
+        # sub-sentences are the lowest S nodes
+        if not isinstance(tree, Tree):
+            return []
+
+        s = reduce(lambda x, y: x + y, map(find_sub_sentences, iter(tree)), [])
+        if tree.label() == 'S':
+            return s or [tree]
+        else:
+            return s
+
+    def find_terminals(tree, label=None):
+        # finds all terminals in the tree with the given label prefix
+        if len(tree) == 1 and not isinstance(tree[0], Tree):
+            if label is None or tree.label().startswith(label):
+                yield (tree.label(), tree[0])
+        else:
+            for child in tree:
+                for each in find_terminals(child, label):
+                    yield each
+
+    splitter = SentenceSplitter(language)
+    parser = StanfordParser(path_to_jar='dev/stanford-corenlp-3.6.0.jar',
+                            path_to_models_jar='dev/stanford-corenlp-3.6.0-models.jar',
+                            java_options=' -mx2G -Djava.ext.dirs=dev/')  # no way to make classpath work
+
+    token_to_lemma = {}
+    for lemma, tokens in matches.iteritems():
+        for t in tokens:
+            token_to_lemma[t] = lemma
+    all_verbs = set(token_to_lemma.keys())
+
+    count = 0
+    for item in corpus:
+        extracted = []
+        bio = item[document_key].lower()
+        try:
+            roots = parser.raw_parse_sents(splitter.split(bio))
+        except (OSError, UnicodeDecodeError):
+            logger.exception('cannot parse biography, skipping')
+            continue
+
+        for root in roots:
+            root = root.next()
+            try:
+                sub_sents = find_sub_sentences(root)
+            except:
+                logger.exception('cannot find sub-sentences')
+                continue
+
+            for sub in sub_sents:
+                try:
+                    text = ' '.join(chunk for _, chunk in find_terminals(sub))
+                    logger.debug('processing text ' + text)
+                    verbs = set(chunk for _, chunk in find_terminals(sub, 'V'))
+                except:
+                    logger.exception('cannot extract verbs or parse sentence')
+                    continue
+
+                found = verbs.intersection(all_verbs)
+
+                if len(found) == 0:
+                    logger.debug('No matching verbs found in sub sentence')
+                elif len(found) == 1:
+                    extracted.append({
+                        'id': count,
+                        'lu': token_to_lemma[found.pop()],
+                        'text': text,
+                    })
+                    count += 1
+                else:
+                    logger.debug('More than one matching verbs found in sentence %s: %s',
+                                 text, repr(found))
+
+        if extracted:
+            logger.debug("%d sentences extracted. Removing the full text from the item ...",
+                         len(extracted))
+            item['sentences'] = extracted
+            item.pop(document_key)
+            yield item, len(extracted)
+        else:
+            logger.debug("No sentences extracted. Skipping the whole item ...")
+
+
+def extract_sentences(corpus, document_key, language, matches, strategy):
+    """
+    Extract sentences from the given corpus by matching tokens against a given set.
+    :param corpus: Iterable of documents containing text and metadata
+    :param str document_key: dict key to get the text documents
+    :param str language: ISO 639-1 language code used for tokenization and sentence splitting
+    :param dict matches: Dict with corpus lemmas as keys and tokens to be matched as values
+    :param str strategy: One of the 3 extraction strategies ['121', 'n2n', 'syntactic']
+    :return: the corpus, updated with the extracted sentences and the number of extracted sentences
+    :rtype: generator of tuples
+    """
+
+    if strategy == 'n2n':
+        logger.info("Will extract sentences using the 'many to many' strategy: the same sentence is likely to appear multiple times, with different LUs.")
+        extract = extract_n2n
+    elif strategy == '121':
+        logger.info("Will extract sentences using the 'one to one' strategy: the same sentence will appear only once.")
+        extract = extract_121
+    elif strategy == 'syntactic':
+        logger.info("Will extract sentences using the 'syntactic' strategy: the same sentence will appear only once.")
+        extract = extract_syntactic
+    else:
+        raise ValueError("Malformed or unsupported extraction strategy: please use one of ['121', 'n2n', or 'syntactic']")
+
+    for each in extract(corpus, document_key, language, matches):
+        yield each
 
 
 @click.command()

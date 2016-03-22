@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import click
 import json
 import logging
+from collections import defaultdict
 from strephit.commons import io, wikidata, parallel, text
 
 
@@ -37,26 +38,51 @@ def serialize_item((i, item, cache, language, sourced_only)):
             return
 
     name, honorifics = text.fix_name(name)
-    wid = wikidata.name_resolver('P1477', name, language)
-    if not wid:
-        logger.debug('cannod find wikidata id for item %s (%s), skipping' % (
-            _id, name)
-        )
-        return
-
     data.update(item)
-    data['name'] = name  # use the fixed name
+    data.pop('bio', None)
+
+    # the name will be the last one to be resolved because it is the hardest
+    # one to get right, so we will use all the other statements to help
+    statements = defaultdict(list)
 
     for key, value in data.iteritems():
         if not isinstance(value, list):
             value = [value]
 
         for val in value:
-            statement = wikidata.finalize_statement(wid, key, val, language, url)
+            if not val:
+                continue
+
+            property = wikidata.PROPERTY_TO_WIKIDATA.get(key)
+            if not property:
+                logger.debug('cannot resolve property %s, skipping', key)
+                continue
+
+            info = dict(data, **statements)  # provide all available info to the resolver
+            value = wikidata.resolve(property, val, language, **info)
+            if not value:
+                logger.debug('cannot resolve value %s of property %s, skipping', val, property)
+                continue
+
+            statements[property].append(value)
+
+    info = dict(data, **statements)  # provide all available info to the resolver
+    wid = wikidata.name_resolver('P1477', name, language, **info)
+
+    if not wid:
+        logger.debug('cannod find wikidata id for item %s (%s) with properties %s, skipping',
+                     _id, name, repr(info))
+        return
+
+    # now that we are sure about the subject we can produce the actual statements
+    yield wikidata.finalize_statement(wid, 'P1477', '"%s"' % name, language, url,
+                                      resolve_property=False, resolve_value=False)
+    for property, values in statements.iteritems():
+        for val in values:
+            statement = wikidata.finalize_statement(wid, property, val, language, url,
+                                                    resolve_property=False, resolve_value=False)
             if statement:
                 yield statement
-            else:
-                logger.debug('skipped property %s of %s (%s): %s' % (key, _id, name, val))
 
     for each in honorifics:
         statement = wikidata.finalize_statement(wid, 'honorific', each, language, url)

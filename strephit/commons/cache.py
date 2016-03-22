@@ -1,12 +1,12 @@
-""" Very simple cache for utf8 textual content """
 import sys
 import tempfile
 import os
 import hashlib
+import json
 
 
 BASE_DIR = os.path.join(tempfile.gettempdir(), 'strephit-cache')
-
+ENABLED = True
 
 def _hash_for(key):
     return hashlib.sha1(key.encode('utf8')).hexdigest()
@@ -21,13 +21,16 @@ def _path_for(hashed_key):
 
 
 def get(key, default=None):
+    if not ENABLED:
+        return default
+
     hashed = _hash_for(key)
     loc, _, _ = _path_for(hashed)
     if os.path.exists(loc):
         with open(loc) as f:
             stored_key = f.readline().decode('utf8')[:-1]
             if stored_key == key:
-                return f.read().decode('utf8')
+                return json.loads(f.read().decode('utf8'))
             else:
                 return get(key + hashed, default)
     else:
@@ -35,6 +38,9 @@ def get(key, default=None):
 
 
 def set(key, value, overwrite=True):
+    if not ENABLED:
+        return
+
     hashed = _hash_for(key)
     loc, path, fname = _path_for(hashed)
     if not os.path.exists(loc):
@@ -43,13 +49,13 @@ def set(key, value, overwrite=True):
 
         with open(loc, 'w') as f:
             f.write(key.encode('utf8') + '\n')
-            f.write(value.encode('utf8'))
+            f.write(json.dumps(value).encode('utf8'))
     else:
         with open(loc, 'r+') as f:
             stored_key = f.readline().decode('utf8')[:-1]
             if stored_key == key:
                 if overwrite:
-                    f.write(value.encode('utf8'))
+                    f.write(json.dumps(value).encode('utf8'))
                     f.truncate()
                 return
         set(key + hashed, value, overwrite)

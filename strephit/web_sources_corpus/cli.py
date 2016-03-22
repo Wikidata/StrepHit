@@ -4,7 +4,7 @@ import os
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from strephit.web_sources_corpus.preprocess_corpus import preprocess_corpus
-from strephit.web_sources_corpus import run_all, spiders
+from strephit.web_sources_corpus import run_all, archive_org
 
 
 @click.command()
@@ -29,7 +29,8 @@ def crawl(spider_name, results_dir):
 CLI_COMMANDS = {
     'preprocess_corpus': preprocess_corpus,
     'run_all': run_all.main,
-    'crawl': crawl,
+    'scrapy_crawl': crawl,
+    'archive_org_crawl': archive_org.cli,
 }
 
 

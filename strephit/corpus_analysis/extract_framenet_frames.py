@@ -94,8 +94,10 @@ def extract_top_corpus_tokens(enriched_lemmas, all_lemma_tokens):
 @click.argument('ranking', type=click.File())
 @click.argument('all_lemmas', type=click.File())
 @click.option('--top-n', '-n', default=50)
-@click.option('--dump-enriched', '-e', type=click.File('w'), default='framenet_lus.json')
-@click.option('--dump-top-lemmas', '-t', type=click.File('w'), default='top_lemma_tokens.json')
+@click.option('--dump-enriched', '-e', type=click.File('w'),
+              default='dev/framenet_lus.json')
+@click.option('--dump-top-lemmas', '-t', type=click.File('w'),
+              default='dev/top_lemma_tokens.json')
 def main(ranking, all_lemmas, top_n, dump_enriched, dump_top_lemmas):
     """
     Extract FrameNet data given a ranking of corpus Lexical Units (lemmas)
