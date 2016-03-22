@@ -27,36 +27,59 @@ class TestSemistructured(unittest.TestCase):
 
 
 class TestExtractSentences(unittest.TestCase):
-    def test_121(self):
-        items = list(OneToOneExtractor([{'text': 'tokens a1, a2'}], 'text', 'sentences',
-                                       'en', {'1': ['a1'], '2': ['a2']}).extract(1))
+    def setUp(self):
+        self.bio_key = 'text'
+        self.sent_key = 'sent'
+
+        self.bio_real = 'Austrian architect, born 1927 and died 1988'
+        self.corpus_real = [{self.bio_key: self.bio_real}]
+        self.lemma_to_token_real = {'bear': ['born'], 'die': ['died']}
+
+        self.bio_fake = 'aaa bbb ccc ddd eee'
+        self.corpus_fake = [{self.bio_key: self.bio_fake}]
+        self.lemma_to_token_fake = {'123': ['bbb', 'ccc']}
+
+    def test_121_real(self):
+        items = list(OneToOneExtractor(self.corpus_real, self.bio_key, self.sent_key,
+                                       'en', self.lemma_to_token_real).extract(1))
+
         self.assertEqual(len(items), 1)
 
-        sentences = items[0]['sentences']
+        sentences = items[0][self.sent_key]
         self.assertEqual(len(sentences), 1)
 
         sentence = sentences[0]
         self.assertIn('text', sentence)
         self.assertIn('lu', sentence)
-        self.assertEqual('tokens a1, a2', sentence['text'])
-        self.assertIn(sentence['lu'], {'1', '2'})
+        self.assertEqual(sentence['text'], self.bio_real)
+        self.assertIn(sentence['lu'], self.lemma_to_token_real.keys())
 
-    def test_n2n(self):
-        items = list(ManyToManyExtractor([{'text': 'tokens a1, a2'}], 'text', 'sentences',
-                                         'en', {'1': ['a1'], '2': ['a2']}).extract(1))
+    def test_121_fake(self):
+        items = list(OneToOneExtractor(self.corpus_fake, self.bio_key, self.sent_key,
+                                       'en', self.lemma_to_token_fake).extract(1))
+        self.assertEqual(items, [])
+
+    def test_n2n_real(self):
+        items = list(ManyToManyExtractor(self.corpus_real, self.bio_key, self.sent_key,
+                                         'en', self.lemma_to_token_real).extract(1))
 
         self.assertEqual(len(items), 1)
 
-        sentences = items[0]['sentences']
+        sentences = items[0][self.sent_key]
         self.assertEqual(len(sentences), 2)
 
-        missing_lus = {'1', '2'}
+        missing_lus = set(self.lemma_to_token_real.keys())
         for sentence in sentences:
             self.assertIn('text', sentence)
             self.assertIn('lu', sentence)
-            self.assertEqual('tokens a1, a2', sentence['text'])
+            self.assertEqual(sentence['text'], self.bio_real)
             self.assertIn(sentence['lu'], missing_lus)
             missing_lus.remove(sentence['lu'])
+
+    def test_n2n_fake(self):
+        items = list(ManyToManyExtractor(self.corpus_fake, self.bio_key, self.sent_key,
+                                         'en', self.lemma_to_token_fake).extract(1))
+        self.assertEqual(items, [])
 
     def test_syntactic(self):
         items = list(SyntacticExtractor([{'bio': 'this is part a1, and this is part a2'}],

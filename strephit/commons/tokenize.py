@@ -20,7 +20,6 @@ class Tokenizer():
         'en': ur'[^\p{L}\p{N}]+'
     }
 
-    
     def __init__(self, language):
         self.language = language
         tokenization_regex = self.tokenization_regexps.get(self.language)
@@ -28,7 +27,6 @@ class Tokenizer():
             self.tokenization_regex = tokenization_regex
         else:
             raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (language, self.tokenization_regexps.keys()))
-        
 
     def tokenize(self, sentence):
         """ Tokenize the given sentence.

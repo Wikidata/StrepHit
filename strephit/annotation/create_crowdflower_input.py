@@ -32,7 +32,7 @@ def prepare_crowdflower_input(sentences, frame_data):
         chunks = [entity['chunk'] for entity in linked_entities]
         logger.debug('Unit ID: %s' % data_unit['id'])
         logger.debug('Unit sentence: %s' % data_unit['sentence'])
-        logger.debug('Unit LU: %s' % data_unit['sentence'])
+        logger.debug('Unit LU: %s' % data_unit['lu'])
         logger.debug('Unit chunks: %s' % chunks)
         frames = frame_data.get(lu)
         if not frames:

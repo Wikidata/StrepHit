@@ -10,6 +10,7 @@ from nltk.tree import Tree
 from strephit.commons.io import load_dumped_corpus
 from strephit.commons.tokenize import Tokenizer
 from strephit.commons.split_sentences import SentenceSplitter
+from strephit.commons.pos_tag import TTPosTagger
 from strephit.commons import parallel
 from sys import exit
 
@@ -87,37 +88,53 @@ class OneToOneExtractor(SentenceExtractor):
         N.B.: the same sentence will appear only once
         the sentence is assigned to a RANDOM LU
     """
+    splitter = None
+    tokenizer = None
+    all_verb_tokens = None
+    token_to_lemma = None
+    tagger = None
+
     def setup_extractor(self):
         self.splitter = SentenceSplitter(self.language)
         self.tokenizer = Tokenizer(self.language)
+        self.tagger = TTPosTagger(self.language)
 
-        self.all_match_tokens = set()
+        self.all_verb_tokens = set()
         self.token_to_lemma = {}
         for lemma, match_tokens in self.lemma_to_token.iteritems():
             for match_token in match_tokens:
-                self.all_match_tokens.add(match_token)
-                self.token_to_lemma[match_token] = lemma
-        logger.debug("All match tokens: %s" % self.all_match_tokens)
+                self.all_verb_tokens.add(match_token.lower())
+                self.token_to_lemma[match_token.lower()] = lemma
+        logger.debug("All match tokens: %s" % self.all_verb_tokens)
 
     def extract_from_item(self, item):
         extracted = []
 
-        # Each input item should always contain text documents Raise KeyError otherwise
-        document = item[self.document_key]
+        document = item.get(self.document_key)
+        if not document:
+            return
+
         sentences = self.splitter.split(document)
         for sentence in sentences:
-            sentence_tokens = [token.lower() for token in self.tokenizer.tokenize(sentence)]
+            tokens = [token.lower() for token in self.tokenizer.tokenize(sentence)]
+            if not tokens:
+                continue
+
+            tagged = self.tagger.tag_one(tokens, tagonly=True)
+            sentence_verbs = [token for token, pos, lemma in tagged if pos.startswith('V')]
+
             matched = []
-            for match in self.all_match_tokens:
-                if match.lower() in sentence_tokens:
-                    matched.append(match)
+            for token in self.all_verb_tokens:
+                if token in sentence_verbs:
+                    matched.append(token)
+
             if matched:
                 assigned_token = choice(matched)
                 assigned_lu = self.token_to_lemma[assigned_token]
-
                 extracted.append({
                     'lu': assigned_lu,
                     'text': sentence,
+                    'tagged': tagged,
                 })
 
         if extracted:
@@ -132,32 +149,40 @@ class ManyToManyExtractor(SentenceExtractor):
     """ n2n extraction strategy: many sentences per many LUs
         N.B.: the same sentence is likely to appear multiple times
     """
+    splitter = None
+    tokenizer = None
+    tagger = None
+
     def setup_extractor(self):
         self.splitter = SentenceSplitter(self.language)
         self.tokenizer = Tokenizer(self.language)
+        self.tagger = TTPosTagger(self.language)
 
     def extract_from_item(self, item):
         extracted = []
 
-        # Each input item should always contain text documents Raise KeyError otherwise
-        document = item[self.document_key]
+        document = item.get(self.document_key)
+        if not document:
+            return
+
         sentences = self.splitter.split(document)
         for sentence in sentences:
-            # Remember to lowercase
-            sentence_tokens = [token.lower() for token in self.tokenizer.tokenize(sentence)]
+            tagged = self.tagger.tag_one([token.lower() for token in self.tokenizer.tokenize(sentence)],
+                                         tagonly=True)
+            sentence_tokens = [token for token, pos, lemma in tagged if pos.startswith('V')]
 
             for lemma, match_tokens in self.lemma_to_token.iteritems():
                 for match in match_tokens:
-                    # Remember to lowercase
                     if match.lower() in sentence_tokens:
                         extracted.append({
                             'lu': lemma,
                             'text': sentence,
+                            'tagged': tagged,
                         })
 
-        if extracted > 0:
+        if extracted:
             logger.debug("%d sentences extracted. Removing the full text from the item ...", len(extracted))
-            item.pop(self.document_key)  # Remove text key
+            item.pop(self.document_key)
             return item, extracted
         else:
             logger.debug("No sentences extracted. Skipping the whole item ...")
@@ -167,6 +192,11 @@ class SyntacticExtractor(SentenceExtractor):
     """ Tries to split sentences into sub-sentences so that each of them
         contains only one LU
     """
+
+    splitter = None
+    parser = None
+    token_to_lemma = None
+    all_verbs = None
 
     def setup_extractor(self):
         self.splitter = SentenceSplitter(self.language)
@@ -182,7 +212,10 @@ class SyntacticExtractor(SentenceExtractor):
 
     def extract_from_item(self, item):
         extracted = []
-        bio = item[self.document_key].lower()
+        bio = item.get(self.document_key, '').lower()
+        if not bio:
+            return
+
         try:
             roots = self.parser.raw_parse_sents(self.splitter.split(bio))
         except (OSError, UnicodeDecodeError):
@@ -284,10 +317,10 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
 
 
 @click.command()
-@click.argument('corpus', type=click.File())
+@click.argument('corpus', type=click.File('r'))
 @click.argument('document_key')
 @click.argument('language_code')
-@click.argument('matches', type=click.File())
+@click.argument('matches', type=click.File('r'))
 @click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'syntactic']), default='n2n')
 @click.option('--output', '-o', type=click.File('w'), default='dev/sentences.jsonlines')
 @click.option('--sentences-key', default='sentences')
