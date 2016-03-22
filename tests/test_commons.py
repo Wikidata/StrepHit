@@ -261,9 +261,7 @@ class TestWikidata(unittest.TestCase):
                          'Q5145111')
 
     def test_name_resolver_with_gender(self):
-        additional_info = {'P21': ['Q6581097']}
-        self.assertEqual(wikidata.name_resolver('P1477', 'colin fraser', 'en', **additional_info),
-                         'Q5145111')
+        self.assertEqual('', wikidata.name_resolver('P1477', 'colin fraser', 'en', P21=['Q6581097']))
 
     def test_place_resolver(self):
         self.assertEqual(wikidata.place_resolver('Pwhatever', 'vaughan', 'en'), 'Q44013')

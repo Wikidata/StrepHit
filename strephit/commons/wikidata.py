@@ -147,11 +147,14 @@ def name_resolver(property, value, language, **kwargs):
                 elif property == 'P570':
                     if 'P570' in kwargs:
                         matches += date_matches(claim, kwargs['P570'])
+
                 elif property in known_properties:
                     entity_val = set(filter(None, ('Q%d' % v['mainsnak']['datavalue']['value']['numeric-id']
                                                    for v in claim)))
                     our_val = set(filter(None, kwargs.get(property, [])))
-                    matches += len(our_val.intersection(entity_val))
+                    weight = 0.5 if property == 'P21' else 1  # avoid matching only by gender
+                    matches += len(our_val.intersection(entity_val)) * weight
+
             except (KeyError, TypeError):
                 continue
 
@@ -162,7 +165,7 @@ def name_resolver(property, value, language, **kwargs):
     if most_matches is None:
         return ''  # if no results
     else:
-        if most_matches[0] > 0:
+        if most_matches[0] >= 1:
             logger.debug('Resolved %s to %s', value, most_matches[1]['id'])
             return most_matches[1]['id']
         else:
