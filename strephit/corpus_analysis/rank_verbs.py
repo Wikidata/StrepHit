@@ -101,9 +101,9 @@ def compute_ranking(verbs, vectorizer, tf_idf_matrix):
 @click.argument('document_key')
 @click.argument('language_code')
 @click.option('--pre-processed-corpus', '-c', type=click.File(), help="Load a pre-processed corpus JSON file, to avoid reloading")
-@click.option('--pos-tagged', '-p', type=click.File(), help="POS-tagged JSON file, to avoid POS-tagging again")
+@click.option('--pos-tagged', '-p', type=click.File(), help="POS-tagged JSONlines file, to avoid POS-tagging again")
 @click.option('--corpus', type=click.File('w'), default='corpus.jsonlines')
-@click.option('--pos', type=click.File('w'), default='pos_tagged.json')
+@click.option('--pos', type=click.File('w'), default='pos_tagged.jsonlines')
 @click.option('--verbs', type=click.File('w'), default='verbs.json')
 @click.option('--tf-idf', type=click.File('w'), default='tf_idf_ranking.json')
 @click.option('--stdev', type=click.File('w'), default='stdev_ranking.json')
@@ -129,7 +129,8 @@ def main(corpus_path, document_key, language_code, pre_processed_corpus, pos_tag
     if pos_tagged:
         logger.info("Loading POS-tagged file '%s' ..." % verbs.name)
         tagged_corpus = json.load(pos_tagged)
-        for tagged_item in tagged_corpus:
+        for line in pos_tagged:
+            tagged_item = json.loads(line)
             logger.debug("Extracting verbs from POS-tagged document: %s" % tagged_item[document_key])
             corpus_verbs = extract_verbs(tagged_item, document_key, language_code, corpus_verbs)
     else:
@@ -137,7 +138,7 @@ def main(corpus_path, document_key, language_code, pre_processed_corpus, pos_tag
         logger.info("Starting part-of-speech (POS) tagging ...")
         pos_tagger = TTPosTagger(language_code, tt_home)
         for tagged in pos_tagger.tag_many(corpus_for_pos, document_key):
-            pos.write(json.dumps(tagged))
+            pos.write(json.dumps(tagged) + '\n')
             corpus_verbs = extract_verbs(tagged, document_key, language_code, corpus_verbs)
     # Sets are not JSON serializable, so cast them to lists
     dumpable_corpus_verbs = {lemma: list(tokens) for lemma, tokens in corpus_verbs.iteritems()}
