@@ -49,7 +49,7 @@ def get_similarity_scores(verb_token, vectorizer, tf_idf_matrix):
     """ Compute the cosine similarity score of a given verb token against the input corpus TF/IDF matrix.
         :param str verb_token: Surface form of a verb, e.g., *born*
         :return: cosine similarity score
-        :rtype: float
+        :rtype: ndarray
     """
     verb_token_vector = vectorizer.transform([verb_token])
     # Here the linear kernel is the same as the cosine similarity, but faster
