@@ -13,6 +13,37 @@ from urllib import unquote_plus
 
 logger = logging.getLogger(__name__)
 
+# TODO consider adding "job[auto_order]": "true" for automatic ordering
+
+# Manually encode 2 parameters with the same key
+# This seems the only way to include more than a country
+INCLUDED_COUNTRIES = "job[included_countries][]=%s&job[included_countries][]=%s" % ("US", "GB") # Only workers from U.S.A. and Great Britain
+
+JOB_SETTINGS = {
+    "job[judgments_per_unit]": 3,
+    "job[max_judgments_per_worker]": 280,
+    "job[minimum_requirements][min_score]": 1,
+    "job[minimum_requirements][priority]": 1,
+    "job[minimum_requirements][skill_scores][it_crowd_official]": 1,
+    # Highest quality workers
+    "job[minimum_requirements][skill_scores][level_3_contributors]": 1,
+    "job[options][after_gold]": "2",
+    # Minimum time per page (seconds)
+    "job[options][calibrated_unit_time]": 30,
+    "job[options][include_unfinished]": "true",
+    "job[options][logical_aggregation]": "true",
+    "job[options][mail_to]": "fossati@fbk.eu",
+    # Minimum worker accuracy
+    "job[options][reject_at]": "70",
+    "job[options][req_ttl_in_seconds]": 900,
+    "job[options][track_clones]": "true",
+    "job[pages_per_assignment]": 1,
+    # Payment per page
+    "job[payment_cents]": 5,
+    # Units per page
+    "job[units_per_assignment]": 5,
+}
+
 
 def create_job(title, instructions, cml, custom_js):
     """
@@ -22,17 +53,38 @@ def create_job(title, instructions, cml, custom_js):
      :param str instructions: instructions, can contain HTML
      :param str cml: worker interface CML template. See https://success.crowdflower.com/hc/en-us/articles/202817989-CML-CrowdFlower-Markup-Language-Overview
      :param str custom_js: JavaScript code to be injected into the job
-     :return: the created job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response
+     :return: the created job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message
      :rtype: dict
     """
     data = {
-        'key': secrets.CF_KEY,
-        'job[title]': title,
-        'job[instructions]': instructions,
-        'job[cml]': cml,
-        'job[js]': custom_js
+        "key": secrets.CF_KEY,
+        "job[title]": title,
+        "job[instructions]": instructions,
+        "job[cml]": cml,
+        "job[js]": custom_js,
     }
     r = requests.post(secrets.CF_JOBS_URL, data=data)
+    log_request_data(r, logger)
+    r.raise_for_status()
+    return r.json()
+
+
+def config_job(job_id):
+    """
+     Setup a given CrowdFlower job with default settings.
+     See :const: JOB_SETTINGS
+     :param str job_id: job ID registered in CrowdFlower
+     :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message
+     :rtype: dict
+    """
+    params = { 'key': secrets.CF_KEY }
+    # Manually prepare the body, due to multiple included countries
+    # i.e., requests will ignore dicts with the same key
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    data = INCLUDED_COUNTRIES
+    for k,v in JOB_SETTINGS.iteritems():
+        data += "&%s=%s" % (k,v)
+    r = requests.put(secrets.CF_JOB_CONFIG_URL % job_id, headers=headers, params=params, data=data)
     log_request_data(r, logger)
     r.raise_for_status()
     return r.json()
@@ -44,15 +96,49 @@ def upload_units(job_id, csv_data):
      Raises any HTTP error that may occur.
      :param str job_id: job ID registered in CrowdFlower
      :param file csv_data: file handle pointing to the data units CSV
-     :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response
+     :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message
      :rtype: dict
     """
-    headers = {'Content-Type': 'text/csv'}
+    headers = { 'Content-Type': 'text/csv' }
     params = { 'key': secrets.CF_KEY }
     r = requests.put(secrets.CF_JOB_UPLOAD_URL % job_id, data=csv_data, headers=headers, params=params)
     log_request_data(r, logger)
     r.raise_for_status()
     return r.json()
+
+
+def activate_gold(job_id):
+    """
+     Activate gold units in the given job.
+     Corresponds to the 'Convert Uploaded Test Questions' UI button.
+     :param str job_id: job ID registered in CrowdFlower
+     :return: True on success
+     :rtype: boolean
+    """
+    params = { 'key': secrets.CF_KEY }
+    r = requests.put(secrets.CF_JOB_ACTIVATE_GOLD_URL % job_id, params=params)
+    log_request_data(r, logger)
+    # Inconsistent API: returns 406, but actually sometimes works (!!!)
+    if r.status_code == 406:
+        return r.json()
+    else:
+        r.raise_for_status()
+
+
+def tag_job(job_id, tags):
+    """
+     Tag a given job.
+     :param str job_id: job ID registered in CrowdFlower
+     :param list tags: list of tags
+     :return: True on success
+     :rtype: boolean
+    """
+    params = { 'key': secrets.CF_KEY }
+    data = { "tags": tags }
+    r = requests.post(secrets.CF_JOB_TAG_URL % job_id, params=params, data=data)
+    log_request_data(r, logger)
+    r.raise_for_status()
+    return r.ok
 
 
 @click.command()
@@ -61,15 +147,26 @@ def upload_units(job_id, csv_data):
 @click.option('--instructions', '-i', type=click.File(), default=resource_stream(__name__, 'resources/instructions.html'))
 @click.option('--cml', '-c', type=click.File(), default=resource_stream(__name__, 'resources/cml.html'))
 @click.option('--javascript', '-j', type=click.File(), default=resource_stream(__name__, 'resources/randomize.js'))
-def main(csv_data, title, instructions, cml, javascript):
+@click.option('--tags', help="Comma-separated list of job tags")
+def main(csv_data, title, instructions, cml, javascript, tags):
     """ Post a CrowdFlower annotation job with title, instructions, CML interface template, custom JavaSctipt, and data units """
     logger.info("Creating CrowdFlower job ...")
     job = create_job(title, ''.join(instructions.readlines()), ''.join(cml.readlines()), ''.join(javascript.readlines()))
     logger.debug("Job object response from CrowdFlower: %s" % json.dumps(job, indent=2))
     job_id = job['id']
+    if tags:
+        logger.info("Tagging job with '%s' ..." % tags)
+        tagged = tag_job(job_id, tags)
+        logger.debug("CrowdFlower API response: %s" % json.dumps(tagged, indent=2))
     logger.info("Uploading data units from '%s' to job ID %d ..." % (csv_data.name, job_id))
     uploaded = upload_units(job_id, csv_data)
-    logger.debug("Job object response from CrowdFlower: %s" % json.dumps(uploaded, indent=2))
+    logger.debug("Job ID %d object response from CrowdFlower: %s" % (job_id, json.dumps(uploaded, indent=2)))
+    logger.info("Activating gold units ...")
+    activated = activate_gold(job_id)
+    logger.debug("CrowdFlower API inconsistent response: %s" % json.dumps(activated, indent=2))
+    logger.info("Setting up job parameters ...")
+    configurated = config_job(job_id)
+    logger.debug("Updated job ID %d object: %s" % (job_id, json.dumps(configurated, indent=2)))
     return 0
 
 
