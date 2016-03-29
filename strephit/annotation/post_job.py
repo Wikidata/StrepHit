@@ -143,7 +143,7 @@ def tag_job(job_id, tags):
 
 @click.command()
 @click.argument('csv_data', type=click.File())
-@click.option('--title', '-t', default='Understand the Meaning of Words')
+@click.option('--title', '-t', default='Word Sense Understanding')
 @click.option('--instructions', '-i', type=click.File(), default=resource_stream(__name__, 'resources/instructions.html'))
 @click.option('--cml', '-c', type=click.File(), default=resource_stream(__name__, 'resources/cml.html'))
 @click.option('--javascript', '-j', type=click.File(), default=resource_stream(__name__, 'resources/randomize.js'))
