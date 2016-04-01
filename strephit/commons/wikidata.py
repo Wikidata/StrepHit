@@ -1,9 +1,12 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
 from __future__ import absolute_import
 import json
 import logging
-import itertools
 from datetime import datetime
 from collections import defaultdict
+from itertools import product
 from strephit.commons import cache, io, datetime, text
 
 
@@ -11,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 WIKIDATA_API_URL = 'https://www.wikidata.org/w/api.php'
+PROPERTIES_NAMESPACE = 120
 PROPERTY_TO_WIKIDATA = {
     'Died of:': 'P509',
     'Marriage': 'P26',
@@ -117,7 +121,7 @@ def name_resolver(property, value, language, **kwargs):
             the ones they provide
         """
         matches = 0
-        for theirs, ours in itertools.product(their_dates, our_dates):
+        for theirs, ours in product(their_dates, our_dates):
             val = theirs['mainsnak']['datavalue']['value']
             their_date = parse_date(val['time'], val['precision'])
             our_date = parse_date(ours)
@@ -346,3 +350,95 @@ def parse_date(date, precision=None):
         'month': int(month) if precision >= 10 else None,
         'day': int(day) if precision >= 11 else None,
     }
+
+
+def get_property_ids(batch):
+    """
+     Get the full list of Wikidata property IDs (pids).
+     :param int batch: number of pids per call, to serve as paging for the API.
+     :return: list of all pids
+     :rtype: list
+    """
+    pids = []
+    params = {
+        'list': 'allpages',
+        'apnamespace': PROPERTIES_NAMESPACE,
+        'aplimit': batch,
+    }
+    # Paging mechanism
+    logger.info("About to call the Wikidata API for property IDs, with paging ...")
+    while True:
+        r = call_api('query', **params)
+        pid_batch = r['query']['allpages']
+        pids.extend(pid_batch)
+        if not r.get('continue'):
+            logger.debug("Got all the property IDs")
+            break
+        else:
+            next_call = r['continue']['apcontinue']
+            logger.debug("Next API call will start from '%s' ..." % next_call)
+            params['apfrom'] = next_call
+    # Return 'P69', not 'Property:P69'
+    logger.info("Total property IDs: %d" % len(pids))
+    return [p['title'].split(':')[1] for p in pids]
+
+
+def get_entities(ids, batch):
+    """
+     Retrieve Wikidata entities metadata.
+     :param list ids: list of Wikidata entity IDs
+     :param int batch: number of IDs per call, to serve as paging for the API.
+     :return: dict of Wikidata entities with metadata
+     :rtype: dict
+    """
+    entities = []
+    batches = [ids[i:i+batch] for i in xrange(0, len(ids), batch)]
+    # Paging mechanism
+    logger.info("About to call the Wikidata API for entity metadata, with paging ...")
+    logger.debug("Number of batches: %d" % len(batches))
+    for i, ids_batch in enumerate(batches):
+        r = call_api('wbgetentities', ids='|'.join(ids_batch))
+        entity_batch = r['entities'].values()
+        # properties.extend(r['entities'].viewvalues())
+        entities.extend(entity_batch)
+        entities_left = len(ids) - (i + 1) * batch
+        if i % 10 == 0 and entities_left > 0:
+            logger.debug('%d entities left' % entities_left)
+
+    logger.info("Total entities: %d" % len(entities))
+    return entities
+
+
+def get_labels_and_aliases(entities, language_code):
+    """
+     Extract language-specific label and aliases from a list of Wikidata entities metadata.
+     :param list entities: list of Wikidata entities with metadata.
+     :param str language_code: 2-letter language code, e.g., `en` for English
+     :return: dict of entities, with label and aliases only
+     :rtype: dict
+    """
+    clean = {}
+    for entity in entities:
+        entity_id = entity['id']
+        # Labels extraction
+        labels = entity.get('labels')
+        if not labels:
+            logger.debug("No labels at all for entity ID '%s'. Skipping ..." % entity_id)
+            continue
+        language_specific_label = labels.get(language_code)
+        if not language_specific_label:
+            logger.debug("No '%s' labels for entity ID '%s'. Skipping ..." % (language_code, entity_id))
+            continue
+        clean[entity_id] = {}
+        clean[entity_id]['label'] = language_specific_label['value']
+        # Aliases extraction
+        aliases = entity.get('aliases')
+        if not aliases:
+            logger.debug("No aliases at all for entity ID '%s'. Skipping ..." % entity_id)
+        language_specific_aliases = aliases.get(language_code)
+        if language_specific_aliases:
+            clean[entity_id]['aliases'] = [alias['value'] for alias in language_specific_aliases]
+        else:
+            logger.debug("No '%s' aliases for entity ID '%s'. Skipping ..." % (language_code, entity_id))
+    logger.info("Total entities with label and aliases: %d" % len(clean))
+    return clean
