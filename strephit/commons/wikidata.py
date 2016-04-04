@@ -4,36 +4,32 @@
 from __future__ import absolute_import
 import json
 import logging
-from datetime import datetime
-from collections import defaultdict
 from itertools import product
 from strephit.commons import cache, io, datetime, text
 
-
 logger = logging.getLogger(__name__)
-
 
 WIKIDATA_API_URL = 'https://www.wikidata.org/w/api.php'
 PROPERTIES_NAMESPACE = 120
 PROPERTY_TO_WIKIDATA = {
     'Died of:': 'P509',
-    'Marriage': 'P26',
+    # 'Marriage': 'P26',
     'Last Name': 'P734',
-    'Children': 'P40',
-    'Place of death': 'P20',
-    'Relatives': 'P1038',
+    # 'Children': 'P40',
+    # 'Place of death': 'P20',
+    # 'Relatives': 'P1038',
     'Year died': 'P570',
     'alt. Names': 'P742',
     'Year born': 'P569',
     'Given Name': 'P735',
     'First name(s)': 'P735',
-    'Worked for': 'P108',
-    'title': 'P97',
-    'lblProfession': 'P106',
-    'lblNationality': 'P27',
+    # 'Worked for': 'P108',
+    # 'title': 'P97',
+    # 'lblProfession': 'P106',
+    # 'lblNationality': 'P27',
     'gender': 'P21',
     'lblIdentifier': 'P742',
-    'Place of origin:': 'P19',
+    # 'Place of origin:': 'P19',
     'Gender:': 'P21',
     'death': 'P570',
     'birth': 'P569',
@@ -41,11 +37,13 @@ PROPERTY_TO_WIKIDATA = {
     'honorific': 'P1035',
 }
 
-
 PROPERTY_RESOLVERS = {}
+
+
 def resolver(*properties):
-    """ Decorator to register a function as resolver for the given property.
+    """ Decorator to register a function as resolver for the given properties.
     """
+
     def decorator(function):
         for property in properties:
             if property in PROPERTY_RESOLVERS:
@@ -53,6 +51,7 @@ def resolver(*properties):
                              'only the last one will be kept' % property)
             PROPERTY_RESOLVERS[property] = function
         return function
+
     return decorator
 
 
@@ -94,15 +93,15 @@ def gender_resolver(property, value, language, **kwargs):
 def date_resolver(property, value, language, **kwargs):
     """ Resolves dates """
     value = value.lower().replace('(circa)', '').replace('(probable)', '') \
-                .replace('(presumed)', '').replace('c.', '').strip()
+        .replace('(presumed)', '').replace('c.', '').strip()
     if not value:
-        return None
+        return ''
     try:
         res = datetime.parse(value)
         return format_date(res.get('year'), res.get('month'), res.get('day'))
     except ValueError:
         logger.debug('cannot parse date ' + value)
-        return None
+        return ''
 
 
 @cache.cached
@@ -178,22 +177,23 @@ def name_resolver(property, value, language, **kwargs):
 
 
 @cache.cached
-@resolver('P108', 'P97', 'P106', 'P27', 'P166')
+# @resolver('P108', 'P97', 'P106', 'P27', 'P166')
 def generic_search_resolver(property, value, language, **kwargs):
     """ Last-hope resolver, searches wikidata hoping to find something
         which exactly matches the given value
     """
     results = search(value, language, type_=None)
-    return results[0]['id'] if results else None
+    return results[0]['id'] if results else ''
 
 
-@resolver('P19', 'P20')
+@cache.cached
+# @resolver('P19', 'P20')
 def place_resolver(property, value, language, **kwargs):
     """ Resolves place names
     """
     # Q515 = city, Q6526 = country
     results = search(value, language, type_={515, 6256})
-    return results[0]['id'] if results else None
+    return results[0]['id'] if results else ''
 
 
 @resolver('P1035')
@@ -215,7 +215,7 @@ def honorifics_resolver(property, value, language, **kwargs):
         'mister': 'Q177053',
         'mr': 'Q177053',
         'sir': 'Q209690',
-    }.get(value.strip().lower(), None)
+    }.get(value.strip().lower(), '')
 
 
 def call_api(action, cache=True, **kwargs):

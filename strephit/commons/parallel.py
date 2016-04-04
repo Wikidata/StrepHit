@@ -4,7 +4,6 @@ import multiprocessing as mp
 import signal
 import Queue
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -108,3 +107,12 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True):
             result = result_queue.get()
 
         master.join()
+
+
+def execute(processes=0, *specs):
+    # todo test and doc
+    functions, arguments = specs[::2], specs[1::2]
+    res = list(map(lambda (i, args): (i, functions[i](*args)),
+                   enumerate(arguments),
+                   processes))
+    return [result for _, result in sorted(res, key=lambda (i, _): i)]

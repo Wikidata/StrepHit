@@ -95,22 +95,21 @@ class TTPosTagger(object):
         try:
             jobs = []
             for i, item in enumerate(items):
-                jobs.append(tt_pool.tag_text_async(item[document_key], **kwargs))
+                jobs.append((item, tt_pool.tag_text_async(item[document_key], **kwargs)))
                 if i % batch_size == 0:
-                    for each in self._finalize_batch(jobs):
-                        item[pos_tag_key] = each
-                        yield item
+                    for each in self._finalize_batch(jobs, pos_tag_key):
+                        yield each
                     jobs = []
-            for each in self._finalize_batch(jobs):
-                item[pos_tag_key] = each
-                yield item
+            for each in self._finalize_batch(jobs, pos_tag_key):
+                yield each
         finally:
             tt_pool.stop_poll()
 
-    def _finalize_batch(self, jobs):
-        for job in jobs:
+    def _finalize_batch(self, jobs, pos_tag_key):
+        for item, job in jobs:
             job.wait_finished()
-            yield self._postprocess_tags(make_tags(job.result))
+            item[pos_tag_key] = self._postprocess_tags(make_tags(job.result))
+            yield item
 
 
 def get_pos_tagger(language, **kwargs):
