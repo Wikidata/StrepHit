@@ -5,6 +5,7 @@ import click
 import json
 import logging
 from random import choice
+from nltk import RegexpParser
 from nltk.parse.stanford import StanfordParser
 from nltk.tree import Tree
 from strephit.commons.io import load_dumped_corpus
@@ -282,6 +283,81 @@ class SyntacticExtractor(SentenceExtractor):
                     yield each
 
 
+class GrammarExtractor(SentenceExtractor):
+    """ Grammar-based extraction strategy: pick sentences that comply with a pre-defined grammar. """
+
+    splitter = None
+    tokenizer = None
+    tagger = None
+    # Grammars rely on POS labels, which are language-dependent
+    grammars = {
+        'en': r"""
+                NOPH: {<PDT>?<DT|PP.*|>?<CD>?<JJ.*|VVN>*<N.+|FW>+<CC>?}
+                CHUNK: {<NOPH>+<MD>?<V.+>+<IN|TO>?<NOPH>+}
+               """,
+        'it': r"""
+                SN: {<PRO.*|DET.*|>?<ADJ>*<NUM>?<NOM|NPR>+<NUM>?<ADJ|VER:pper>*}
+                CHUNK: {<SN><VER.*>+<SN>}
+               """, 
+    }
+
+    def setup_extractor(self):
+        self.splitter = PunktSentenceSplitter(self.language)
+        self.tokenizer = Tokenizer(self.language)
+        self.tagger = TTPosTagger(self.language)
+        grammar = self.grammars.get(language)
+        if grammar:
+            self.parser = RegexpParser(grammar)
+        else:
+            raise ValueError(
+                "Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (
+                    language, self.grammars.keys()))
+
+    def extract_from_item(self, item):
+        extracted = []
+
+        document = item.get(self.document_key)
+        if not document:
+            return
+
+        # Sentence splitting
+        sentences = self.splitter.split(document)
+        for sentence in sentences:
+            # Tokenization + POS tagging
+            tagged = [(token, pos) for token, pos, lemma in self.tagger.tag_one(sentence)]
+            # Parsing via grammar
+            parsed = self.parser.parse(tagged)
+            # Loop over sub-sentences that match the grammar
+            # if 'CHUNK' in (subtree.label() for subtree in parsed.subtrees()):
+            for grammar_match in parsed.subtrees(lambda t: t.label() == 'CHUNK'):
+                logger.debug("Grammar match: '%s'" % grammar_match)
+                # Look up the LU
+                for token, pos in grammar_match.leaves():
+                    # Restrict match to sub-sentence verbs only
+                    if pos.startswith('V'):
+                        for lemma, match_tokens in self.lemma_to_token.iteritems():
+                            for match in match_tokens:
+                                # Lowercase both for better matching
+                                if token.lower() == match.lower():
+                                    # Return joined chunks only
+                                    # TODO test with full sentence as well
+                                    # TODO re-constitute original text (now join on space)
+                                    text = ' '.join([leaf[0] for leaf in grammar_match.leaves()])
+                                    logger.debug("Extracted sentence: '%s'" % text)
+                                    extracted.append({
+                                        'lu': lemma,
+                                        'text': text,
+                                        'tagged': tagged,
+                                    })
+
+        if extracted:
+            logger.debug("%d sentences extracted. Removing the full text from the item ...", len(extracted))
+            item.pop(self.document_key)
+            return item, extracted
+        else:
+            logger.debug("No sentences extracted. Skipping the whole item ...")
+
+
 def extract_sentences(corpus, document_key, sentences_key, language, matches, strategy, processes=0):
     """
     Extract sentences from the given corpus by matching tokens against a given set.
@@ -290,7 +366,7 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
     :param str sentences_key: dict key where to put extracted sentences
     :param str language: ISO 639-1 language code used for tokenization and sentence splitting
     :param dict matches: Dict with corpus lemmas as keys and tokens to be matched as values
-    :param str strategy: One of the 3 extraction strategies ['121', 'n2n', 'syntactic']
+    :param str strategy: One of the 4 extraction strategies ['121', 'n2n', 'grammar', 'syntactic']
     :param int processes: How many concurrent processes to use
     :return: the corpus, updated with the extracted sentences and the number of extracted sentences
     :rtype: generator of tuples
@@ -304,13 +380,17 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
         logger.info("Will extract sentences using the 'one to one' strategy: the same "
                     "sentence will appear only once.")
         extractor = OneToOneExtractor
+    elif strategy == 'grammar':
+        logger.info("Will extract sentences using the 'grammar' strategy: the same "
+                    "sentence will appear only once.")
+        extractor = GrammarExtractor
     elif strategy == 'syntactic':
         logger.info("Will extract sentences using the 'syntactic' strategy: the same "
                     "sentence will appear only once.")
         extractor = SyntacticExtractor
     else:
         raise ValueError("Malformed or unsupported extraction strategy: "
-                         "please use one of ['121', 'n2n', or 'syntactic']")
+                         "please use one of ['121', 'n2n', 'grammar', or 'syntactic']")
 
     for each in extractor(corpus, document_key, sentences_key, language, matches).extract(processes):
         yield each
@@ -321,7 +401,7 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
 @click.argument('document_key')
 @click.argument('language_code')
 @click.argument('matches', type=click.File('r'))
-@click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'syntactic']), default='n2n')
+@click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'grammar', 'syntactic']), default='n2n')
 @click.option('--output', '-o', type=click.File('w'), default='dev/sentences.jsonlines')
 @click.option('--sentences-key', default='sentences')
 @click.option('--processes', '-p', default=0)
