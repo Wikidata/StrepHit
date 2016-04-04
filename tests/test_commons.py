@@ -341,21 +341,22 @@ class TestPosTag(unittest.TestCase):
         {
             'id': 1,
             'text': u'first item to be tagged',
-            'correct': [u'first\tJJ\tfirst',
-                        u'item\tNN\titem',
-                        u'to\tTO\tto',
-                        u'be\tVB\tbe',
-                        u'tagged\tVVN\ttag'],
+            'correct': [Tag(word=u'first', pos=u'JJ', lemma=u'first'),
+                        Tag(word=u'item', pos=u'NN', lemma=u'item'),
+                        Tag(word=u'to', pos=u'TO', lemma=u'to'),
+                        Tag(word=u'be', pos=u'VB', lemma=u'be'),
+                        Tag(word=u'tagged', pos=u'VVN', lemma=u'tag')],
         },
         {
             'id': 2,
             'text': u'another item ready for pos tag',
-            'correct': [u'another\tDT\tanother',
-                        u'item\tNN\titem',
-                        u'ready\tJJ\tready',
-                        u'for\tIN\tfor',
-                        u'pos\tNNS\tpo',
-                        u'tag\tNN\ttag'],
+            'correct': [Tag(word=u'another', pos=u'DT', lemma=u'another'),
+                        Tag(word=u'item', pos=u'NN', lemma=u'item'),
+                        Tag(word=u'ready', pos=u'JJ', lemma=u'ready'),
+                        Tag(word=u'for', pos=u'IN', lemma=u'for'),
+                        Tag(word=u'pos', pos=u'NNS', lemma=u'po'),
+                        Tag(word=u'tag', pos=u'NN', lemma=u'tag')]
+
         }
     ]
 
@@ -367,10 +368,9 @@ class TestPosTag(unittest.TestCase):
             self.assertIn('correct', each)
             self.assertIn('tagged', each)
             self.assertIn('text', each)
-            correct = [Tag(*pos.split('\t')) for pos in each['correct']]
-            self.assertEqual(each['tagged'], correct)
+            self.assertEqual(each['tagged'], each['correct'])
 
     def tag_one(self):
         for each in self.items:
-            tagged = self.tagger.tag_one(each['text'])
-            self.assse
+            self.assertEqual(self.tagger.tag_one(each['text']),
+                             each['correct'])
