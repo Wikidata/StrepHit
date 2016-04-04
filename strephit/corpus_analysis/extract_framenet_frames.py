@@ -12,29 +12,39 @@ from strephit.commons.wikidata import get_property_ids, get_entities, get_labels
 
 logger = logging.getLogger(__name__)
 
+# Frame Elements holding numerical expressions (typically time), not to be annotated
+NUMERICAL_FES = [
+    'Duration',
+    'Frequency',
+    'Time'
+]
+
 
 def get_top_n_lus(ranked_lus, n):
     """
      Extract the top N Lexical Units (LUs) from a ranking.
      :param dict ranked_lus: LUs ranking, as returned by :func:`compute_ranking`
      :param int n: Number of top LUs to return
-     :return: the top N LUs
-     :rtype: list
+     :return: the top N LUs with their ranking scores
+     :rtype: dict
     """
-    return ranked_lus.keys()[:n]
+    top = OrderedDict()
+    for lu in ranked_lus.keys()[:n]:
+        top[lu] = ranked_lus[lu]
+    return top
 
 
 def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
     """
      Intersect verb lemmas extracted from the input corpus with FrameNet Lexical Units (LUs).
-     :param list corpus_lemmas: List of verb lemmas
+     :param dict corpus_lemmas: dict of verb lemmas with their ranking scores
      :param dict wikidata_properties: dict with all Wikidata properties
      :return: a dictionary of corpus lemmas enriched with FrameNet LUs data (dicts)
      :rtype: dict
     """
     # Each FrameNet LU triggers one frame, so assign them to the same corpus lemma
     enriched = defaultdict(list)
-    for corpus_lemma in corpus_lemmas:
+    for corpus_lemma, score in corpus_lemmas.iteritems():
         # Look up the FrameNet LUs given the corpus lemma
         # Ensure exact match, as the lookup can be done only via regex
         lus = framenet.lus(r'^%s\.' % corpus_lemma)
@@ -54,6 +64,10 @@ def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
                 logger.debug("Processing Frame Elements (FEs) ...")
                 fes = frame['FE']
                 for fe_label, fe_data in fes.iteritems():
+                    # Skip numerical FEs
+                    if fe_label in NUMERICAL_FES:
+                        logger.debug("Skipping numerical FE '%s', frame '%s' ..." % (fe_label, frame_label))
+                        continue
                     mapping = defaultdict(list)
                     # Compute exact matches between FEs and Wikidata properties labels and aliases
                     for pid, p_label_and_aliases in wikidata_properties.iteritems():
@@ -93,13 +107,16 @@ def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
                 intersected_lu = {
                     'lu': lu_label,
                     'frame': frame_label,
-                    'pos': lu['POS'],
-                    'core_fes': core_fes,
-                    'extra_fes': extra_fes
+                    'pos': lu['POS']
                 }
-                enriched[corpus_lemma].append(intersected_lu)
+                if core_fes:
+                    intersected_lu['core_fes'] = core_fes
+                if extra_fes:
+                    intersected_lu['extra_fes'] = extra_fes
+                enriched[score].append(intersected_lu)
                 logger.debug("Corpus lemma '%s' enriched with frame data: %s" % (corpus_lemma, json.dumps(intersected_lu, indent=2)))
-    return enriched
+    # Order by decreasing score
+    return OrderedDict(sorted(enriched.items(), key=lambda x: x[0], reverse=True))
 
 
 def extract_top_corpus_tokens(enriched_lemmas, all_lemma_tokens):
