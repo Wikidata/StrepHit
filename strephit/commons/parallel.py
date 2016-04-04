@@ -110,7 +110,12 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True):
 
 
 def execute(processes=0, *specs):
-    # todo test and doc
+    """ Execute the given functions parallelly
+        :param processes: Number of functions to execute at the same time
+        :param specs: a sequence of functions, each followed by its arguments (arguments as a tuple or list)
+        :return: the results that the functions returned
+        :rtype: list
+    """
     functions, arguments = specs[::2], specs[1::2]
     res = list(map(lambda (i, args): (i, functions[i](*args)),
                    enumerate(arguments),

@@ -68,7 +68,13 @@ class TestParallel(unittest.TestCase):
     def test_exception_single(self):
         self.assertRaises(ValueError, self.consume,
                           parallel.map(self.exc_function, self.list_in, processes=1,
-                                      raise_exc=True))
+                                       raise_exc=True))
+
+    def test_execute(self):
+        funcs = reduce(lambda x, y: x + y,
+                       [(self.function, [x]) for x in xrange(10)])
+        self.assertEqual(parallel.execute(0, *funcs),
+                         map(self.function, xrange(10)))
 
 
 class TestCache(unittest.TestCase):
