@@ -8,16 +8,18 @@ import logging
 import json
 from sys import exit
 from nltk.data import load
+from nltk import RegexpParser
+from itertools import ifilter
+from strephit.commons.pos_tag import TTPosTagger
 from strephit.commons.io import load_corpus
 from strephit.commons import parallel
-
 
 logger = logging.getLogger(__name__)
 
 
-class SentenceSplitter():
+class PunktSentenceSplitter(object):
     """ Sentence splitting splits a natural language text into sentences """
-    
+
     # Pre-trained models available as NLTK language resources
     model_path = 'tokenizers/punkt/%s.pickle'
     supported_models = {
@@ -39,7 +41,7 @@ class SentenceSplitter():
         'sv': model_path % 'swedish',
         'tr': model_path % 'turkish'
     }
-    
+
     def __init__(self, language):
         """
         :param str language: ISO 639-1 language code. See https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
@@ -49,7 +51,9 @@ class SentenceSplitter():
         if model:
             self.splitter = load(model)
         else:
-            raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (language, self.supported_models.keys()))
+            raise ValueError(
+                "Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (
+                    language, self.supported_models.keys()))
 
     def split(self, text):
         """
@@ -61,31 +65,68 @@ class SentenceSplitter():
         :return: a list of sentences
         :rtype: list
         """
-        sentences = []
         logger.debug("Splitting text into sentences: %s" % text)
         sentences_by_newline = text.strip().split('\n')
-        logger.debug("%d sentences split by the newline character: %s" % (len(sentences_by_newline), sentences_by_newline))
+        logger.debug(
+            "%d sentences split by the newline character: %s" % (len(sentences_by_newline), sentences_by_newline))
         for each in sentences_by_newline:
             split = self.splitter.tokenize(each)
             for sentence in split:
-                sentences.append(sentence)
-        logger.debug("%d total sentences: %s" % (len(sentences), sentences))
-        return sentences
+                yield sentence
+
+
+class GrammarSentenceSplitter(PunktSentenceSplitter):
+    """ Further refines sentences by taking those with a simple structure
+        and containing verbs from a given set (if given)
+    """
+
+    # fixme translate to english
+    CHUNKER_GRAMMAR = r""" SN: {<PRO.*|DET.*|>?<ADJ>*<NUM>?<NOM|NPR>+<NUM>?<ADJ|VER:pper>*}
+                           CHUNK: {<SN><VER.*>+<SN>}
+                       """
+
+    def __init__(self, language, verbs=None):
+        super(GrammarSentenceSplitter, self).__init__(language)
+        self.language = language
+        self.verbs = verbs
+        self.tagger = TTPosTagger(self.language)
+        self.chunker = RegexpParser(self.CHUNKER_GRAMMAR)
+
+    def split(self, text):
+        for sentence in super(GrammarSentenceSplitter, self).split(text):
+            tagged = [(t, p) for t, p, l in self.tagger.tag_one(sentence)]
+            result = self.chunker.parse(tagged)
+
+            if 'CHUNK' in (s.label() for s in result.subtrees()):
+                for t in result.subtrees(lambda r: r.label() == 'CHUNK'):
+                    for token, pos in t.leaves():
+                        if 'VER' in pos and (not self.verbs or token in self.verbs):
+                            yield ' '.join(item[0] for item in tagged)
 
 
 @click.command()
-@click.argument('input-dir', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
+@click.argument('corpus', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document-key')
 @click.argument('language-code')
 @click.option('--output-file', '-o', type=click.File('w'), default='-')
 @click.option('--processes', '-p', default=0)
-def main(input_dir, document_key, language_code, output_file, processes):
+@click.option('--splitter', '-s', default='punkt', type=click.Choice(['punkt', 'grammar']))
+def main(corpus, document_key, language_code, output_file, processes, splitter):
     """ Split an input corpus into sentences """
-    corpus = load_corpus(input_dir, document_key, text_only=True)
-    s = SentenceSplitter(language_code)
+    corpus = load_corpus(corpus, document_key, text_only=True)
+
+    if splitter == 'grammar':
+        s = GrammarSentenceSplitter(language_code)  # TODO add verbs list
+    else:
+        s = PunktSentenceSplitter(language_code)
+
     logger.info("Starting sentence splitting of the input corpus ...")
 
-    for sentences in parallel.map(lambda (i, text): json.dumps({i: s.split(text)}), enumerate(corpus), processes):
+    def worker((i, text)):
+        sentences = list(s.split(text))
+        return json.dumps({i: sentences}) if sentences else None
+
+    for sentences in parallel.map(worker, enumerate(corpus), processes):
         output_file.write(sentences)
         output_file.write('\n')
 

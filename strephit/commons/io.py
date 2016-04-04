@@ -67,12 +67,12 @@ def _join_text(document):
         return document
 
 
-def load_corpus(items_dir, document_key, text_only=False):
+def load_corpus(location, document_key, text_only=False):
     """ Load an input corpus from a directory with scraped items, in a memory-efficient way.
         Each input file must contain one JSON object per line.
         :param str document_key: a scraped item dictionary key holding textual documents
     """
-    for item in load_scraped_items(items_dir):
+    for item in load_scraped_items(location):
         document = item.get(document_key)
         if document:
             document = _join_text(document)

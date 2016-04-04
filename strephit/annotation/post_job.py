@@ -15,9 +15,7 @@ logger = logging.getLogger(__name__)
 
 # TODO consider adding "job[auto_order]": "true" for automatic ordering
 
-# Manually encode 2 parameters with the same key
-# This seems the only way to include more than a country
-INCLUDED_COUNTRIES = "job[included_countries][]=%s&job[included_countries][]=%s" % ("US", "GB") # Only workers from U.S.A. and Great Britain
+INCLUDED_COUNTRIES = ["US", "GB"]  # Only workers from U.S.A. and Great Britain
 
 JOB_SETTINGS = {
     "job[judgments_per_unit]": 3,
@@ -77,13 +75,12 @@ def config_job(job_id):
      :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message
      :rtype: dict
     """
-    params = { 'key': secrets.CF_KEY }
+    params = {'key': secrets.CF_KEY}
     # Manually prepare the body, due to multiple included countries
     # i.e., requests will ignore dicts with the same key
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    data = INCLUDED_COUNTRIES
-    for k,v in JOB_SETTINGS.iteritems():
-        data += "&%s=%s" % (k,v)
+    data = '&'.join("job[included_countries][]=%s" % c for c in INCLUDED_COUNTRIES) + \
+           '&'.join('%s=%s' % param for param in JOB_SETTINGS.iteritems())
     r = requests.put(secrets.CF_JOB_CONFIG_URL % job_id, headers=headers, params=params, data=data)
     log_request_data(r, logger)
     r.raise_for_status()
@@ -99,8 +96,8 @@ def upload_units(job_id, csv_data):
      :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message
      :rtype: dict
     """
-    headers = { 'Content-Type': 'text/csv' }
-    params = { 'key': secrets.CF_KEY }
+    headers = {'Content-Type': 'text/csv'}
+    params = {'key': secrets.CF_KEY}
     r = requests.put(secrets.CF_JOB_UPLOAD_URL % job_id, data=csv_data, headers=headers, params=params)
     log_request_data(r, logger)
     r.raise_for_status()
@@ -115,7 +112,7 @@ def activate_gold(job_id):
      :return: True on success
      :rtype: boolean
     """
-    params = { 'key': secrets.CF_KEY }
+    params = {'key': secrets.CF_KEY}
     r = requests.put(secrets.CF_JOB_ACTIVATE_GOLD_URL % job_id, params=params)
     log_request_data(r, logger)
     # Inconsistent API: returns 406, but actually sometimes works (!!!)
@@ -133,8 +130,8 @@ def tag_job(job_id, tags):
      :return: True on success
      :rtype: boolean
     """
-    params = { 'key': secrets.CF_KEY }
-    data = { "tags": tags }
+    params = {'key': secrets.CF_KEY}
+    data = {"tags": tags}
     r = requests.post(secrets.CF_JOB_TAG_URL % job_id, params=params, data=data)
     log_request_data(r, logger)
     r.raise_for_status()
@@ -144,14 +141,16 @@ def tag_job(job_id, tags):
 @click.command()
 @click.argument('csv_data', type=click.File())
 @click.option('--title', '-t', default='Word Sense Understanding')
-@click.option('--instructions', '-i', type=click.File(), default=resource_stream(__name__, 'resources/instructions.html'))
+@click.option('--instructions', '-i', type=click.File(),
+              default=resource_stream(__name__, 'resources/instructions.html'))
 @click.option('--cml', '-c', type=click.File(), default=resource_stream(__name__, 'resources/cml.html'))
 @click.option('--javascript', '-j', type=click.File(), default=resource_stream(__name__, 'resources/randomize.js'))
 @click.option('--tags', help="Comma-separated list of job tags")
 def main(csv_data, title, instructions, cml, javascript, tags):
     """ Post a CrowdFlower annotation job with title, instructions, CML interface template, custom JavaSctipt, and data units """
     logger.info("Creating CrowdFlower job ...")
-    job = create_job(title, ''.join(instructions.readlines()), ''.join(cml.readlines()), ''.join(javascript.readlines()))
+    job = create_job(title, ''.join(instructions.readlines()), ''.join(cml.readlines()),
+                     ''.join(javascript.readlines()))
     logger.debug("Job object response from CrowdFlower: %s" % json.dumps(job, indent=2))
     job_id = job['id']
     if tags:

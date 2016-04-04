@@ -7,6 +7,7 @@ import unittest
 import itertools
 from strephit.commons import *
 from collections import Counter
+from treetaggerwrapper import Tag
 
 
 class TestParallel(unittest.TestCase):
@@ -321,8 +322,49 @@ class TestText(unittest.TestCase):
         self.assertEqual(text.fix_name('Fraser, Sir Colin'),
                          ('colin fraser', ['sir']))
 
+
 class TestSplitter(unittest.TestCase):
     def test(self):
-        splitter = SentenceSplitter('en')
-        self.assertListEqual(splitter.split('hello world. this is another sentence! got it?'),
+        splitter = PunktSentenceSplitter('en')
+        self.assertListEqual(list(splitter.split('hello world. this is another sentence! got it?')),
                              ['hello world.', 'this is another sentence!', 'got it?'])
+
+
+class TestPosTag(unittest.TestCase):
+    items = [
+        {
+            'id': 1,
+            'text': u'first item to be tagged',
+            'correct': [u'first\tJJ\tfirst',
+                        u'item\tNN\titem',
+                        u'to\tTO\tto',
+                        u'be\tVB\tbe',
+                        u'tagged\tVVN\ttag'],
+        },
+        {
+            'id': 2,
+            'text': u'another item ready for pos tag',
+            'correct': [u'another\tDT\tanother',
+                        u'item\tNN\titem',
+                        u'ready\tJJ\tready',
+                        u'for\tIN\tfor',
+                        u'pos\tNNS\tpo',
+                        u'tag\tNN\ttag'],
+        }
+    ]
+
+    def setUp(self):
+        self.tagger = pos_tag.TTPosTagger('en')
+
+    def test_tag_many(self):
+        for each in self.tagger.tag_many(self.items, 'text', 'tagged'):
+            self.assertIn('correct', each)
+            self.assertIn('tagged', each)
+            self.assertIn('text', each)
+            correct = [Tag(*pos.split('\t')) for pos in each['correct']]
+            self.assertEqual(each['tagged'], correct)
+
+    def tag_one(self):
+        for each in self.items:
+            tagged = self.tagger.tag_one(each['text'])
+            self.assse

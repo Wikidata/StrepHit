@@ -5,11 +5,10 @@ from nltk.parse.stanford import StanfordParser
 from nltk.tree import Tree
 from itertools import imap
 from collections import defaultdict, OrderedDict
-from strephit.commons.split_sentences import SentenceSplitter
+from strephit.commons.split_sentences import PunktSentenceSplitter
 from strephit.commons.io import load_corpus
 from strephit.commons.pos_tag import TTPosTagger
 from strephit.commons import parallel
-
 
 logger = logging.getLogger(__name__)
 # some globals for the workers (some of them cannot be pickled)
@@ -78,7 +77,7 @@ def main(corpus, verbs, processes, output, sub_sentences):
     """ Compute the LU distribution in the corpus, i.e. how many LUs per sentence
     """
     global splitter, tagger, parser, all_verbs
-    splitter = SentenceSplitter('en')
+    splitter = PunktSentenceSplitter('en')
     tagger = TTPosTagger('en')
     parser = StanfordParser(path_to_jar='dev/stanford-corenlp-3.6.0.jar',
                             path_to_models_jar='dev/stanford-corenlp-3.6.0-models.jar',

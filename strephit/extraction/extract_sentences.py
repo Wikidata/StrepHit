@@ -9,7 +9,7 @@ from nltk.parse.stanford import StanfordParser
 from nltk.tree import Tree
 from strephit.commons.io import load_dumped_corpus
 from strephit.commons.tokenize import Tokenizer
-from strephit.commons.split_sentences import SentenceSplitter
+from strephit.commons.split_sentences import PunktSentenceSplitter
 from strephit.commons.pos_tag import TTPosTagger
 from strephit.commons import parallel
 from sys import exit
@@ -95,7 +95,7 @@ class OneToOneExtractor(SentenceExtractor):
     tagger = None
 
     def setup_extractor(self):
-        self.splitter = SentenceSplitter(self.language)
+        self.splitter = PunktSentenceSplitter(self.language)
         self.tokenizer = Tokenizer(self.language)
         self.tagger = TTPosTagger(self.language)
 
@@ -154,7 +154,7 @@ class ManyToManyExtractor(SentenceExtractor):
     tagger = None
 
     def setup_extractor(self):
-        self.splitter = SentenceSplitter(self.language)
+        self.splitter = PunktSentenceSplitter(self.language)
         self.tokenizer = Tokenizer(self.language)
         self.tagger = TTPosTagger(self.language)
 
@@ -199,7 +199,7 @@ class SyntacticExtractor(SentenceExtractor):
     all_verbs = None
 
     def setup_extractor(self):
-        self.splitter = SentenceSplitter(self.language)
+        self.splitter = PunktSentenceSplitter(self.language)
         self.parser = StanfordParser(path_to_jar='dev/stanford-corenlp-3.6.0.jar',
                                      path_to_models_jar='dev/stanford-corenlp-3.6.0-models.jar',
                                      java_options=' -mx2G -Djava.ext.dirs=dev/')
