@@ -12,7 +12,6 @@ from sys import exit
 logger = logging.getLogger(__name__)
 
 
-# Avoid timex and numeric FEs in frame definitions
 def prepare_crowdflower_input(sentences, frame_data):
     data_units = []
     for sentence in sentences:
@@ -41,9 +40,9 @@ def prepare_crowdflower_input(sentences, frame_data):
         # FIXME deal with multiple frames per LU (implement ACL 2013?)
         frame = frames[0]
         data_unit['frame'] = frame['frame']
-        # Process core FEs only
-        core_fes = frame['core_fes']
-        for i, fe in enumerate(core_fes):
+        # Annotate both core and extra FEs
+        fes = frame['core_fes'] + frame['extra_fes']
+        for i, fe in enumerate(fes):
             data_unit['fe_%02d' % i] = fe['fe']
         for j, chunk in enumerate(chunks):
             data_unit['chunk_%02d' % j] = chunk
