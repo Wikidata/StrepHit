@@ -61,8 +61,8 @@ class PunktSentenceSplitter(object):
         Newline characters are first interpreted as sentence boundaries.
         Then, the sentence splitter is run.
         :param str text: Text to be split
-        :return: a list of sentences
-        :rtype: list
+        :return: the sentences in the text
+        :rtype: generator
         """
         logger.debug("Splitting text into sentences: %s" % text)
         sentences_by_newline = text.strip().split('\n')
@@ -73,6 +73,17 @@ class PunktSentenceSplitter(object):
             for sentence in split:
                 yield sentence
 
+    def split_tokens(self, tokens):
+        """
+        Splits the given text into sentences.
+        :param list tokens: the tokens of the text
+        :return: the sentences i the text
+        :rtype: generator
+        """
+        split = self.splitter.sentences_from_tokens(tokens)
+        for each in split:
+            yield each
+
 
 @click.command()
 @click.argument('corpus', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
@@ -80,15 +91,10 @@ class PunktSentenceSplitter(object):
 @click.argument('language-code')
 @click.option('--output-file', '-o', type=click.File('w'), default='-')
 @click.option('--processes', '-p', default=0)
-@click.option('--splitter', '-s', default='punkt', type=click.Choice(['punkt', 'grammar']))
-def main(corpus, document_key, language_code, output_file, processes, splitter):
+def main(corpus, document_key, language_code, output_file, processes):
     """ Split an input corpus into sentences """
     corpus = load_corpus(corpus, document_key, text_only=True)
-
-    if splitter == 'grammar':
-        s = GrammarSentenceSplitter(language_code)  # TODO add verbs list
-    else:
-        s = PunktSentenceSplitter(language_code)
+    s = PunktSentenceSplitter(language_code)
 
     logger.info("Starting sentence splitting of the input corpus ...")
 

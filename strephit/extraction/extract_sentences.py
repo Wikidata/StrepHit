@@ -8,7 +8,7 @@ from random import choice
 from nltk import RegexpParser
 from nltk.parse.stanford import StanfordParser
 from nltk.tree import Tree
-from strephit.commons.io import load_dumped_corpus
+from strephit.commons.io import load_dumped_corpus, load_corpus, load_scraped_items
 from strephit.commons.tokenize import Tokenizer
 from strephit.commons.split_sentences import PunktSentenceSplitter
 from strephit.commons.pos_tag import TTPosTagger
@@ -23,17 +23,19 @@ class SentenceExtractor:
     """ Base class for sentence extractors.
     """
 
-    def __init__(self, corpus, document_key, sentences_key, language, lemma_to_token):
+    def __init__(self, corpus, pos_tag_key, document_key, sentences_key, language, lemma_to_token):
         """ Initializes the extractor.
             :param corpus: The corpus, iterable of `dict`s. Generator preferred
-            :param document_key: The key from which to retrieve the text from each item
+            :param pos_tag_key: The key from which to retrieve the pos tagged document
+            :param document_key: The key from which to retrieve the textual document
             :param sentences_key: The key to which the extracted sentences should be stored
             :param language: The language the text is in
             :param lemma_to_token: Mapping from lemma to list of tokens
         """
         self.corpus = corpus
-        self.document_key = document_key
+        self.pos_tag_key = pos_tag_key
         self.sentences_key = sentences_key
+        self.document_key = document_key
         self.lemma_to_token = lemma_to_token
         self.language = language
 
@@ -90,15 +92,11 @@ class OneToOneExtractor(SentenceExtractor):
         the sentence is assigned to a RANDOM LU
     """
     splitter = None
-    tokenizer = None
     all_verb_tokens = None
     token_to_lemma = None
-    tagger = None
 
     def setup_extractor(self):
         self.splitter = PunktSentenceSplitter(self.language)
-        self.tokenizer = Tokenizer(self.language)
-        self.tagger = TTPosTagger(self.language)
 
         self.all_verb_tokens = set()
         self.token_to_lemma = {}
@@ -111,18 +109,19 @@ class OneToOneExtractor(SentenceExtractor):
     def extract_from_item(self, item):
         extracted = []
 
-        document = item.get(self.document_key)
-        if not document:
+        tagged = item.get(self.pos_tag_key)
+        if not tagged:
             return
 
-        sentences = self.splitter.split(document)
-        for sentence in sentences:
-            tokens = [token.lower() for token in self.tokenizer.tokenize(sentence)]
-            if not tokens:
-                continue
+        sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
+        tokens = 0
 
-            tagged = self.tagger.tag_one(tokens, tagonly=True)
-            sentence_verbs = [token for token, pos, lemma in tagged if pos.startswith('V')]
+        for sentence in sentences:
+            # retrieve POS tags of this sentence
+            tags = tagged[tokens:tokens+len(sentence)]
+            tokens += len(sentence)
+
+            sentence_verbs = [token for token, pos, lemma in tags if pos.startswith('V')]
 
             matched = []
             for token in self.all_verb_tokens:
@@ -134,16 +133,15 @@ class OneToOneExtractor(SentenceExtractor):
                 assigned_lu = self.token_to_lemma[assigned_token]
                 extracted.append({
                     'lu': assigned_lu,
-                    'text': sentence,
+                    'text': ' '.join(sentence),
                     'tagged': tagged,
                 })
 
         if extracted:
-            logger.debug("%d sentences extracted. Removing the full text from the item ...", len(extracted))
-            item.pop(self.document_key)  # Remove text key
+            logger.debug("%d sentences extracted", len(extracted))
             return item, extracted
         else:
-            logger.debug("No sentences extracted. Skipping the whole item ...")
+            logger.debug("No sentences extracted")
 
 
 class ManyToManyExtractor(SentenceExtractor):
@@ -151,25 +149,23 @@ class ManyToManyExtractor(SentenceExtractor):
         N.B.: the same sentence is likely to appear multiple times
     """
     splitter = None
-    tokenizer = None
-    tagger = None
 
     def setup_extractor(self):
         self.splitter = PunktSentenceSplitter(self.language)
-        self.tokenizer = Tokenizer(self.language)
-        self.tagger = TTPosTagger(self.language)
 
     def extract_from_item(self, item):
         extracted = []
 
-        document = item.get(self.document_key)
-        if not document:
+        tagged = item.get(self.pos_tag_key)
+        if not tagged:
             return
 
-        sentences = self.splitter.split(document)
+        sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
+        tokens = 0
         for sentence in sentences:
-            tagged = self.tagger.tag_one([token.lower() for token in self.tokenizer.tokenize(sentence)],
-                                         tagonly=True)
+            tags = tagged[tokens:tokens+len(sentence)]
+            tokens += len(sentence)
+
             sentence_tokens = [token for token, pos, lemma in tagged if pos.startswith('V')]
 
             for lemma, match_tokens in self.lemma_to_token.iteritems():
@@ -177,16 +173,15 @@ class ManyToManyExtractor(SentenceExtractor):
                     if match.lower() in sentence_tokens:
                         extracted.append({
                             'lu': lemma,
-                            'text': sentence,
+                            'text': ' '.join(sentence),
                             'tagged': tagged,
                         })
 
         if extracted:
-            logger.debug("%d sentences extracted. Removing the full text from the item ...", len(extracted))
-            item.pop(self.document_key)
+            logger.debug("%d sentences extracted", len(extracted))
             return item, extracted
         else:
-            logger.debug("No sentences extracted. Skipping the whole item ...")
+            logger.debug("No sentences extracted")
 
 
 class SyntacticExtractor(SentenceExtractor):
@@ -254,9 +249,7 @@ class SyntacticExtractor(SentenceExtractor):
                                  text, repr(found))
 
         if extracted:
-            logger.debug("%d sentences extracted. Removing the full text from the item ...",
-                         len(extracted))
-            item.pop(self.document_key)
+            logger.debug("%d sentences extracted...", len(extracted))
             return item, extracted
         else:
             logger.debug("No sentences extracted. Skipping the whole item ...")
@@ -287,8 +280,7 @@ class GrammarExtractor(SentenceExtractor):
     """ Grammar-based extraction strategy: pick sentences that comply with a pre-defined grammar. """
 
     splitter = None
-    tokenizer = None
-    tagger = None
+    parser = None
     # Grammars rely on POS labels, which are language-dependent
     grammars = {
         'en': r"""
@@ -303,32 +295,33 @@ class GrammarExtractor(SentenceExtractor):
 
     def setup_extractor(self):
         self.splitter = PunktSentenceSplitter(self.language)
-        self.tokenizer = Tokenizer(self.language)
-        self.tagger = TTPosTagger(self.language)
-        grammar = self.grammars.get(language)
+        grammar = self.grammars.get(self.language)
         if grammar:
             self.parser = RegexpParser(grammar)
         else:
             raise ValueError(
                 "Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (
-                    language, self.grammars.keys()))
+                    self.language, self.grammars.keys())
+            )
 
     def extract_from_item(self, item):
         extracted = []
 
-        document = item.get(self.document_key)
-        if not document:
+        tagged = item.get(self.pos_tag_key)
+        if not tagged:
             return
 
         # Sentence splitting
-        sentences = self.splitter.split(document)
+        sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
+        tokens = 0
         for sentence in sentences:
-            # Tokenization + POS tagging
-            tagged = [(token, pos) for token, pos, lemma in self.tagger.tag_one(sentence)]
+            tags = tagged[tokens:tokens+len(sentence)]
+            tokens += len(sentence)
+
             # Parsing via grammar
-            parsed = self.parser.parse(tagged)
+            parsed = self.parser.parse([(token, pos) for token, pos, lemma in tags])
+
             # Loop over sub-sentences that match the grammar
-            # if 'CHUNK' in (subtree.label() for subtree in parsed.subtrees()):
             for grammar_match in parsed.subtrees(lambda t: t.label() == 'CHUNK'):
                 logger.debug("Grammar match: '%s'" % grammar_match)
                 # Look up the LU
@@ -337,17 +330,16 @@ class GrammarExtractor(SentenceExtractor):
                     if pos.startswith('V'):
                         for lemma, match_tokens in self.lemma_to_token.iteritems():
                             for match in match_tokens:
-                                # Lowercase both for better matching
                                 if token.lower() == match.lower():
                                     # Return joined chunks only
                                     # TODO test with full sentence as well
                                     # TODO re-constitute original text (now join on space)
-                                    text = ' '.join([leaf[0] for leaf in grammar_match.leaves()])
+                                    text = ' '.join(leaf[0] for leaf in grammar_match.leaves())
                                     logger.debug("Extracted sentence: '%s'" % text)
                                     extracted.append({
                                         'lu': lemma,
                                         'text': text,
-                                        'tagged': tagged,
+                                        'tagged': tags,
                                     })
 
         if extracted:
@@ -358,14 +350,15 @@ class GrammarExtractor(SentenceExtractor):
             logger.debug("No sentences extracted. Skipping the whole item ...")
 
 
-def extract_sentences(corpus, document_key, sentences_key, language, matches, strategy, processes=0):
+def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language, lemma_to_tokens, strategy, processes=0):
     """
     Extract sentences from the given corpus by matching tokens against a given set.
-    :param corpus: Iterable of documents containing text and metadata
-    :param str document_key: dict key to get the text documents
+    :param corpus: Pos-tagged corpus, as an iterable of documents
     :param str sentences_key: dict key where to put extracted sentences
+    :param str pos_tag_key: dict key where the pos-tagged text is
+    :param str document_key: dict key where the textual document is
     :param str language: ISO 639-1 language code used for tokenization and sentence splitting
-    :param dict matches: Dict with corpus lemmas as keys and tokens to be matched as values
+    :param dict lemma_to_tokens: Dict with corpus lemmas as keys and tokens to be matched as values
     :param str strategy: One of the 4 extraction strategies ['121', 'n2n', 'grammar', 'syntactic']
     :param int processes: How many concurrent processes to use
     :return: the corpus, updated with the extracted sentences and the number of extracted sentences
@@ -392,26 +385,26 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
         raise ValueError("Malformed or unsupported extraction strategy: "
                          "please use one of ['121', 'n2n', 'grammar', or 'syntactic']")
 
-    for each in extractor(corpus, document_key, sentences_key, language, matches).extract(processes):
+    for each in extractor(corpus, pos_tag_key, document_key, sentences_key, language, lemma_to_tokens).extract(processes):
         yield each
 
 
 @click.command()
-@click.argument('corpus', type=click.File('r'))
-@click.argument('document_key')
+@click.argument('pos_tagged', type=click.Path(exists=True))
 @click.argument('language_code')
-@click.argument('matches', type=click.File('r'))
+@click.argument('lemma_to_tokens', type=click.File('r'))
 @click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'grammar', 'syntactic']), default='n2n')
 @click.option('--output', '-o', type=click.File('w'), default='dev/sentences.jsonlines')
 @click.option('--sentences-key', default='sentences')
+@click.option('--pos-tag-key', default='pos_tag')
+@click.option('--document-key', default='bio')
 @click.option('--processes', '-p', default=0)
-def main(corpus, document_key, language_code, matches, strategy, output, processes, sentences_key):
+def main(pos_tagged, language_code, lemma_to_tokens, strategy, output, processes,
+         sentences_key, pos_tag_key, document_key):
     """ Extract corpus sentences containing at least one token in the given set. """
-    logger.info("Loading corpus dump from '%s' ..." % corpus.name)
-    loaded = load_dumped_corpus(corpus, document_key)
-    logger.info("Starting sentence extraction. Matches will be loaded from '%s'" % matches.name)
-    updated = extract_sentences(loaded, document_key, sentences_key, language_code,
-                                json.load(matches), strategy, processes)
+    corpus = load_scraped_items(pos_tagged)
+    updated = extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language_code,
+                                json.load(lemma_to_tokens), strategy, processes)
     for item in updated:
         output.write(json.dumps(item) + '\n')
     return 0
