@@ -8,7 +8,6 @@ import logging
 import json
 from sys import exit
 from nltk.data import load
-from nltk import RegexpParser
 from itertools import ifilter
 from strephit.commons.pos_tag import TTPosTagger
 from strephit.commons.io import load_corpus
@@ -73,35 +72,6 @@ class PunktSentenceSplitter(object):
             split = self.splitter.tokenize(each)
             for sentence in split:
                 yield sentence
-
-
-class GrammarSentenceSplitter(PunktSentenceSplitter):
-    """ Further refines sentences by taking those with a simple structure
-        and containing verbs from a given set (if given)
-    """
-
-    # fixme translate to english
-    CHUNKER_GRAMMAR = r""" SN: {<PRO.*|DET.*|>?<ADJ>*<NUM>?<NOM|NPR>+<NUM>?<ADJ|VER:pper>*}
-                           CHUNK: {<SN><VER.*>+<SN>}
-                       """
-
-    def __init__(self, language, verbs=None):
-        super(GrammarSentenceSplitter, self).__init__(language)
-        self.language = language
-        self.verbs = verbs
-        self.tagger = TTPosTagger(self.language)
-        self.chunker = RegexpParser(self.CHUNKER_GRAMMAR)
-
-    def split(self, text):
-        for sentence in super(GrammarSentenceSplitter, self).split(text):
-            tagged = [(t, p) for t, p, l in self.tagger.tag_one(sentence)]
-            result = self.chunker.parse(tagged)
-
-            if 'CHUNK' in (s.label() for s in result.subtrees()):
-                for t in result.subtrees(lambda r: r.label() == 'CHUNK'):
-                    for token, pos in t.leaves():
-                        if 'VER' in pos and (not self.verbs or token in self.verbs):
-                            yield ' '.join(item[0] for item in tagged)
 
 
 @click.command()
