@@ -40,9 +40,8 @@ def about_sources(corpus, processes, with_bio):
         for doc in items:
             url = doc.get('url')
             if not url:
-                #logger.warn('found an item without URL, name: %s, bio: %s',
-                #            doc.get('name'), doc.get('bio', '')[:100] + ' ...')
-                print 'E',
+                logger.warn('found an item without URL, name: %s, bio: %s',
+                            doc.get('name'), doc.get('bio', '')[:100] + ' ...')
                 sources['_skipped_'] += 1
                 continue
             elif with_bio and not doc.get('bio'):
@@ -53,6 +52,7 @@ def about_sources(corpus, processes, with_bio):
             if parsed.netloc:
                 sources[parsed.netloc] += 1
             else:
+                logger.warn('cannot parse URL: %s', url)
                 sources['_skipped_'] += 1
         return sources
 

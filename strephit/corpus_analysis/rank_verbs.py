@@ -91,9 +91,14 @@ class TFIDFRanking:
 
 
 class PopularityRanking:
-    def __init__(self, corpus_path, document_key, verbs):
-        self.corpus = load_corpus(corpus_path, document_key, text_only=True)
-        self.verbs = verbs
+    def __init__(self, corpus_path, pos_tag_key):
+        self.tags = self._flatten(item.get(pos_tag_key) for item in load_scraped_items(corpus_path))
+
+    @staticmethod
+    def _flatten(iterable):
+        for each in iterable:
+            for x in each:
+                yield x
 
     @staticmethod
     def _bulkenize(iterable, bulk_size):
@@ -107,18 +112,18 @@ class PopularityRanking:
         if acc:
             yield acc
 
-    def score_from_text(self, documents):
+    @staticmethod
+    def score_from_tokens(tokens):
         scores = defaultdict(int)
-        for each in documents:
-            text = each.lower()
-            for lemma, tokens in self.verbs.iteritems():
-                scores[lemma] += sum(text.count(t) for t in tokens)
+        for token, pos, lemma in tokens:
+            if pos.startswith('V'):
+                scores[lemma.lower()] += 1
         return scores
 
-    def find_ranking(self, processes=0, bulk_size=100, normalize=True):
+    def find_ranking(self, processes=0, bulk_size=10000, normalize=True):
         ranking = defaultdict(int)
-        for score in parallel.map(self.score_from_text,
-                                  self._bulkenize(self.corpus, bulk_size),
+        for score in parallel.map(self.score_from_tokens,
+                                  self._bulkenize(self.tags, bulk_size),
                                   processes):
 
             for k, v in score.iteritems():
@@ -135,12 +140,17 @@ class PopularityRanking:
 
 
 def harmonic_ranking(*rankings):
+    """ Combines individual rankings with an harmonic mean to obtain a final ranking
+        :param rankings: dictionary of individual rankings
+        :return: the new, combined ranking
+    """
     product = lambda x, y: x * y
     sum = lambda x, y: x + y
     get = lambda k: (r[k] for r in rankings)
 
+    lemmas = reduce(lambda x, y: x.union(y), (set(r) for r in rankings))
     return OrderedDict(sorted(
-        [(k, len(rankings) * reduce(product, get(k)) / (1 + reduce(sum, get(k)))) for k in rankings[0]],
+        [(l, len(rankings) * reduce(product, get(l)) / (1 + reduce(sum, get(l)))) for l in lemmas],
         key=lambda (_, v): v,
         reverse=True
     ))
@@ -158,18 +168,25 @@ def harmonic_ranking(*rankings):
 @click.option('--dump-final', type=click.File('w'), default='dev/verb_ranking.json')
 @click.option('--processes', '-p', default=0)
 def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_idf, dump_stdev, dump_popularity,
-          dump_final, processes):
+         dump_final, processes):
+
+    logger.info('Computing lemma to token map and TF-IDF matrix')
     lemma_tokens, (vectorizer, tf_idf_matrix) = parallel.execute(
         2,
         produce_lemma_tokens, (pos_tagged, pos_tag_key, language),
         compute_tf_idf_matrix, (pos_tagged, document_key)
     )
 
-    pop_ranking = PopularityRanking(pos_tagged, document_key, lemma_tokens).find_ranking(processes)
+    logger.info('scoring verbs by popularity')
+    pop_ranking = PopularityRanking(pos_tagged, pos_tag_key).find_ranking(processes)
+
+    logger.info('scoring verbs by TF-IDF based metrics (average and stdandard deviation)')
     tfidf_ranking, stdev_ranking = TFIDFRanking(vectorizer, lemma_tokens, tf_idf_matrix).find_ranking(processes)
 
+    logger.info('producing final ranking')
     final_ranking = harmonic_ranking(pop_ranking, tfidf_ranking, stdev_ranking)
 
+    logger.info('dumping all the rankings')
     json.dump(tfidf_ranking, dump_tf_idf, indent=2)
     json.dump(stdev_ranking, dump_stdev, indent=2)
     json.dump(pop_ranking, dump_popularity, indent=2)
