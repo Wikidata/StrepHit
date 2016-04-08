@@ -79,6 +79,7 @@ secret_keys.py
 
 # Corpus data
 corpus*
+*.tar.gz
 
 # Crawl runs
 strephit/web_sources_corpus/crawls
