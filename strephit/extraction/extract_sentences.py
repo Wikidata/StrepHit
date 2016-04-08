@@ -23,7 +23,7 @@ class SentenceExtractor:
     """ Base class for sentence extractors.
     """
 
-    def __init__(self, corpus, document_key, sentences_key, language, lemma_to_token):
+    def __init__(self, corpus, document_key, sentences_key, language, lemma_to_token, match_base_form):
         """ Initializes the extractor.
             :param corpus: The corpus, iterable of `dict`s. Generator preferred
             :param document_key: The key from which to retrieve the text from each item
@@ -34,8 +34,8 @@ class SentenceExtractor:
         self.corpus = corpus
         self.document_key = document_key
         self.sentences_key = sentences_key
-        self.lemma_to_token = lemma_to_token
         self.language = language
+        self.lemma_to_token = lemma_to_token if match_base_form else _filter_base_form(lemma_to_token)
 
     def extract_from_item(self, item):
         """ Extract sentences from an item. Relies on `setup_extractor`
@@ -82,6 +82,13 @@ class SentenceExtractor:
             logger.info('Total sentences extracted: %d', count)
         finally:
             self.teardown_extractor()
+
+    def _filter_base_form(self, lemma_to_token):
+        """ Remove the base form from each list of tokens """
+        for lemma, tokens in lemma_to_token.iteritems():
+            if lemma in tokens:
+                tokens.remove(lemma)
+        return lemma_to_token
 
 
 class OneToOneExtractor(SentenceExtractor):
@@ -359,7 +366,7 @@ class GrammarExtractor(SentenceExtractor):
             logger.debug("No sentences extracted. Skipping the whole item ...")
 
 
-def extract_sentences(corpus, document_key, sentences_key, language, matches, strategy, processes=0):
+def extract_sentences(corpus, document_key, sentences_key, language, matches, strategy, match_base_form, processes=0):
     """
     Extract sentences from the given corpus by matching tokens against a given set.
     :param corpus: Iterable of documents containing text and metadata
@@ -368,6 +375,7 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
     :param str language: ISO 639-1 language code used for tokenization and sentence splitting
     :param dict matches: Dict with corpus lemmas as keys and tokens to be matched as values
     :param str strategy: One of the 4 extraction strategies ['121', 'n2n', 'grammar', 'syntactic']
+    :param bool match_base_form: whether to match verbs base form
     :param int processes: How many concurrent processes to use
     :return: the corpus, updated with the extracted sentences and the number of extracted sentences
     :rtype: generator of tuples
@@ -393,7 +401,7 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
         raise ValueError("Malformed or unsupported extraction strategy: "
                          "please use one of ['121', 'n2n', 'grammar', or 'syntactic']")
 
-    for each in extractor(corpus, document_key, sentences_key, language, matches).extract(processes):
+    for each in extractor(corpus, document_key, sentences_key, language, matches, match_base_form).extract(processes):
         yield each
 
 
@@ -406,7 +414,8 @@ def extract_sentences(corpus, document_key, sentences_key, language, matches, st
 @click.option('--output', '-o', type=click.File('w'), default='dev/sentences.jsonlines')
 @click.option('--sentences-key', default='sentences')
 @click.option('--processes', '-p', default=0)
-def main(corpus, document_key, language_code, matches, strategy, output, processes, sentences_key):
+@click.option('--match-base-form', is_flag=True, default=False)
+def main(corpus, document_key, language_code, matches, strategy, output, sentences_key, processes, match_base_form):
     """ Extract corpus sentences containing at least one token in the given set. """
     logger.info("Loading corpus dump from '%s' ..." % corpus.name)
     loaded = load_dumped_corpus(corpus, document_key)
