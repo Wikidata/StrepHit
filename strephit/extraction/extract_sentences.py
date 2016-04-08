@@ -305,13 +305,13 @@ class GrammarExtractor(SentenceExtractor):
         self.splitter = PunktSentenceSplitter(self.language)
         self.tokenizer = Tokenizer(self.language)
         self.tagger = TTPosTagger(self.language)
-        grammar = self.grammars.get(language)
+        grammar = self.grammars.get(self.language)
         if grammar:
             self.parser = RegexpParser(grammar)
         else:
             raise ValueError(
                 "Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (
-                    language, self.grammars.keys()))
+                    self.language, self.grammars.keys()))
 
     def extract_from_item(self, item):
         extracted = []
@@ -336,19 +336,20 @@ class GrammarExtractor(SentenceExtractor):
                     # Restrict match to sub-sentence verbs only
                     if pos.startswith('V'):
                         for lemma, match_tokens in self.lemma_to_token.iteritems():
-                            for match in match_tokens:
-                                # Lowercase both for better matching
-                                if token.lower() == match.lower():
-                                    # Return joined chunks only
-                                    # TODO test with full sentence as well
-                                    # TODO re-constitute original text (now join on space)
-                                    text = ' '.join([leaf[0] for leaf in grammar_match.leaves()])
-                                    logger.debug("Extracted sentence: '%s'" % text)
-                                    extracted.append({
-                                        'lu': lemma,
-                                        'text': text,
-                                        'tagged': tagged,
-                                    })
+                            match_tokens = [match.lower() for match in match_tokens]
+                            if token.lower() in match_tokens:
+                                # Return joined chunks only
+                                # TODO test with full sentence as well
+                                # TODO re-constitute original text (now join on space)
+                                text = ' '.join([leaf[0] for leaf in grammar_match.leaves()])
+                                logger.debug("Extracted sentence: '%s'" % text)
+                                logger.debug("Sentence token '%s' is in matches %s" % (token, match_tokens))
+                                logger.debug("Extracted sentence: %s" % sentence)
+                                extracted.append({
+                                    'lu': lemma,
+                                    'text': sentence,
+                                    'tagged': tagged,
+                                })
 
         if extracted:
             logger.debug("%d sentences extracted. Removing the full text from the item ...", len(extracted))
