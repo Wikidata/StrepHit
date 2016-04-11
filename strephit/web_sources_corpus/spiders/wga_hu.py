@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import re
+
 from scrapy import Request
+
 from strephit.web_sources_corpus.spiders import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
-from strephit.commons import text
 
 
 class WgaHuSpider(BaseSpider):
@@ -26,8 +27,8 @@ class WgaHuSpider(BaseSpider):
 
     def start_requests(self):
         for letter in 'abcdefghijklmnopqrstuvwxyz':
-            yield Request('http://www.wga.hu/cgi-bin/artist.cgi?Profession=any&School' \
-                          '=any&Period=any&Time-line=any&from=0&max=9999999&Sort=Name' \
+            yield Request('http://www.wga.hu/cgi-bin/artist.cgi?Profession=any&School'
+                          '=any&Period=any&Time-line=any&from=0&max=9999999&Sort=Name'
                           '&letter=' + letter, self.parse)
 
     def refine_item(self, response, item):

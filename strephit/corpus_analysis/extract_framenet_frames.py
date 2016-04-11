@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
 import json
 import logging
 from collections import defaultdict, OrderedDict
 from sys import exit
-from nltk.corpus import framenet
-from strephit.commons.wikidata import get_property_ids, get_entities, get_labels_and_aliases
 
+import click
+from nltk.corpus import framenet
+
+from strephit.commons.wikidata import get_property_ids, get_entities, get_labels_and_aliases
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ NUMERICAL_FES = [
 def get_top_n_lus(ranked_lus, n):
     """
      Extract the top N Lexical Units (LUs) from a ranking.
+
      :param dict ranked_lus: LUs ranking, as returned by :func:`compute_ranking`
      :param int n: Number of top LUs to return
      :return: the top N LUs with their ranking scores
@@ -37,6 +39,7 @@ def get_top_n_lus(ranked_lus, n):
 def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
     """
      Intersect verb lemmas extracted from the input corpus with FrameNet Lexical Units (LUs).
+
      :param dict corpus_lemmas: dict of verb lemmas with their ranking scores
      :param dict wikidata_properties: dict with all Wikidata properties
      :return: a dictionary of corpus lemmas enriched with FrameNet LUs data (dicts)
@@ -49,7 +52,8 @@ def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
         # Ensure exact match, as the lookup can be done only via regex
         lus = framenet.lus(r'^%s\.' % corpus_lemma)
         if lus:
-            logger.debug("Found %d FrameNet Lexical Units (LUs) that match the corpus lemma '%s': %s" % (len(lus), corpus_lemma, lus))
+            logger.debug("Found %d FrameNet Lexical Units (LUs) that match the corpus lemma '%s': %s" % (
+                len(lus), corpus_lemma, lus))
             for lu in lus:
                 lu_label = lu['name']
                 # Skip non-verbal LUs
@@ -110,7 +114,8 @@ def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
                 if extra_fes:
                     intersected_lu['extra_fes'] = extra_fes
                 enriched[score].append(intersected_lu)
-                logger.debug("Corpus lemma '%s' enriched with frame data: %s" % (corpus_lemma, json.dumps(intersected_lu, indent=2)))
+                logger.debug("Corpus lemma '%s' enriched with frame data: %s" %
+                             (corpus_lemma, json.dumps(intersected_lu, indent=2)))
     # Order by decreasing score
     return OrderedDict(sorted(enriched.items(), key=lambda x: x[0], reverse=True))
 
@@ -118,6 +123,7 @@ def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
 def extract_top_corpus_tokens(enriched_lemmas, all_lemma_tokens):
     """
      Extract the subset of corpus lemmas with tokens gievn the set of top lemmas
+
      :param dict enriched_lemmas: Dict returned by :func:`intersect_lemmas_with_framenet`
      :param dict all_lemma_tokens: Dict of all corpus lemmas with tokens
      :return: the top lemmas with tokens dict

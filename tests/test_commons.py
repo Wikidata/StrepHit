@@ -5,7 +5,7 @@ import tempfile
 import random
 import unittest
 import itertools
-from strephit.commons import *
+from strephit.commons import pos_tag, cache, parallel, datetime, text, wikidata, split_sentences
 from collections import Counter
 from treetaggerwrapper import Tag
 
@@ -33,7 +33,7 @@ class TestParallel(unittest.TestCase):
         raise ValueError('hello!')
 
     def consume(self, generator):
-        [x for x in generator]
+        list(generator)
 
     def test_single_process(self):
         list_out = set(parallel.map(self.function, self.list_in, processes=1))
@@ -331,7 +331,7 @@ class TestText(unittest.TestCase):
 
 class TestSplitter(unittest.TestCase):
     def test(self):
-        splitter = PunktSentenceSplitter('en')
+        splitter = split_sentences.PunktSentenceSplitter('en')
         self.assertListEqual(list(splitter.split('hello world. this is another sentence! got it?')),
                              ['hello world.', 'this is another sentence!', 'got it?'])
 

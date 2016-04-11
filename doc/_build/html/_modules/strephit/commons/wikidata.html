@@ -1,0 +1,537 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>strephit.commons.wikidata &mdash; StrepHit 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StrepHit 1.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for strephit.commons.wikidata</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- encoding: utf-8 -*-</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span>
+<span class="kn">from</span> <span class="nn">strephit.commons</span> <span class="kn">import</span> <span class="n">cache</span><span class="p">,</span> <span class="n">io</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">text</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="n">WIKIDATA_API_URL</span> <span class="o">=</span> <span class="s1">&#39;https://www.wikidata.org/w/api.php&#39;</span>
+<span class="n">PROPERTIES_NAMESPACE</span> <span class="o">=</span> <span class="mi">120</span>
+<span class="n">PROPERTY_TO_WIKIDATA</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Died of:&#39;</span><span class="p">:</span> <span class="s1">&#39;P509&#39;</span><span class="p">,</span>
+    <span class="c1"># &#39;Marriage&#39;: &#39;P26&#39;,</span>
+    <span class="s1">&#39;Last Name&#39;</span><span class="p">:</span> <span class="s1">&#39;P734&#39;</span><span class="p">,</span>
+    <span class="c1"># &#39;Children&#39;: &#39;P40&#39;,</span>
+    <span class="c1"># &#39;Place of death&#39;: &#39;P20&#39;,</span>
+    <span class="c1"># &#39;Relatives&#39;: &#39;P1038&#39;,</span>
+    <span class="s1">&#39;Year died&#39;</span><span class="p">:</span> <span class="s1">&#39;P570&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;alt. Names&#39;</span><span class="p">:</span> <span class="s1">&#39;P742&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Year born&#39;</span><span class="p">:</span> <span class="s1">&#39;P569&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Given Name&#39;</span><span class="p">:</span> <span class="s1">&#39;P735&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;First name(s)&#39;</span><span class="p">:</span> <span class="s1">&#39;P735&#39;</span><span class="p">,</span>
+    <span class="c1"># &#39;Worked for&#39;: &#39;P108&#39;,</span>
+    <span class="c1"># &#39;title&#39;: &#39;P97&#39;,</span>
+    <span class="c1"># &#39;lblProfession&#39;: &#39;P106&#39;,</span>
+    <span class="c1"># &#39;lblNationality&#39;: &#39;P27&#39;,</span>
+    <span class="s1">&#39;gender&#39;</span><span class="p">:</span> <span class="s1">&#39;P21&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;lblIdentifier&#39;</span><span class="p">:</span> <span class="s1">&#39;P742&#39;</span><span class="p">,</span>
+    <span class="c1"># &#39;Place of origin:&#39;: &#39;P19&#39;,</span>
+    <span class="s1">&#39;Gender:&#39;</span><span class="p">:</span> <span class="s1">&#39;P21&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;death&#39;</span><span class="p">:</span> <span class="s1">&#39;P570&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;birth&#39;</span><span class="p">:</span> <span class="s1">&#39;P569&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;P1477&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;honorific&#39;</span><span class="p">:</span> <span class="s1">&#39;P1035&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">PROPERTY_RESOLVERS</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="resolver"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.resolver">[docs]</a><span class="k">def</span> <span class="nf">resolver</span><span class="p">(</span><span class="o">*</span><span class="n">properties</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Decorator to register a function as resolver for the given properties.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">function</span><span class="p">):</span>
+        <span class="k">for</span> <span class="nb">property</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">property</span> <span class="ow">in</span> <span class="n">PROPERTY_RESOLVERS</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;multiple resolvers registered for property </span><span class="si">%s</span><span class="s1">, &#39;</span>
+                             <span class="s1">&#39;only the last one will be kept&#39;</span> <span class="o">%</span> <span class="nb">property</span><span class="p">)</span>
+            <span class="n">PROPERTY_RESOLVERS</span><span class="p">[</span><span class="nb">property</span><span class="p">]</span> <span class="o">=</span> <span class="n">function</span>
+        <span class="k">return</span> <span class="n">function</span>
+
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+<div class="viewcode-block" id="resolve"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.resolve">[docs]</a><span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Tries to resolve the Wikidata ID of an object given its string representation</span>
+
+<span class="sd">        :param property: Wikidata ID of the property to resolve</span>
+<span class="sd">        :param value: String value</span>
+<span class="sd">        :param language: Search only this language</span>
+<span class="sd">        :param kwargs: Additional info that might be useful to help the resolver</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">property</span> <span class="ow">in</span> <span class="n">PROPERTY_RESOLVERS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PROPERTY_RESOLVERS</span><span class="p">[</span><span class="nb">property</span><span class="p">](</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;don&#39;t know how to resolve value </span><span class="si">%s</span><span class="s2"> of property </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="nb">property</span>
+        <span class="p">))</span>
+        <span class="k">return</span> <span class="bp">None</span></div>
+
+
+<span class="nd">@resolver</span><span class="p">(</span><span class="s1">&#39;P509&#39;</span><span class="p">,</span> <span class="s1">&#39;P734&#39;</span><span class="p">,</span> <span class="s1">&#39;P742&#39;</span><span class="p">,</span> <span class="s1">&#39;P735&#39;</span><span class="p">,</span> <span class="s1">&#39;P1477&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="identity_resolver"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.identity_resolver">[docs]</a><span class="k">def</span> <span class="nf">identity_resolver</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Default resolver, converts to unicode and surrounds with double quotes &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="bp">None</span></div>
+
+
+<span class="nd">@cache.cached</span>
+<span class="nd">@resolver</span><span class="p">(</span><span class="s1">&#39;P21&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">gender_resolver</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Resolve gender &quot;&quot;&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="mi">4369513</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">results</span> <span class="ow">and</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;labels&#39;</span><span class="p">][</span><span class="s1">&#39;en&#39;</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;male&#39;</span><span class="p">,</span> <span class="s1">&#39;female&#39;</span><span class="p">}:</span>
+        <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># cache, but do not serialize</span>
+
+
+<span class="nd">@cache.cached</span>
+<span class="nd">@resolver</span><span class="p">(</span><span class="s1">&#39;P569&#39;</span><span class="p">,</span> <span class="s1">&#39;P570&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">date_resolver</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Resolves dates &quot;&quot;&quot;</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(circa)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(probable)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> \
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(presumed)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;c.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">format_date</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">),</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;month&#39;</span><span class="p">),</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;day&#39;</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cannot parse date &#39;</span> <span class="o">+</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="nd">@cache.cached</span>
+<span class="nd">@resolver</span><span class="p">(</span><span class="s1">&#39;P26&#39;</span><span class="p">,</span> <span class="s1">&#39;P40&#39;</span><span class="p">,</span> <span class="s1">&#39;P1038&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">name_resolver</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Resolves people names. Works better if generic biographic</span>
+<span class="sd">        information, such as birth/death dates, is provided.</span>
+
+<span class="sd">        :param kwargs: dictionary of wikidata property -&gt; list of values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">fix_name</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># Q5 = human</span>
+
+    <span class="k">def</span> <span class="nf">date_matches</span><span class="p">(</span><span class="n">their_dates</span><span class="p">,</span> <span class="n">our_dates</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Finds how many dates match between the ones we have and</span>
+<span class="sd">            the ones they provide</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">theirs</span><span class="p">,</span> <span class="n">ours</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="n">their_dates</span><span class="p">,</span> <span class="n">our_dates</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">theirs</span><span class="p">[</span><span class="s1">&#39;mainsnak&#39;</span><span class="p">][</span><span class="s1">&#39;datavalue&#39;</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+            <span class="n">their_date</span> <span class="o">=</span> <span class="n">parse_date</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">val</span><span class="p">[</span><span class="s1">&#39;precision&#39;</span><span class="p">])</span>
+            <span class="n">our_date</span> <span class="o">=</span> <span class="n">parse_date</span><span class="p">(</span><span class="n">ours</span><span class="p">)</span>
+            <span class="n">matches</span> <span class="o">+=</span> <span class="nb">all</span><span class="p">(</span>
+                <span class="n">their_date</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">our_date</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">}</span>
+                <span class="k">if</span> <span class="n">their_date</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="ow">and</span> <span class="n">our_date</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>  <span class="c1"># consider precision</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">matches</span>
+
+    <span class="c1"># no additional info provided, return first match and pray</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">results</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># cache, but do not serialize</span>
+
+    <span class="c1"># try to disambiguate using provided info</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;disambiguating </span><span class="si">%d</span><span class="s1"> entities, searching for </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">most_matches</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">known_properties</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">PROPERTY_TO_WIKIDATA</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="nb">property</span><span class="p">,</span> <span class="n">claim</span> <span class="ow">in</span> <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;claims&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">property</span> <span class="o">==</span> <span class="s1">&#39;P569&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s1">&#39;P569&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                        <span class="n">matches</span> <span class="o">+=</span> <span class="n">date_matches</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;P569&#39;</span><span class="p">])</span>
+
+                <span class="k">elif</span> <span class="nb">property</span> <span class="o">==</span> <span class="s1">&#39;P570&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s1">&#39;P570&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                        <span class="n">matches</span> <span class="o">+=</span> <span class="n">date_matches</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;P570&#39;</span><span class="p">])</span>
+
+                <span class="k">elif</span> <span class="nb">property</span> <span class="ow">in</span> <span class="n">known_properties</span><span class="p">:</span>
+                    <span class="n">entity_val</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Q</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;mainsnak&#39;</span><span class="p">][</span><span class="s1">&#39;datavalue&#39;</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">][</span><span class="s1">&#39;numeric-id&#39;</span><span class="p">]</span>
+                                                   <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">claim</span><span class="p">)))</span>
+                    <span class="n">our_val</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="p">[])))</span>
+                    <span class="n">weight</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="nb">property</span> <span class="o">==</span> <span class="s1">&#39;P21&#39;</span> <span class="k">else</span> <span class="mi">1</span>  <span class="c1"># avoid matching only by gender</span>
+                    <span class="n">matches</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">our_val</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">entity_val</span><span class="p">))</span> <span class="o">*</span> <span class="n">weight</span>
+
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;entity </span><span class="si">%s</span><span class="s1"> matched </span><span class="si">%d</span><span class="s1"> properties&#39;</span><span class="p">,</span> <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="n">matches</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">most_matches</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">matches</span> <span class="o">&gt;</span> <span class="n">most_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">most_matches</span> <span class="o">=</span> <span class="n">matches</span><span class="p">,</span> <span class="n">entity</span>
+
+    <span class="k">if</span> <span class="n">most_matches</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># if no results</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">most_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Resolved </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">most_matches</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">most_matches</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Could not resolve </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="nd">@cache.cached</span>
+<span class="c1"># @resolver(&#39;P108&#39;, &#39;P97&#39;, &#39;P106&#39;, &#39;P27&#39;, &#39;P166&#39;)</span>
+<span class="k">def</span> <span class="nf">generic_search_resolver</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Last-hope resolver, searches wikidata hoping to find something</span>
+<span class="sd">        which exactly matches the given value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">results</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="nd">@cache.cached</span>
+<span class="c1"># @resolver(&#39;P19&#39;, &#39;P20&#39;)</span>
+<span class="k">def</span> <span class="nf">place_resolver</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Resolves place names</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Q515 = city, Q6526 = country</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="p">{</span><span class="mi">515</span><span class="p">,</span> <span class="mi">6256</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">results</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="nd">@resolver</span><span class="p">(</span><span class="s1">&#39;P1035&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="honorifics_resolver"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.honorifics_resolver">[docs]</a><span class="k">def</span> <span class="nf">honorifics_resolver</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">language</span> <span class="o">!=</span> <span class="s1">&#39;en&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;only english honorifics are supported, sorry&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;prof&#39;</span><span class="p">:</span> <span class="s1">&#39;Q121594&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;dr&#39;</span><span class="p">:</span> <span class="s1">&#39;Q4618975&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;phd&#39;</span><span class="p">:</span> <span class="s1">&#39;Q4618975&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;bishop&#39;</span><span class="p">:</span> <span class="s1">&#39;Q611644&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;arcibishop&#39;</span><span class="p">:</span> <span class="s1">&#39;Q611644&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;st&#39;</span><span class="p">:</span> <span class="s1">&#39;Q43115&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hon&#39;</span><span class="p">:</span> <span class="s1">&#39;Q2746176&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;rev&#39;</span><span class="p">:</span> <span class="s1">&#39;Q42603&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;miss&#39;</span><span class="p">:</span> <span class="s1">&#39;Q13359947&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mrs&#39;</span><span class="p">:</span> <span class="s1">&#39;Q313549&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mister&#39;</span><span class="p">:</span> <span class="s1">&#39;Q177053&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mr&#39;</span><span class="p">:</span> <span class="s1">&#39;Q177053&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;sir&#39;</span><span class="p">:</span> <span class="s1">&#39;Q209690&#39;</span><span class="p">,</span>
+    <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="call_api"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.call_api">[docs]</a><span class="k">def</span> <span class="nf">call_api</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Invoke the given method of wikidata APIs with the given parameters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;format&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;json&#39;</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;action&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">action</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_and_cache</span><span class="p">(</span><span class="n">WIKIDATA_API_URL</span><span class="p">,</span> <span class="n">use_cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="search"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.search">[docs]</a><span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Uses the wikidata APIs to search for a term. Can optionally specify a type</span>
+<span class="sd">        (corresponding to the &#39;instance of&#39; P31 wikidata property. If no type is</span>
+<span class="sd">        specified simply returns all the items containing `term` in `label`</span>
+
+<span class="sd">        :param term: The term to look for</span>
+<span class="sd">        :param language: Search in this language</span>
+<span class="sd">        :param type_: Type of the entity to look for, wikidata numeric id (i.e. without starting Q)</span>
+<span class="sd">                      Can be int or anything iterable</span>
+<span class="sd">        :returns: List of dicts with details (which details depend on `type_`)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">term</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">call_api</span><span class="p">(</span><span class="s1">&#39;wbsearchentities&#39;</span><span class="p">,</span> <span class="n">search</span><span class="o">=</span><span class="n">term</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="n">language</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;search&#39;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> entities with term &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">),</span> <span class="n">term</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">type_</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">type_</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+            <span class="n">type_</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">type_</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">type_</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">type_</span><span class="p">)</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">)</span>
+        <span class="n">details</span> <span class="o">=</span> <span class="n">call_api</span><span class="p">(</span><span class="s1">&#39;wbgetentities&#39;</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="s1">&#39;claims|labels&#39;</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">eid</span><span class="p">,</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;entities&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">entity_type</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;claims&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P31&#39;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;mainsnak&#39;</span><span class="p">][</span><span class="s1">&#39;datavalue&#39;</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">][</span><span class="s1">&#39;numeric-id&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">type_</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">entity_type</span><span class="p">):</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;refined search to </span><span class="si">%d</span><span class="s1"> entities of types </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="n">type_</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">term</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+<div class="viewcode-block" id="finalize_statement"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.finalize_statement">[docs]</a><span class="k">def</span> <span class="nf">finalize_statement</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                       <span class="n">resolve_property</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">resolve_value</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Given the components of a statement, convert it into a quick statement.</span>
+
+<span class="sd">        :param subject: Subject of the statement (its Wikidata ID)</span>
+<span class="sd">        :param property: Property of the statement</span>
+<span class="sd">        :param value: Value of the statement (to be resolved)</span>
+<span class="sd">        :param language: Language used to resolve the value</span>
+<span class="sd">        :param url: Source of the statement (corresponds to S854)</span>
+<span class="sd">        :param resolve_property: Whether `property` is already a Wikidata ID or needs</span>
+<span class="sd">                                 to be resolved</span>
+<span class="sd">        :param resolve_value: Whether `value` can be inserted into the statement as-is</span>
+<span class="sd">                              or needs to be resolved</span>
+<span class="sd">        :param kwargs: additional information used to resolve `value`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">resolve_property</span><span class="p">:</span>
+        <span class="nb">property</span> <span class="o">=</span> <span class="n">PROPERTY_TO_WIKIDATA</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">property</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">property</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">if</span> <span class="n">resolve_value</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">),</span> <span class="n">language</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="n">statement</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="nb">property</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">url</span><span class="p">:</span>
+        <span class="n">statement</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">S854</span><span class="se">\t</span><span class="s1">&quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">url</span>
+
+    <span class="k">return</span> <span class="n">statement</span></div>
+
+
+<div class="viewcode-block" id="format_date"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.format_date">[docs]</a><span class="k">def</span> <span class="nf">format_date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Formats a date according to Wikidata syntax. Assumes that the date is mostly</span>
+<span class="sd">        correct. The allowed values of the parameters are shown in the following</span>
+<span class="sd">        truth table</span>
+
+<span class="sd">        ==== ===== === ==</span>
+<span class="sd">        year month day ok</span>
+<span class="sd">        ==== ===== === ==</span>
+<span class="sd">        1    1     1   1</span>
+<span class="sd">        1    1     0   1</span>
+<span class="sd">        1    0     1   0</span>
+<span class="sd">        1    0     0   1</span>
+<span class="sd">        0    1     1   1</span>
+<span class="sd">        0    1     0   0</span>
+<span class="sd">        0    0     1   0</span>
+<span class="sd">        0    0     0   0</span>
+<span class="sd">        ==== ===== === ==</span>
+
+<span class="sd">        :param year: year of the date</span>
+<span class="sd">        :param month: month of the date. Only positive values allowed</span>
+<span class="sd">        :param day: day of the date. Only positive values allowed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">day</span><span class="p">:</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="mi">11</span>
+    <span class="k">elif</span> <span class="n">month</span><span class="p">:</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="k">elif</span> <span class="n">year</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="mi">9</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;empty date&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">month</span> <span class="ow">and</span> <span class="n">day</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">year</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">day</span><span class="p">):</span>
+        <span class="n">year</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">year</span><span class="p">)</span> <span class="k">if</span> <span class="n">year</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">month</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">month</span><span class="p">)</span> <span class="k">if</span> <span class="n">month</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">day</span><span class="p">)</span> <span class="k">if</span> <span class="n">day</span> <span class="k">else</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">month</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">day</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%+012d</span><span class="s1">-</span><span class="si">%02d</span><span class="s1">-</span><span class="si">%02d</span><span class="s1">T00:00:00Z/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="n">precision</span><span class="p">)</span>
+
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;don</span><span class="se">\&#39;</span><span class="s1">t know how to format&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_date"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.parse_date">[docs]</a><span class="k">def</span> <span class="nf">parse_date</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Tries to parse a date serialized according to the wikidata format</span>
+<span class="sd">        into its components year, month and day</span>
+
+<span class="sd">        :return: dict (year, month, day)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">precision</span><span class="p">:</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">11</span>
+    <span class="n">date</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+    <span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span> <span class="o">=</span> <span class="n">date</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>  <span class="c1"># the first char is year sign</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">year</span><span class="p">),</span>
+        <span class="s1">&#39;month&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">month</span><span class="p">)</span> <span class="k">if</span> <span class="n">precision</span> <span class="o">&gt;=</span> <span class="mi">10</span> <span class="k">else</span> <span class="bp">None</span><span class="p">,</span>
+        <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">day</span><span class="p">)</span> <span class="k">if</span> <span class="n">precision</span> <span class="o">&gt;=</span> <span class="mi">11</span> <span class="k">else</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="get_property_ids"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.get_property_ids">[docs]</a><span class="k">def</span> <span class="nf">get_property_ids</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Get the full list of Wikidata property IDs (pids).</span>
+
+<span class="sd">     :param int batch: number of pids per call, to serve as paging for the API.</span>
+<span class="sd">     :return: list of all pids</span>
+<span class="sd">     :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;list&#39;</span><span class="p">:</span> <span class="s1">&#39;allpages&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;apnamespace&#39;</span><span class="p">:</span> <span class="n">PROPERTIES_NAMESPACE</span><span class="p">,</span>
+        <span class="s1">&#39;aplimit&#39;</span><span class="p">:</span> <span class="n">batch</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="c1"># Paging mechanism</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;About to call the Wikidata API for property IDs, with paging ...&quot;</span><span class="p">)</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">call_api</span><span class="p">(</span><span class="s1">&#39;query&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">pid_batch</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;query&#39;</span><span class="p">][</span><span class="s1">&#39;allpages&#39;</span><span class="p">]</span>
+        <span class="n">pids</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pid_batch</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;continue&#39;</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Got all the property IDs&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">next_call</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;continue&#39;</span><span class="p">][</span><span class="s1">&#39;apcontinue&#39;</span><span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Next API call will start from &#39;</span><span class="si">%s</span><span class="s2">&#39; ...&quot;</span> <span class="o">%</span> <span class="n">next_call</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;apfrom&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_call</span>
+    <span class="c1"># Return &#39;P69&#39;, not &#39;Property:P69&#39;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Total property IDs: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">pids</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pids</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_entities"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.get_entities">[docs]</a><span class="k">def</span> <span class="nf">get_entities</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Retrieve Wikidata entities metadata.</span>
+
+<span class="sd">     :param list ids: list of Wikidata entity IDs</span>
+<span class="sd">     :param int batch: number of IDs per call, to serve as paging for the API.</span>
+<span class="sd">     :return: dict of Wikidata entities with metadata</span>
+<span class="sd">     :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">entities</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">batches</span> <span class="o">=</span> <span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">batch</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="n">batch</span><span class="p">)]</span>
+    <span class="c1"># Paging mechanism</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;About to call the Wikidata API for entity metadata, with paging ...&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Number of batches: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">batches</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ids_batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batches</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">call_api</span><span class="p">(</span><span class="s1">&#39;wbgetentities&#39;</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ids_batch</span><span class="p">))</span>
+        <span class="n">entity_batch</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;entities&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="c1"># properties.extend(r[&#39;entities&#39;].viewvalues())</span>
+        <span class="n">entities</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">entity_batch</span><span class="p">)</span>
+        <span class="n">entities_left</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">entities_left</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> entities left&#39;</span> <span class="o">%</span> <span class="n">entities_left</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Total entities: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">entities</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">entities</span></div>
+
+
+<div class="viewcode-block" id="get_labels_and_aliases"><a class="viewcode-back" href="../../../strephit.commons.html#strephit.commons.wikidata.get_labels_and_aliases">[docs]</a><span class="k">def</span> <span class="nf">get_labels_and_aliases</span><span class="p">(</span><span class="n">entities</span><span class="p">,</span> <span class="n">language_code</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Extract language-specific label and aliases from a list of Wikidata entities metadata.</span>
+
+<span class="sd">     :param list entities: list of Wikidata entities with metadata.</span>
+<span class="sd">     :param str language_code: 2-letter language code, e.g., `en` for English</span>
+<span class="sd">     :return: dict of entities, with label and aliases only</span>
+<span class="sd">     :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">clean</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+        <span class="n">entity_id</span> <span class="o">=</span> <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="c1"># Labels extraction</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;labels&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">labels</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No labels at all for entity ID &#39;</span><span class="si">%s</span><span class="s2">&#39;. Skipping ...&quot;</span> <span class="o">%</span> <span class="n">entity_id</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">language_specific_label</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">language_code</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">language_specific_label</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No &#39;</span><span class="si">%s</span><span class="s2">&#39; labels for entity ID &#39;</span><span class="si">%s</span><span class="s2">&#39;. Skipping ...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">language_code</span><span class="p">,</span> <span class="n">entity_id</span><span class="p">))</span>
+            <span class="k">continue</span>
+        <span class="n">clean</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">clean</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">language_specific_label</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+        <span class="c1"># Aliases extraction</span>
+        <span class="n">aliases</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aliases&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">aliases</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No aliases at all for entity ID &#39;</span><span class="si">%s</span><span class="s2">&#39;. Skipping ...&quot;</span> <span class="o">%</span> <span class="n">entity_id</span><span class="p">)</span>
+        <span class="n">language_specific_aliases</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">language_code</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">language_specific_aliases</span><span class="p">:</span>
+            <span class="n">clean</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;aliases&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">alias</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">language_specific_aliases</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No &#39;</span><span class="si">%s</span><span class="s2">&#39; aliases for entity ID &#39;</span><span class="si">%s</span><span class="s2">&#39;. Skipping ...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">language_code</span><span class="p">,</span> <span class="n">entity_id</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Total entities with label and aliases: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">clean</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">clean</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Marco Fossati, Emilio Dorigatti.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

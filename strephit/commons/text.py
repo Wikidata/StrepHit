@@ -1,8 +1,4 @@
 import re
-import os
-import tempfile
-import requests
-import hashlib
 
 
 def clean_extract(sel, path, path_type='xpath', limit_from=None, limit_to=None, sep='\n',
@@ -33,7 +29,7 @@ def split_at(content, delimiters):
     found = last = 0
     for i, x in enumerate(content):
         if x == delimiters[found]:
-            yield (delimiters[found - 1] if found > 0 else None), content[last+1:i]
+            yield (delimiters[found - 1] if found > 0 else None), content[last + 1:i]
             last = i
             found += 1
             if found == len(delimiters):
@@ -45,14 +41,15 @@ def split_at(content, delimiters):
 def parse_birth_death(string):
     """
     Parses birth and death dates from a string.
+
     :param string: String with the dates. Can be 'd. <year>' to indicate the
-    year of death, 'b. <year>' to indicate the year of birth, <year>-<year>
-    to indicate both birth and death year. Can optionally include 'c.' or 'ca.'
-    before years to indicate approximation (ignored by the return value).
-    If only the century is specified, birth is the first year of the century and
-    death is the last one, e.g. '19th century' will be parsed as `('1801', '1900')`
-    :return: tuple `(birth_year, death_year)`, both strings as appearing in the
-    original string. If the string cannot be parsed `(None, None)` is returned.
+                   year of death, 'b. <year>' to indicate the year of birth, <year>-<year>
+                   to indicate both birth and death year. Can optionally include 'c.' or 'ca.'
+                   before years to indicate approximation (ignored by the return value).
+                   If only the century is specified, birth is the first year of the century and
+                   death is the last one, e.g. '19th century' will be parsed as `('1801', '1900')`
+    :return: tuple `(birth_year, death_year)`, both strings as appearing in the original string.
+             If the string cannot be parsed `(None, None)` is returned.
     """
 
     string = string.lower().replace(' ', '')
@@ -93,8 +90,8 @@ def extract_dict(response, keys_selector, values_selector, keys_extractor='.//te
                            each key element. xpath only
     :param keys_extracotr: Selector used to extract the actual value value from each
                            value element. xpath only
-    :param **kwargs: Other parameters to pass to `clean_extract`. Nothing good will
-                     come by passing `path_type='css'`, you have been warned.
+    :param \*\*kwargs: Other parameters to pass to `clean_extract`. Nothing good will
+                       come by passing `path_type='css'`, you have been warned.
     """
     def get(selector):
         type, sel = selector.split(':', 1)
@@ -114,6 +111,7 @@ def extract_dict(response, keys_selector, values_selector, keys_extractor='.//te
 
 def fix_name(name):
     """ tries to normalize a name so that it can be searched with the wikidata APIs
+
         :param name: The name to normalize
         :returns: a tuple with the normalized name and a list of honorifics
     """
@@ -132,6 +130,7 @@ def fix_name(name):
 
 def strip_honorifics(name):
     """ Removes honorifics from the name
+
         :param name: The name
         :returns: a tuple with the name without honorifics and a list of honorifics
     """

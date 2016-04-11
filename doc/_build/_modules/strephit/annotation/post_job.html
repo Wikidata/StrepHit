@@ -1,0 +1,264 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>strephit.annotation.post_job &mdash; StrepHit 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StrepHit 1.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for strephit.annotation.post_job</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- encoding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">click</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">strephit.commons</span> <span class="kn">import</span> <span class="n">secrets</span>
+<span class="kn">from</span> <span class="nn">strephit.commons.logging</span> <span class="kn">import</span> <span class="n">log_request_data</span>
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_stream</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="nb">exit</span>
+<span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">unquote_plus</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="c1"># TODO consider adding &quot;job[auto_order]&quot;: &quot;true&quot; for automatic ordering</span>
+
+<span class="n">INCLUDED_COUNTRIES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;US&quot;</span><span class="p">,</span> <span class="s2">&quot;GB&quot;</span><span class="p">]</span>  <span class="c1"># Only workers from U.S.A. and Great Britain</span>
+
+<span class="n">JOB_SETTINGS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;job[judgments_per_unit]&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;job[max_judgments_per_worker]&quot;</span><span class="p">:</span> <span class="mi">280</span><span class="p">,</span>
+    <span class="s2">&quot;job[minimum_requirements][min_score]&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;job[minimum_requirements][priority]&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;job[minimum_requirements][skill_scores][it_crowd_official]&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="c1"># Highest quality workers</span>
+    <span class="s2">&quot;job[minimum_requirements][skill_scores][level_3_contributors]&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;job[options][after_gold]&quot;</span><span class="p">:</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span>
+    <span class="c1"># Minimum time per page (seconds)</span>
+    <span class="s2">&quot;job[options][calibrated_unit_time]&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="s2">&quot;job[options][include_unfinished]&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;job[options][logical_aggregation]&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;job[options][mail_to]&quot;</span><span class="p">:</span> <span class="s2">&quot;fossati@fbk.eu&quot;</span><span class="p">,</span>
+    <span class="c1"># Minimum worker accuracy</span>
+    <span class="s2">&quot;job[options][reject_at]&quot;</span><span class="p">:</span> <span class="s2">&quot;70&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;job[options][req_ttl_in_seconds]&quot;</span><span class="p">:</span> <span class="mi">900</span><span class="p">,</span>
+    <span class="s2">&quot;job[options][track_clones]&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;job[pages_per_assignment]&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="c1"># Payment per page</span>
+    <span class="s2">&quot;job[payment_cents]&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="c1"># Units per page</span>
+    <span class="s2">&quot;job[units_per_assignment]&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="create_job"><a class="viewcode-back" href="../../../strephit.annotation.html#strephit.annotation.post_job.create_job">[docs]</a><span class="k">def</span> <span class="nf">create_job</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">instructions</span><span class="p">,</span> <span class="n">cml</span><span class="p">,</span> <span class="n">custom_js</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Create an empty CrowdFlower job with the specified title and instructions.</span>
+<span class="sd">     Raise any HTTP error that may occur.</span>
+
+<span class="sd">     :param str title: plain text title</span>
+<span class="sd">     :param str instructions: instructions, can contain HTML</span>
+<span class="sd">     :param str cml: worker interface CML template. See https://success.crowdflower.com/hc/en-us/articles/202817989-CML-CrowdFlower-Markup-Language-Overview</span>
+<span class="sd">     :param str custom_js: JavaScript code to be injected into the job</span>
+<span class="sd">     :return: the created job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message</span>
+<span class="sd">     :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="n">secrets</span><span class="o">.</span><span class="n">CF_KEY</span><span class="p">,</span>
+        <span class="s2">&quot;job[title]&quot;</span><span class="p">:</span> <span class="n">title</span><span class="p">,</span>
+        <span class="s2">&quot;job[instructions]&quot;</span><span class="p">:</span> <span class="n">instructions</span><span class="p">,</span>
+        <span class="s2">&quot;job[cml]&quot;</span><span class="p">:</span> <span class="n">cml</span><span class="p">,</span>
+        <span class="s2">&quot;job[js]&quot;</span><span class="p">:</span> <span class="n">custom_js</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">CF_JOBS_URL</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">log_request_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="config_job"><a class="viewcode-back" href="../../../strephit.annotation.html#strephit.annotation.post_job.config_job">[docs]</a><span class="k">def</span> <span class="nf">config_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Setup a given CrowdFlower job with default settings.</span>
+<span class="sd">     See :const: JOB_SETTINGS</span>
+
+<span class="sd">     :param str job_id: job ID registered in CrowdFlower</span>
+<span class="sd">     :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message</span>
+<span class="sd">     :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">secrets</span><span class="o">.</span><span class="n">CF_KEY</span><span class="p">}</span>
+    <span class="c1"># Manually prepare the body, due to multiple included countries</span>
+    <span class="c1"># i.e., requests will ignore dicts with the same key</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">}</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;&amp;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;job[included_countries][]=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">INCLUDED_COUNTRIES</span><span class="p">)</span> <span class="o">+</span> \
+           <span class="s1">&#39;&amp;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">param</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">JOB_SETTINGS</span><span class="o">.</span><span class="n">iteritems</span><span class="p">())</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">CF_JOB_CONFIG_URL</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">log_request_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="upload_units"><a class="viewcode-back" href="../../../strephit.annotation.html#strephit.annotation.post_job.upload_units">[docs]</a><span class="k">def</span> <span class="nf">upload_units</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">csv_data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Upload the job data units to the given job.</span>
+<span class="sd">     Raises any HTTP error that may occur.</span>
+
+<span class="sd">     :param str job_id: job ID registered in CrowdFlower</span>
+<span class="sd">     :param file csv_data: file handle pointing to the data units CSV</span>
+<span class="sd">     :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message</span>
+<span class="sd">     :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">:</span> <span class="s1">&#39;text/csv&#39;</span><span class="p">}</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">secrets</span><span class="o">.</span><span class="n">CF_KEY</span><span class="p">}</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">CF_JOB_UPLOAD_URL</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">csv_data</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">log_request_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="activate_gold"><a class="viewcode-back" href="../../../strephit.annotation.html#strephit.annotation.post_job.activate_gold">[docs]</a><span class="k">def</span> <span class="nf">activate_gold</span><span class="p">(</span><span class="n">job_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Activate gold units in the given job.</span>
+<span class="sd">     Corresponds to the &#39;Convert Uploaded Test Questions&#39; UI button.</span>
+
+<span class="sd">     :param str job_id: job ID registered in CrowdFlower</span>
+<span class="sd">     :return: True on success</span>
+<span class="sd">     :rtype: boolean</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">secrets</span><span class="o">.</span><span class="n">CF_KEY</span><span class="p">}</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">CF_JOB_ACTIVATE_GOLD_URL</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">log_request_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+    <span class="c1"># Inconsistent API: returns 406, but actually sometimes works (!!!)</span>
+    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">406</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="tag_job"><a class="viewcode-back" href="../../../strephit.annotation.html#strephit.annotation.post_job.tag_job">[docs]</a><span class="k">def</span> <span class="nf">tag_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     Tag a given job.</span>
+
+<span class="sd">     :param str job_id: job ID registered in CrowdFlower</span>
+<span class="sd">     :param list tags: list of tags</span>
+<span class="sd">     :return: True on success</span>
+<span class="sd">     :rtype: boolean</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">secrets</span><span class="o">.</span><span class="n">CF_KEY</span><span class="p">}</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;tags&quot;</span><span class="p">:</span> <span class="n">tags</span><span class="p">}</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">CF_JOB_TAG_URL</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">log_request_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">ok</span></div>
+
+
+<span class="nd">@click.command</span><span class="p">()</span>
+<span class="nd">@click.argument</span><span class="p">(</span><span class="s1">&#39;csv_data&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">File</span><span class="p">())</span>
+<span class="nd">@click.option</span><span class="p">(</span><span class="s1">&#39;--title&#39;</span><span class="p">,</span> <span class="s1">&#39;-t&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;Word Sense Understanding&#39;</span><span class="p">)</span>
+<span class="nd">@click.option</span><span class="p">(</span><span class="s1">&#39;--instructions&#39;</span><span class="p">,</span> <span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">File</span><span class="p">(),</span>
+              <span class="n">default</span><span class="o">=</span><span class="n">resource_stream</span><span class="p">(</span><span class="n">__name__</span><span class="p">,</span> <span class="s1">&#39;resources/instructions.html&#39;</span><span class="p">))</span>
+<span class="nd">@click.option</span><span class="p">(</span><span class="s1">&#39;--cml&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">File</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="n">resource_stream</span><span class="p">(</span><span class="n">__name__</span><span class="p">,</span> <span class="s1">&#39;resources/cml.html&#39;</span><span class="p">))</span>
+<span class="nd">@click.option</span><span class="p">(</span><span class="s1">&#39;--javascript&#39;</span><span class="p">,</span> <span class="s1">&#39;-j&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">File</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="n">resource_stream</span><span class="p">(</span><span class="n">__name__</span><span class="p">,</span> <span class="s1">&#39;resources/randomize.js&#39;</span><span class="p">))</span>
+<span class="nd">@click.option</span><span class="p">(</span><span class="s1">&#39;--tags&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated list of job tags&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">csv_data</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">instructions</span><span class="p">,</span> <span class="n">cml</span><span class="p">,</span> <span class="n">javascript</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Post a CrowdFlower annotation job with title, instructions,</span>
+<span class="sd">        CML interface template, custom JavaSctipt, and data units</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Creating CrowdFlower job ...&quot;</span><span class="p">)</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">create_job</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">instructions</span><span class="o">.</span><span class="n">readlines</span><span class="p">()),</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cml</span><span class="o">.</span><span class="n">readlines</span><span class="p">()),</span>
+                     <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">javascript</span><span class="o">.</span><span class="n">readlines</span><span class="p">()))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Job object response from CrowdFlower: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">job_id</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Tagging job with &#39;</span><span class="si">%s</span><span class="s2">&#39; ...&quot;</span> <span class="o">%</span> <span class="n">tags</span><span class="p">)</span>
+        <span class="n">tagged</span> <span class="o">=</span> <span class="n">tag_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;CrowdFlower API response: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tagged</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Uploading data units from &#39;</span><span class="si">%s</span><span class="s2">&#39; to job ID </span><span class="si">%d</span><span class="s2"> ...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">csv_data</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">))</span>
+    <span class="n">uploaded</span> <span class="o">=</span> <span class="n">upload_units</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">csv_data</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Job ID </span><span class="si">%d</span><span class="s2"> object response from CrowdFlower: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">uploaded</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Activating gold units ...&quot;</span><span class="p">)</span>
+    <span class="n">activated</span> <span class="o">=</span> <span class="n">activate_gold</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;CrowdFlower API inconsistent response: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">activated</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Setting up job parameters ...&quot;</span><span class="p">)</span>
+    <span class="n">configurated</span> <span class="o">=</span> <span class="n">config_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Updated job ID </span><span class="si">%d</span><span class="s2"> object: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">configurated</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="mi">0</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="nb">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Marco Fossati, Emilio Dorigatti.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

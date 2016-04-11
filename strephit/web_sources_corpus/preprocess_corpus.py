@@ -1,11 +1,12 @@
 # -*- encoding: utf-8 -*-
 import os
 import json
-import click
 import logging
 import hashlib
-from strephit.commons.io import load_scraped_items
 
+import click
+
+from strephit.commons.io import load_scraped_items
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-from scrapy import FormRequest
 import re
+
+from scrapy import FormRequest
+
 from strephit.commons import text
 from strephit.web_sources_corpus.spiders import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
@@ -26,8 +28,8 @@ class MunksrollSpider(BaseSpider):
 
     def refine_item(self, response, item):
         birth_death = text.clean_extract(response,
-                                          './/div[@id="maincontent"]/p[1]/em'
-                                          ).split('<br>')[0]
+                                         './/div[@id="maincontent"]/p[1]/em'
+                                         ).split('<br>')[0]
 
         birth_death = re.subn(r'<[^>]+>', '', birth_death)[0].split('d.')
         if len(birth_death) == 2:

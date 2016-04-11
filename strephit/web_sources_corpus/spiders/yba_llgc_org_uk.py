@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from scrapy import Request
+
 from strephit.commons import text
 from strephit.web_sources_corpus.spiders import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem

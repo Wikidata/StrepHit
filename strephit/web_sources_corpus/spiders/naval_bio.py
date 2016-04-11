@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import scrapy
 from strephit.web_sources_corpus.spiders import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 

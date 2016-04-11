@@ -1,11 +1,11 @@
-import click
-import json
 import logging
 from urlparse import urlparse
 from collections import defaultdict
+
+import click
+
 from strephit.commons.io import load_scraped_items
 from strephit.commons import parallel
-
 
 logger = logging.getLogger(__name__)
 

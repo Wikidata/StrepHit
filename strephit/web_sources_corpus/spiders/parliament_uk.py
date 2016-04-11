@@ -24,7 +24,7 @@ class ParliamentUkSpider(BaseSpider):
         data = {}
         for section in response.xpath('.//div[@class="biography-item-container"]'):
             title = text.clean_extract(section, 'div[1]//h3//text()')
-            
+
             keys = [
                 text.clean_extract(td, './/text()')
                 for td in section.xpath('./div[2]//table//td[contains(@class, "post")]')

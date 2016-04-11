@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
+
 from scrapy import Spider, Request
+
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.commons import text
 
@@ -14,15 +16,15 @@ class EnglishArtistsSpider(Spider):
 
     def parse(self, response):
         for url in response.xpath(
-                    './/table[@class="headertemplate"]//p[2]/a[not(@class="new")]/@href'
-                ).extract():
+            './/table[@class="headertemplate"]//p[2]/a[not(@class="new")]/@href'
+        ).extract():
             yield Request('https://en.wikisource.org' + url, self.parse_detail)
 
     def parse_detail(self, response):
         item = None
         for each in response.xpath(
-                    './/div[@class="tiInherit"]/parent::div/*'
-                )[3:]:
+            './/div[@class="tiInherit"]/parent::div/*'
+        )[3:]:
             content = each.xpath('child::node()')
             if content and content[0].xpath('local-name()').extract() == ['span']:
                 if item:
@@ -38,7 +40,7 @@ class EnglishArtistsSpider(Spider):
                     item['other'] = {
                         'profession': text.clean_extract(each, './i//text()')
                     }
-                
+
                 assert item['name'] and len(item['name']) > 3
             elif item:
                 item['bio'] += '\n' + text.clean_extract(each, './/text()', sep=' ')

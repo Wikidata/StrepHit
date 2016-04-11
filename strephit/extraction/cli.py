@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 import click
+
 from strephit.extraction.process_semistructured import process_semistructured
 from strephit.extraction import extract_sentences
-
 
 CLI_COMMANDS = {
     'process_semistructured': process_semistructured,

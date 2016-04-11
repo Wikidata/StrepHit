@@ -1,0 +1,337 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>strephit.corpus_analysis package &mdash; StrepHit 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StrepHit 1.0 documentation" href="index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="strephit-corpus-analysis-package">
+<h1>strephit.corpus_analysis package<a class="headerlink" href="#strephit-corpus-analysis-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-strephit.corpus_analysis.cli">
+<span id="strephit-corpus-analysis-cli-module"></span><h2>strephit.corpus_analysis.cli module<a class="headerlink" href="#module-strephit.corpus_analysis.cli" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-strephit.corpus_analysis.compute_lu_distribution">
+<span id="strephit-corpus-analysis-compute-lu-distribution-module"></span><h2>strephit.corpus_analysis.compute_lu_distribution module<a class="headerlink" href="#module-strephit.corpus_analysis.compute_lu_distribution" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="strephit.corpus_analysis.compute_lu_distribution.worker_with_sentences">
+<code class="descclassname">strephit.corpus_analysis.compute_lu_distribution.</code><code class="descname">worker_with_sentences</code><span class="sig-paren">(</span><em>bio</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/compute_lu_distribution.html#worker_with_sentences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.compute_lu_distribution.worker_with_sentences" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="strephit.corpus_analysis.compute_lu_distribution.worker_with_sub_sentences">
+<code class="descclassname">strephit.corpus_analysis.compute_lu_distribution.</code><code class="descname">worker_with_sub_sentences</code><span class="sig-paren">(</span><em>bio</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/compute_lu_distribution.html#worker_with_sub_sentences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.compute_lu_distribution.worker_with_sub_sentences" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-strephit.corpus_analysis.extract_framenet_frames">
+<span id="strephit-corpus-analysis-extract-framenet-frames-module"></span><h2>strephit.corpus_analysis.extract_framenet_frames module<a class="headerlink" href="#module-strephit.corpus_analysis.extract_framenet_frames" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="strephit.corpus_analysis.extract_framenet_frames.extract_top_corpus_tokens">
+<code class="descclassname">strephit.corpus_analysis.extract_framenet_frames.</code><code class="descname">extract_top_corpus_tokens</code><span class="sig-paren">(</span><em>enriched_lemmas</em>, <em>all_lemma_tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/extract_framenet_frames.html#extract_top_corpus_tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.extract_framenet_frames.extract_top_corpus_tokens" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the subset of corpus lemmas with tokens gievn the set of top lemmas</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>enriched_lemmas</strong> (<a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; Dict returned by <a class="reference internal" href="#strephit.corpus_analysis.extract_framenet_frames.intersect_lemmas_with_framenet" title="strephit.corpus_analysis.extract_framenet_frames.intersect_lemmas_with_framenet"><code class="xref py py-func docutils literal"><span class="pre">intersect_lemmas_with_framenet()</span></code></a></li>
+<li><strong>all_lemma_tokens</strong> (<a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; Dict of all corpus lemmas with tokens</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">the top lemmas with tokens dict</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="strephit.corpus_analysis.extract_framenet_frames.get_top_n_lus">
+<code class="descclassname">strephit.corpus_analysis.extract_framenet_frames.</code><code class="descname">get_top_n_lus</code><span class="sig-paren">(</span><em>ranked_lus</em>, <em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/extract_framenet_frames.html#get_top_n_lus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.extract_framenet_frames.get_top_n_lus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the top N Lexical Units (LUs) from a ranking.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ranked_lus</strong> (<a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; LUs ranking, as returned by <code class="xref py py-func docutils literal"><span class="pre">compute_ranking()</span></code></li>
+<li><strong>n</strong> (<a class="reference external" href="https://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Number of top LUs to return</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">the top N LUs with their ranking scores</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="strephit.corpus_analysis.extract_framenet_frames.intersect_lemmas_with_framenet">
+<code class="descclassname">strephit.corpus_analysis.extract_framenet_frames.</code><code class="descname">intersect_lemmas_with_framenet</code><span class="sig-paren">(</span><em>corpus_lemmas</em>, <em>wikidata_properties</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/extract_framenet_frames.html#intersect_lemmas_with_framenet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.extract_framenet_frames.intersect_lemmas_with_framenet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Intersect verb lemmas extracted from the input corpus with FrameNet Lexical Units (LUs).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>corpus_lemmas</strong> (<a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; dict of verb lemmas with their ranking scores</li>
+<li><strong>wikidata_properties</strong> (<a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; dict with all Wikidata properties</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a dictionary of corpus lemmas enriched with FrameNet LUs data (dicts)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-strephit.corpus_analysis.rank_verbs">
+<span id="strephit-corpus-analysis-rank-verbs-module"></span><h2>strephit.corpus_analysis.rank_verbs module<a class="headerlink" href="#module-strephit.corpus_analysis.rank_verbs" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="strephit.corpus_analysis.rank_verbs.PopularityRanking">
+<em class="property">class </em><code class="descclassname">strephit.corpus_analysis.rank_verbs.</code><code class="descname">PopularityRanking</code><span class="sig-paren">(</span><em>corpus_path</em>, <em>pos_tag_key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#PopularityRanking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.PopularityRanking" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="strephit.corpus_analysis.rank_verbs.PopularityRanking.find_ranking">
+<code class="descname">find_ranking</code><span class="sig-paren">(</span><em>processes=0</em>, <em>bulk_size=10000</em>, <em>normalize=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#PopularityRanking.find_ranking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.PopularityRanking.find_ranking" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="strephit.corpus_analysis.rank_verbs.PopularityRanking.score_from_tokens">
+<em class="property">static </em><code class="descname">score_from_tokens</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#PopularityRanking.score_from_tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.PopularityRanking.score_from_tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="strephit.corpus_analysis.rank_verbs.TFIDFRanking">
+<em class="property">class </em><code class="descclassname">strephit.corpus_analysis.rank_verbs.</code><code class="descname">TFIDFRanking</code><span class="sig-paren">(</span><em>vectorizer</em>, <em>verbs</em>, <em>tfidf_matrix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#TFIDFRanking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.TFIDFRanking" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="strephit.corpus_analysis.rank_verbs.TFIDFRanking.find_ranking">
+<code class="descname">find_ranking</code><span class="sig-paren">(</span><em>processes=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#TFIDFRanking.find_ranking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.TFIDFRanking.find_ranking" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="strephit.corpus_analysis.rank_verbs.TFIDFRanking.score_lemma">
+<code class="descname">score_lemma</code><span class="sig-paren">(</span><em>lemma</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#TFIDFRanking.score_lemma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.TFIDFRanking.score_lemma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="strephit.corpus_analysis.rank_verbs.compute_tf_idf_matrix">
+<code class="descclassname">strephit.corpus_analysis.rank_verbs.</code><code class="descname">compute_tf_idf_matrix</code><span class="sig-paren">(</span><em>corpus_path</em>, <em>document_key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#compute_tf_idf_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.compute_tf_idf_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the TF-IDF matrix of the corpus</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>corpus_path</strong> &#8211; path of the corpus</li>
+<li><strong>document_key</strong> &#8211; where the textual content is in the corpus</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a vectorizer and the computed matrix</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/library/functions.html#tuple" title="(in Python v2.7)">tuple</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="strephit.corpus_analysis.rank_verbs.get_similarity_scores">
+<code class="descclassname">strephit.corpus_analysis.rank_verbs.</code><code class="descname">get_similarity_scores</code><span class="sig-paren">(</span><em>verb_token</em>, <em>vectorizer</em>, <em>tf_idf_matrix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#get_similarity_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.get_similarity_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the cosine similarity score of a given verb token against the input corpus TF/IDF matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>verb_token</strong> (<a class="reference external" href="https://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Surface form of a verb, e.g., <em>born</em></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">cosine similarity score</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">ndarray</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="strephit.corpus_analysis.rank_verbs.harmonic_ranking">
+<code class="descclassname">strephit.corpus_analysis.rank_verbs.</code><code class="descname">harmonic_ranking</code><span class="sig-paren">(</span><em>*rankings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#harmonic_ranking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.harmonic_ranking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combines individual rankings with an harmonic mean to obtain a final ranking</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rankings</strong> &#8211; dictionary of individual rankings</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the new, combined ranking</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="strephit.corpus_analysis.rank_verbs.produce_lemma_tokens">
+<code class="descclassname">strephit.corpus_analysis.rank_verbs.</code><code class="descname">produce_lemma_tokens</code><span class="sig-paren">(</span><em>pos_tagged_path</em>, <em>pos_tag_key</em>, <em>language</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/rank_verbs.html#produce_lemma_tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.rank_verbs.produce_lemma_tokens" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts a map from lemma to all its tokens</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pos_tagged_path</strong> &#8211; path of the pos-tagged corpus</li>
+<li><strong>pos_tag_key</strong> &#8211; where the pos tag data is in each item</li>
+<li><strong>language</strong> &#8211; language of the corpus</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">mapping from lemma to tokens</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-strephit.corpus_analysis.statistics">
+<span id="strephit-corpus-analysis-statistics-module"></span><h2>strephit.corpus_analysis.statistics module<a class="headerlink" href="#module-strephit.corpus_analysis.statistics" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="strephit.corpus_analysis.statistics.bulkenize">
+<code class="descclassname">strephit.corpus_analysis.statistics.</code><code class="descname">bulkenize</code><span class="sig-paren">(</span><em>iterable</em>, <em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/statistics.html#bulkenize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.statistics.bulkenize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-strephit.corpus_analysis.test_pos_taggers">
+<span id="strephit-corpus-analysis-test-pos-taggers-module"></span><h2>strephit.corpus_analysis.test_pos_taggers module<a class="headerlink" href="#module-strephit.corpus_analysis.test_pos_taggers" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="strephit.corpus_analysis.test_pos_taggers.tag">
+<code class="descclassname">strephit.corpus_analysis.test_pos_taggers.</code><code class="descname">tag</code><span class="sig-paren">(</span><em>text</em>, <em>tt_home</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/strephit/corpus_analysis/test_pos_taggers.html#tag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#strephit.corpus_analysis.test_pos_taggers.tag" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-strephit.corpus_analysis">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-strephit.corpus_analysis" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">strephit.corpus_analysis package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-strephit.corpus_analysis.cli">strephit.corpus_analysis.cli module</a></li>
+<li><a class="reference internal" href="#module-strephit.corpus_analysis.compute_lu_distribution">strephit.corpus_analysis.compute_lu_distribution module</a></li>
+<li><a class="reference internal" href="#module-strephit.corpus_analysis.extract_framenet_frames">strephit.corpus_analysis.extract_framenet_frames module</a></li>
+<li><a class="reference internal" href="#module-strephit.corpus_analysis.rank_verbs">strephit.corpus_analysis.rank_verbs module</a></li>
+<li><a class="reference internal" href="#module-strephit.corpus_analysis.statistics">strephit.corpus_analysis.statistics module</a></li>
+<li><a class="reference internal" href="#module-strephit.corpus_analysis.test_pos_taggers">strephit.corpus_analysis.test_pos_taggers module</a></li>
+<li><a class="reference internal" href="#module-strephit.corpus_analysis">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/strephit.corpus_analysis.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Marco Fossati, Emilio Dorigatti.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+      |
+      <a href="_sources/strephit.corpus_analysis.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

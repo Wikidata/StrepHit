@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from scrapy import Request
+
 from strephit.web_sources_corpus.spiders import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.commons import text
+
 
 class DsiSpider(BaseSpider):
     name = "dsi"
@@ -22,9 +24,9 @@ class DsiSpider(BaseSpider):
 
     def refine_item(self, response, item):
         data = text.extract_dict(response,
-            'xpath:(.//table)[last()]//tr/td[@class="td_label_details"]',
-            'xpath:(.//table)[last()]//tr/td[@class="td_value_details"]'
-        )
+                                 'xpath:(.//table)[last()]//tr/td[@class="td_label_details"]',
+                                 'xpath:(.//table)[last()]//tr/td[@class="td_value_details"]'
+                                 )
 
         item['name'] = '%s, %s' % (data.get('Last Name', ''), data.get('Given Name'))
         item['other'] = data

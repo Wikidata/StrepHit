@@ -1,8 +1,10 @@
 # -*- encoding: utf-8 -*-
-import click
 import os
+
+import click
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
+
 from strephit.web_sources_corpus.preprocess_corpus import preprocess_corpus
 from strephit.web_sources_corpus import run_all, archive_org
 

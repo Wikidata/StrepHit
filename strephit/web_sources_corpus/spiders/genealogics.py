@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 import logging
+
 from lxml.html import fromstring
 from scrapy import Request, Spider
+
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.commons.text import clean_extract
 
@@ -12,15 +14,14 @@ class GenealogicsSpider(Spider):
     name = 'genealogics'
     allowed_domains = ['www.genealogics.org']
     start_urls = ['http://www.genealogics.org/search.php?mybool=AND&nr=200']
-    
-    
+
     def parse(self, response):
         people_list = response.css('a.pers')
         for person in people_list:
             link = person.xpath('@href').extract_first()
             url = response.urljoin(link)
             yield Request(url, self.parse_person)
-        
+
         # Pagination handling
         next_page = response.xpath("//a[@title='Next']/@href").extract_first()
         if next_page:
@@ -28,8 +29,7 @@ class GenealogicsSpider(Spider):
             yield Request(url, self.parse)
         else:
             logging.debug("No next page link found: %s" % next_page)
-    
-    
+
     def parse_person(self, response):
         item = WebSourcesCorpusItem()
         item['url'] = response.url

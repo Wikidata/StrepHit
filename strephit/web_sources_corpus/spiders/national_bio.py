@@ -24,7 +24,6 @@ class NationalBioSpider(BaseSpider):
             'https://en.wikisource.org/wiki/Dictionary_of_National_Biography,_%s_supplement,_Volume_2' % year,
             'https://en.wikisource.org/wiki/Dictionary_of_National_Biography,_%s_supplement,_Volume_3' % year
         )
-        
 
     def get_name_from_title(self, response, title):
         return ''.join(title.split('(')[:-1]).strip()

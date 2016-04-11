@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import scrapy
 import urlparse
 import json
+
+import scrapy
 from scrapy import Request
+
 from strephit.commons import text
 
 
@@ -103,7 +105,7 @@ class BaseSpider(scrapy.Spider):
                 else:
                     res[k] = self.get_elements_from_selector(response, v)
             return res
-    
+
         next_pages = response.meta.get('next_pages')
         if next_pages:
             selector, rest = next_pages[0], next_pages[1:]

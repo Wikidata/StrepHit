@@ -10,7 +10,7 @@ class MenOfTimeSpider(BaseSpider):
         'https://en.wikisource.org/wiki/Men_of_the_Time,_eleventh_edition',
     )
 
-    list_page_selectors =  'xpath:.//div[@id="mw-content-text"]//table//ul//a[not(@class="new")]/@href'
+    list_page_selectors = 'xpath:.//div[@id="mw-content-text"]//table//ul//a[not(@class="new")]/@href'
     detail_page_selectors = 'xpath:.//div[@id="mw-content-text"]//ul//a[not(@class="new")]/@href'
     next_page_selectors = None
 

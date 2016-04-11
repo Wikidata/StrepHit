@@ -3,6 +3,7 @@ from strephit.commons import text
 from strephit.web_sources_corpus.spiders import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 
+
 class NewulsterbiographyCoUkSpider(BaseSpider):
     name = "newulsterbiography_co_uk"
     allowed_domains = ["www.newulsterbiography.co.uk"]

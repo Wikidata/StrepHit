@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
 import csv
 import logging
 import re
 from sys import exit
 
+import click
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ def generate_crowdflower_interface_template(input_csv, output_html):
     crowdflower_interface_template = HEADER
     # Generate fe_name blocks(question blocks) for every fe_name field
     for idx, token_field in enumerate(token_fields):
-        dic = {'question_num': idx+1, 'token_field': token_field}
+        dic = {'question_num': idx + 1, 'token_field': token_field}
         # Add fe blocks into template
         dic['fe_blocks'] = ''.join(fe_blocks)
         # Add current fe_name block or question block into template

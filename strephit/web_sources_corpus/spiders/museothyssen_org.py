@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+
 from strephit.commons import text
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.web_sources_corpus.spiders import BaseSpider
@@ -21,7 +22,7 @@ class MuseothyssenOrgSpider(BaseSpider):
         'name': 'clean:xpath:.//dl[@class="datosAutor"]/dt[contains(., "Author:")]/following-sibling::dd[1]//text()',
         'bio': 'clean:xpath:.//span[@id="contReader1"]//text()',
         'other': {
-            'born':  'clean:xpath:.//dl[@class="datosAutor"]/dt[contains(., "Born/Dead:")]/following-sibling::dd[1]//text()',
+            'born': 'clean:xpath:.//dl[@class="datosAutor"]/dt[contains(., "Born/Dead:")]/following-sibling::dd[1]//text()',
         },
     }
 

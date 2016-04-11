@@ -11,7 +11,7 @@ class ChineseBioSpider(BaseSpider):
     )
 
     list_page_selectors = None
-    detail_page_selectors =  'xpath:.//div[@class="poem"]//a[not(@class="new")]/@href'
+    detail_page_selectors = 'xpath:.//div[@class="poem"]//a[not(@class="new")]/@href'
     next_page_selectors = None
 
     item_class = WebSourcesCorpusItem

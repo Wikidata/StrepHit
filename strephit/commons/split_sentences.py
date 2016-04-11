@@ -3,13 +3,13 @@
 
 from __future__ import absolute_import
 
-import click
 import logging
 import json
 from sys import exit
+
+import click
 from nltk.data import load
-from itertools import ifilter
-from strephit.commons.pos_tag import TTPosTagger
+
 from strephit.commons.io import load_corpus
 from strephit.commons import parallel
 
@@ -60,6 +60,7 @@ class PunktSentenceSplitter(object):
         Leading and trailing spaces are stripped.
         Newline characters are first interpreted as sentence boundaries.
         Then, the sentence splitter is run.
+
         :param str text: Text to be split
         :return: the sentences in the text
         :rtype: generator
@@ -76,6 +77,7 @@ class PunktSentenceSplitter(object):
     def split_tokens(self, tokens):
         """
         Splits the given text into sentences.
+
         :param list tokens: the tokens of the text
         :return: the sentences i the text
         :rtype: generator

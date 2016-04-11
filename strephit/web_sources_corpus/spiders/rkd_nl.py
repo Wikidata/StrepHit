@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 import logging
+
 from strephit.commons.text import clean_extract
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.web_sources_corpus.spiders.BaseSpider import BaseSpider
@@ -11,11 +12,11 @@ class RKDArtistsSpider(BaseSpider):
     name = 'rkd_nl'
     allowed_domains = ['rkd.nl']
     start_urls = ['https://rkd.nl/en/explore/artists']
-    
+
     list_page_selectors = None
     detail_page_selectors = 'xpath:.//div[@class="header"]/a/@href'
     next_page_selectors = 'xpath:.//a[@title="Next page"]/@href'
-    
+
     item_class = WebSourcesCorpusItem
     # There seems to be semi-structured data only here
     item_fields = {
@@ -37,7 +38,8 @@ class RKDArtistsSpider(BaseSpider):
         item['other'] = {}
         name = item['name']
         # Alias
-        alias = clean_extract(response, './/div[@class="expandable-header"][contains(., "Name variations")]/following-sibling::div[@class="expandable-content"]//dd/text()')
+        alias = clean_extract(
+            response, './/div[@class="expandable-header"][contains(., "Name variations")]/following-sibling::div[@class="expandable-content"]//dd/text()')
         if alias:
             item['other']['alias'] = alias
         else:

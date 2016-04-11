@@ -2,13 +2,14 @@
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 
-import click
 import logging
 import json
-import requests
-from strephit.commons import secrets, cache
 from sys import exit
 
+import click
+import requests
+
+from strephit.commons import secrets, cache
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ def link(text):
     """
      Run entity linking on the given text using Dandelion APIs.
      Raise any HTTP error that may occur.
+
      :param str text: The text used to perform linking
      :return: The linked entities
      :rtype: list
@@ -37,12 +39,13 @@ def link(text):
 def extract_entities(response_json):
     """
         Extract the list of entities from the Dandelion Entity Extraction API JSON response.
+
         :param dict response_json: JSON response returned by Dandelion
         :return: The extracted entities, with the surface form, start and end indices URI, and ontology types
         :rtype: list
     """
     entities = []
-    
+
     for annotation in response_json['annotations']:
         entity = {
             'chunk': annotation.get('spot'),

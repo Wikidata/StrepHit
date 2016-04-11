@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-import scrapy
 import json
 import re
+
+import scrapy
 from scrapy import Request
+
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.commons import text
 
@@ -52,15 +54,15 @@ class MetalArchivesComSpider(scrapy.Spider):
 
     def parse_extern(self, response):
         meta = response.meta
-        text = text.clean_extract(response.selector, './/text()')
+        txt = text.clean_extract(response.selector, './/text()')
         if meta['field'] == 'bio':
-            meta['item']['bio'] = text
+            meta['item']['bio'] = txt
             meta['field'] = 'trivia'
             yield Request(
                 'http://www.metal-archives.com/artist/read-more/id/%s/field/trivia' % meta['aid'],
                 self.parse_extern, meta=meta
             )
         else:  # trivia
-            meta['item']['other']['trivia'] = text
+            meta['item']['other']['trivia'] = txt
             meta['item']['other'] = json.dumps(meta['item']['other'])
             yield meta['item']

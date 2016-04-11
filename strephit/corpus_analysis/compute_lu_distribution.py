@@ -1,10 +1,12 @@
-import click
 import json
 import logging
-from nltk.parse.stanford import StanfordParser
-from nltk.tree import Tree
 from itertools import imap
 from collections import defaultdict, OrderedDict
+
+import click
+from nltk.parse.stanford import StanfordParser
+from nltk.tree import Tree
+
 from strephit.commons.split_sentences import PunktSentenceSplitter
 from strephit.commons.io import load_corpus
 from strephit.commons.pos_tag import TTPosTagger

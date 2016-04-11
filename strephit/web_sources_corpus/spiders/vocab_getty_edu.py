@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-import scrapy
 import itertools
 import sqlite3
 import json
 import logging
 import datetime
-from scrapy import Request
-from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 
+import scrapy
+from scrapy import Request
+
+from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 
 logger = logging.getLogger(__name__)
 

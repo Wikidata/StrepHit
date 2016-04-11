@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-import click
 import json
 import logging
-from strephit.commons.io import get_and_cache
 
+import click
+
+from strephit.commons.io import get_and_cache
 
 logger = logging.getLogger(__name__)
 

@@ -28,19 +28,19 @@ class StructuraeNetSpider(BaseSpider):
 
     def refine_item(self, response, item):
         data = text.extract_dict(response,
-            'xpath:.//div[@id="person-chronology"]//table//th',
-            'xpath:.//div[@id="person-chronology"]//table//td',
-            sep=' '
-        )
+                                 'xpath:.//div[@id="person-chronology"]//table//th',
+                                 'xpath:.//div[@id="person-chronology"]//table//td',
+                                 sep=' '
+                                 )
 
         item['other']['publications'] = [self.make_url_absolute(response.url, url)
                                          for url in item['other']['publications']]
         item['other']['websites'] = [self.make_url_absolute(response.url, url)
-                                         for url in item['other']['websites']]
+                                     for url in item['other']['websites']]
         item['other']['bibliography'] = [self.make_url_absolute(response.url, url)
                                          for url in item['other']['bibliography']]
         item['other']['participated_in'] = [self.make_url_absolute(response.url, url)
-                                         for url in item['other']['participated_in']]
+                                            for url in item['other']['participated_in']]
 
         item['other']['biography'] = data
 

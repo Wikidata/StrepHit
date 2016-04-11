@@ -1,5 +1,6 @@
-from dateutil import parser
 import re
+
+from dateutil import parser
 
 
 def parse(string):
@@ -29,7 +30,7 @@ def parse(string):
 
     parsed = CustomDatetime()
     try:
-        _ = parser.parse(string, default=parsed)
+        parser.parse(string, default=parsed)
     except ValueError:
         pass
 

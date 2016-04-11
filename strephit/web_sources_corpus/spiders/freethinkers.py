@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-import scrapy
 import json
 import re
+
+import scrapy
+
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.commons import text
 
@@ -18,7 +20,7 @@ class FreethinkersSpider(scrapy.Spider):
 
         for p in response.xpath('.//div[@id="mw-content-text"]/p'):
             content = p.xpath('child::node()')
-            if content and  content[0].xpath('local-name()').extract() == ['a']:
+            if content and content[0].xpath('local-name()').extract() == ['a']:
                 if current_item is not None:
                     if 'other' in current_item:
                         current_item['other'] = json.dumps(current_item['other'])
@@ -30,8 +32,8 @@ class FreethinkersSpider(scrapy.Spider):
                     bio=' '.join(text.clean_extract(c, './/text()') for c in content[1:])
                 )
             else:
-                text = p.xpath('text()').extract()[0]
-                m = re.match(ur'([^(]{,50})\((about )?(B\.C\. )?(\d+| ) ?- ?(\d+| )\)', text)
+                txt = p.xpath('text()').extract()[0]
+                m = re.match(ur'([^(]{,50})\((about )?(B\.C\. )?(\d+| ) ?- ?(\d+| )\)', txt)
                 if m:
                     if 'other' in current_item:
                         current_item['other'] = json.dumps(current_item['other'])
@@ -45,7 +47,6 @@ class FreethinkersSpider(scrapy.Spider):
                     )
                 elif current_item is not None:
                     current_item['bio'] += text.clean_extract(p, './/text()')
-                    
 
         if current_item is not None:
             if 'other' in current_item:

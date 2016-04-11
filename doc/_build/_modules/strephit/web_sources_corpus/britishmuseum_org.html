@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>strephit.web_sources_corpus.britishmuseum_org &mdash; StrepHit 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StrepHit 1.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for strephit.web_sources_corpus.britishmuseum_org</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- encoding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">click</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">strephit.commons.io</span> <span class="kn">import</span> <span class="n">get_and_cache</span>
+
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+
+<span class="n">query_url</span> <span class="o">=</span> <span class="s1">&#39;http://collection.britishmuseum.org/sparql.json?query=PREFIX+rdf%3A+%3C&#39;</span> \
+            <span class="s1">&#39;http%3A</span><span class="si">%2F%2F</span><span class="s1">www.w3.org</span><span class="si">%2F</span><span class="s1">1999</span><span class="si">%2F</span><span class="s1">02</span><span class="si">%2F</span><span class="s1">22-rdf-syntax-ns</span><span class="si">%23%</span><span class="s1">3E%0D%0APREFI&#39;</span> \
+            <span class="s1">&#39;X+skos%3A+%3Chttp%3A</span><span class="si">%2F%2F</span><span class="s1">www.w3.org</span><span class="si">%2F</span><span class="s1">2004</span><span class="si">%2F</span><span class="s1">02</span><span class="si">%2F</span><span class="s1">skos</span><span class="si">%2F</span><span class="s1">core</span><span class="si">%23%</span><span class="s1">3E%0D&#39;</span> \
+            <span class="s1">&#39;%0APREFIX+bmo%3A+%3Chttp%3A</span><span class="si">%2F%2F</span><span class="s1">collection.britishmuseum.org</span><span class="si">%2F</span><span class="s1">id</span><span class="si">%2F</span><span class="s1">on&#39;</span> \
+            <span class="s1">&#39;tology</span><span class="si">%2F%3E</span><span class="s1">%0D%0APREFIX+ecrm%3A+%3Chttp%3A</span><span class="si">%2F%2F</span><span class="s1">erlangen-crm.org</span><span class="si">%2F</span><span class="s1">cur&#39;</span> \
+            <span class="s1">&#39;rent</span><span class="si">%2F%3E</span><span class="s1">%0D%0APREFIX+rdfs%3A+%3Chttp%3A</span><span class="si">%2F%2F</span><span class="s1">www.w3.org</span><span class="si">%2F</span><span class="s1">2000</span><span class="si">%2F</span><span class="s1">01%2&#39;</span> \
+            <span class="s1">&#39;Frdf-schema</span><span class="si">%23%</span><span class="s1">3E%0D%0A%0D%0ASELECT+</span><span class="si">%3F</span><span class="s1">person+</span><span class="si">%3F</span><span class="s1">name+</span><span class="si">%3F</span><span class="s1">gender+</span><span class="si">%3F</span><span class="s1">lblN&#39;</span> \
+            <span class="s1">&#39;ationality+</span><span class="si">%3F</span><span class="s1">bio+</span><span class="si">%3F</span><span class="s1">lblProfession+</span><span class="si">%3F</span><span class="s1">lblIdentifier+</span><span class="si">%3F</span><span class="s1">lblDeath+</span><span class="si">%3F</span><span class="s1">lblB&#39;</span> \
+            <span class="s1">&#39;irth%0D%0AWHERE+%7B+%0D%0A+++</span><span class="si">%3F</span><span class="s1">person+rdf%3Atype+ecrm%3AE21_Person.%0D&#39;</span> \
+            <span class="s1">&#39;%0A+++%0D%0A++++OPTIONAL+%7B+</span><span class="si">%3F</span><span class="s1">person+skos%3AprefLabel+</span><span class="si">%3F</span><span class="s1">name.+%7D%0D&#39;</span> \
+            <span class="s1">&#39;%0A++++OPTIONAL+%7B+</span><span class="si">%3F</span><span class="s1">person+bmo%3APX_gender+</span><span class="si">%3F</span><span class="s1">gender.+%7D%0D%0A++++O&#39;</span> \
+            <span class="s1">&#39;PTIONAL+%7B+</span><span class="si">%3F</span><span class="s1">person+bmo%3APX_nationality+</span><span class="si">%3F</span><span class="s1">nationality.%0D%0A+++++++&#39;</span> \
+            <span class="s1">&#39;++++++++</span><span class="si">%3F</span><span class="s1">nationality+skos%3AprefLabel+</span><span class="si">%3F</span><span class="s1">lblNationality.+%7D%0D%0A+++&#39;</span> \
+            <span class="s1">&#39;+OPTIONAL+%7B+</span><span class="si">%3F</span><span class="s1">person+ecrm%3AP3_has_note+</span><span class="si">%3F</span><span class="s1">bio.+%7D%0D%0A++++OPTIONA&#39;</span> \
+            <span class="s1">&#39;L+%7B+</span><span class="si">%3F</span><span class="s1">person+bmo%3APX_profession+</span><span class="si">%3F</span><span class="s1">profession.%0D%0A+++++++++++++++&#39;</span> \
+            <span class="s1">&#39;</span><span class="si">%3F</span><span class="s1">profession+rdfs%3Alabel+</span><span class="si">%3F</span><span class="s1">lblProfession.+%7D%0D%0A++++OPTIONAL+%7B+&#39;</span> \
+            <span class="s1">&#39;</span><span class="si">%3F</span><span class="s1">person+ecrm%3AP131_is_identified_by+</span><span class="si">%3F</span><span class="s1">identifier.%0D%0A++++++++++++&#39;</span> \
+            <span class="s1">&#39;+++</span><span class="si">%3F</span><span class="s1">identifier+rdfs%3Alabel+</span><span class="si">%3F</span><span class="s1">lblIdentifier.+%7D+%0D%0A++++OPTIONAL+&#39;</span> \
+            <span class="s1">&#39;%7B+</span><span class="si">%3F</span><span class="s1">person+ecrm%3AP100_died_in+</span><span class="si">%3F</span><span class="s1">death.%0D%0A+++++++++++++++</span><span class="si">%3F</span><span class="s1">deat&#39;</span> \
+            <span class="s1">&#39;h+ecrm%3AP4_has_time-span+</span><span class="si">%3F</span><span class="s1">death_ts.%0D%0A+++++++++++++++</span><span class="si">%3F</span><span class="s1">death_ts+&#39;</span> \
+            <span class="s1">&#39;rdfs%3Alabel+</span><span class="si">%3F</span><span class="s1">lblDeath.+%7D%0D%0A++++OPTIONAL+%7B+</span><span class="si">%3F</span><span class="s1">person+ecrm%3AP9&#39;</span> \
+            <span class="s1">&#39;8i_was_born+</span><span class="si">%3F</span><span class="s1">birth.%0D%0A+++++++++++++++</span><span class="si">%3F</span><span class="s1">birth+ecrm%3AP4_has_time-s&#39;</span> \
+            <span class="s1">&#39;pan+</span><span class="si">%3F</span><span class="s1">birth_ts.%0D%0A+++++++++++++++</span><span class="si">%3F</span><span class="s1">birth_ts+rdfs%3Alabel+</span><span class="si">%3F</span><span class="s1">lblBir&#39;</span> \
+            <span class="s1">&#39;th.+%7D%0D%0A++++%0D%0A%7D%0D%0A+%0D%0ALIMIT+{limit}%0D%0AOFFSET+{offse&#39;</span> \
+            <span class="s1">&#39;t}%0D%0A&amp;_implicit=false&amp;implicit=true&amp;_equivalent=false&amp;equivalent=tru&#39;</span> \
+            <span class="s1">&#39;e&amp;_form=</span><span class="si">%2F</span><span class="s1">sparql&#39;</span>
+
+
+<div class="viewcode-block" id="serialize_person"><a class="viewcode-back" href="../../../strephit.web_sources_corpus.html#strephit.web_sources_corpus.britishmuseum_org.serialize_person">[docs]</a><span class="k">def</span> <span class="nf">serialize_person</span><span class="p">(</span><span class="n">person</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">default_serializer</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; provides a custom serializer for sets &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">set</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+        <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">person</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;birth&#39;</span><span class="p">:</span> <span class="n">person</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;lblBirth&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
+        <span class="s1">&#39;death&#39;</span><span class="p">:</span> <span class="n">person</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;lblDeath&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
+        <span class="s1">&#39;bio&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;bio&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span> <span class="ow">or</span> <span class="bp">None</span><span class="p">,</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span> <span class="ow">or</span> <span class="bp">None</span><span class="p">,</span>
+        <span class="s1">&#39;other&#39;</span><span class="p">:</span> <span class="n">person</span><span class="p">,</span>
+    <span class="p">},</span> <span class="n">default</span><span class="o">=</span><span class="n">default_serializer</span><span class="p">)</span></div>
+
+
+<span class="nd">@click.command</span><span class="p">()</span>
+<span class="nd">@click.argument</span><span class="p">(</span><span class="s1">&#39;out-file&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">))</span>
+<span class="nd">@click.option</span><span class="p">(</span><span class="s1">&#39;--use-cache/--no-cache&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="nd">@click.option</span><span class="p">(</span><span class="s1">&#39;--step&#39;</span><span class="p">,</span> <span class="s1">&#39;-s&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span> <span class="n">use_cache</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+    <span class="n">finished</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">person</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">finished</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s1">&#39;processed </span><span class="si">%d</span><span class="s1"> records&#39;</span> <span class="o">%</span> <span class="n">offset</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">query_url</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">get_and_cache</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">use_cache</span><span class="p">))</span>
+        <span class="n">offset</span> <span class="o">+=</span> <span class="n">step</span>
+        <span class="n">finished</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">][</span><span class="s1">&#39;bindings&#39;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">step</span>
+
+        <span class="c1"># adjacent records can refer to the same person, so group all properties in sets</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">][</span><span class="s1">&#39;bindings&#39;</span><span class="p">]):</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;person&#39;</span><span class="p">)[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">person</span> <span class="ow">and</span> <span class="n">person</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">url</span><span class="p">:</span>
+                <span class="n">out_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">serialize_person</span><span class="p">(</span><span class="n">person</span><span class="p">))</span>
+                <span class="n">out_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">person</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="n">person</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">url</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;gender&#39;</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">person</span><span class="p">:</span>
+                    <span class="n">person</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">person</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">value</span><span class="p">}</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Marco Fossati, Emilio Dorigatti.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

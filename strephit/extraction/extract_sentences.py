@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
 import json
 import logging
 from random import choice
+from sys import exit
+
+import click
 from nltk import RegexpParser
 from nltk.parse.stanford import StanfordParser
 from nltk.tree import Tree
-from strephit.commons.io import load_dumped_corpus, load_corpus, load_scraped_items
-from strephit.commons.tokenize import Tokenizer
-from strephit.commons.split_sentences import PunktSentenceSplitter
-from strephit.commons.pos_tag import TTPosTagger
-from strephit.commons import parallel
-from sys import exit
 
+from strephit.commons.io import load_scraped_items
+from strephit.commons.split_sentences import PunktSentenceSplitter
+from strephit.commons import parallel
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +24,7 @@ class SentenceExtractor:
 
     def __init__(self, corpus, pos_tag_key, document_key, sentences_key, language, lemma_to_token, match_base_form):
         """ Initializes the extractor.
+
             :param corpus: The corpus, iterable of `dict`s. Generator preferred
             :param pos_tag_key: The key from which to retrieve the pos tagged document
             :param document_key: The key from which to retrieve the textual document
@@ -43,6 +43,7 @@ class SentenceExtractor:
     def extract_from_item(self, item):
         """ Extract sentences from an item. Relies on `setup_extractor`
             having been called
+
             :param dict item: Item from which to extract sentences
             :return: The original item and list of extracted sentences
             :rtype: tuple of dict, list
@@ -127,7 +128,7 @@ class OneToOneExtractor(SentenceExtractor):
 
         for sentence in sentences:
             # retrieve POS tags of this sentence
-            tags = tagged[tokens:tokens+len(sentence)]
+            tags = tagged[tokens:tokens + len(sentence)]
             tokens += len(sentence)
 
             sentence_verbs = [token for token, pos, lemma in tags if pos.startswith('V')]
@@ -143,7 +144,7 @@ class OneToOneExtractor(SentenceExtractor):
                 extracted.append({
                     'lu': assigned_lu,
                     'text': ' '.join(sentence),
-                    'tagged': tagged,
+                    'tagged': tags,
                 })
 
         if extracted:
@@ -172,10 +173,10 @@ class ManyToManyExtractor(SentenceExtractor):
         sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
         tokens = 0
         for sentence in sentences:
-            tags = tagged[tokens:tokens+len(sentence)]
+            tags = tagged[tokens:tokens + len(sentence)]
             tokens += len(sentence)
 
-            sentence_tokens = [token for token, pos, lemma in tagged if pos.startswith('V')]
+            sentence_tokens = [token for token, pos, lemma in tags if pos.startswith('V')]
 
             for lemma, match_tokens in self.lemma_to_token.iteritems():
                 for match in match_tokens:
@@ -183,7 +184,7 @@ class ManyToManyExtractor(SentenceExtractor):
                         extracted.append({
                             'lu': lemma,
                             'text': ' '.join(sentence),
-                            'tagged': tagged,
+                            'tagged': tags,
                         })
 
         if extracted:
@@ -299,7 +300,7 @@ class GrammarExtractor(SentenceExtractor):
         'it': r"""
                 SN: {<PRO.*|DET.*|>?<ADJ>*<NUM>?<NOM|NPR>+<NUM>?<ADJ|VER:pper>*}
                 CHUNK: {<SN><VER.*>+<SN>}
-               """, 
+               """,
     }
 
     def setup_extractor(self):
@@ -327,7 +328,7 @@ class GrammarExtractor(SentenceExtractor):
         sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
         tokens = 0
         for sentence in sentences:
-            tags = tagged[tokens:tokens+len(sentence)]
+            tags = tagged[tokens:tokens + len(sentence)]
             tokens += len(sentence)
 
             # Parsing via grammar
@@ -352,7 +353,7 @@ class GrammarExtractor(SentenceExtractor):
                                 extracted.append({
                                     'lu': lemma,
                                     'text': text,
-                                    'tagged': tagged,
+                                    'tagged': tags,
                                 })
 
         if extracted:
@@ -367,6 +368,7 @@ def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language
                       lemma_to_tokens, strategy, match_base_form, processes=0):
     """
     Extract sentences from the given corpus by matching tokens against a given set.
+
     :param corpus: Pos-tagged corpus, as an iterable of documents
     :param str sentences_key: dict key where to put extracted sentences
     :param str pos_tag_key: dict key where the pos-tagged text is
@@ -429,4 +431,3 @@ def main(pos_tagged, language_code, lemma_to_tokens, strategy, output, processes
 
 if __name__ == '__main__':
     exit(main())
-

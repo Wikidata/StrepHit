@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import json
 import logging
 from itertools import product
+
 from strephit.commons import cache, io, datetime, text
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ def resolver(*properties):
 
 def resolve(property, value, language, **kwargs):
     """ Tries to resolve the Wikidata ID of an object given its string representation
+
         :param property: Wikidata ID of the property to resolve
         :param value: String value
         :param language: Search only this language
@@ -109,6 +111,7 @@ def date_resolver(property, value, language, **kwargs):
 def name_resolver(property, value, language, **kwargs):
     """ Resolves people names. Works better if generic biographic
         information, such as birth/death dates, is provided.
+
         :param kwargs: dictionary of wikidata property -> list of values
     """
 
@@ -231,6 +234,7 @@ def search(term, language, type_=None):
     """ Uses the wikidata APIs to search for a term. Can optionally specify a type
         (corresponding to the 'instance of' P31 wikidata property. If no type is
         specified simply returns all the items containing `term` in `label`
+
         :param term: The term to look for
         :param language: Search in this language
         :param type_: Type of the entity to look for, wikidata numeric id (i.e. without starting Q)
@@ -262,6 +266,7 @@ def search(term, language, type_=None):
 def finalize_statement(subject, property, value, language, url=None,
                        resolve_property=True, resolve_value=True, **kwargs):
     """ Given the components of a statement, convert it into a quick statement.
+
         :param subject: Subject of the statement (its Wikidata ID)
         :param property: Property of the statement
         :param value: Value of the statement (to be resolved)
@@ -297,17 +302,18 @@ def format_date(year, month, day):
         correct. The allowed values of the parameters are shown in the following
         truth table
 
-            y m d ok
-            --------
-            1 1 1  1
-            1 1 0  1
-            1 0 1  0
-            1 0 0  1
-            --------
-            0 1 1  1
-            0 1 0  0
-            0 0 1  0
-            0 0 0  0
+        ==== ===== === ==
+        year month day ok
+        ==== ===== === ==
+        1    1     1   1
+        1    1     0   1
+        1    0     1   0
+        1    0     0   1
+        0    1     1   1
+        0    1     0   0
+        0    0     1   0
+        0    0     0   0
+        ==== ===== === ==
 
         :param year: year of the date
         :param month: month of the date. Only positive values allowed
@@ -336,6 +342,7 @@ def format_date(year, month, day):
 def parse_date(date, precision=None):
     """ Tries to parse a date serialized according to the wikidata format
         into its components year, month and day
+
         :return: dict (year, month, day)
     """
 
@@ -355,6 +362,7 @@ def parse_date(date, precision=None):
 def get_property_ids(batch):
     """
      Get the full list of Wikidata property IDs (pids).
+
      :param int batch: number of pids per call, to serve as paging for the API.
      :return: list of all pids
      :rtype: list
@@ -386,13 +394,14 @@ def get_property_ids(batch):
 def get_entities(ids, batch):
     """
      Retrieve Wikidata entities metadata.
+
      :param list ids: list of Wikidata entity IDs
      :param int batch: number of IDs per call, to serve as paging for the API.
      :return: dict of Wikidata entities with metadata
      :rtype: dict
     """
     entities = []
-    batches = [ids[i:i+batch] for i in xrange(0, len(ids), batch)]
+    batches = [ids[i:i + batch] for i in xrange(0, len(ids), batch)]
     # Paging mechanism
     logger.info("About to call the Wikidata API for entity metadata, with paging ...")
     logger.debug("Number of batches: %d" % len(batches))
@@ -412,6 +421,7 @@ def get_entities(ids, batch):
 def get_labels_and_aliases(entities, language_code):
     """
      Extract language-specific label and aliases from a list of Wikidata entities metadata.
+
      :param list entities: list of Wikidata entities with metadata.
      :param str language_code: 2-letter language code, e.g., `en` for English
      :return: dict of entities, with label and aliases only

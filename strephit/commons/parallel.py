@@ -2,7 +2,6 @@ from __future__ import absolute_import
 import logging
 import multiprocessing as mp
 import signal
-import Queue
 
 logger = logging.getLogger(__name__)
 
@@ -72,16 +71,17 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True):
     """ Applies the given function to each element of the iterable in parallel.
         `None` values are not allowed in the iterable nor as return values, they will
         simply be discarded. Can be "safely" stopped with a keboard interrupt.
+
         :param function: the function used to transform the elements of the iterable
         :param processes: how many items to process in parallel. Use zero or a negative
-        number to use all the available processors. No additional processes will be used
-        if the value is 1.
+         number to use all the available processors. No additional processes will be used
+         if the value is 1.
         :param flatten: If the mapping function return an iterable flatten the resulting
-        iterables into a single one.
+         iterables into a single one.
         :param raise_exc: Only when `processes` equals 1, controls whether to propagate
-        the exception raised by the mapping function to the called or simply to log
-        them and carry on the computation. When `processes` is different than 1 this
-        parameter is not used.
+         the exception raised by the mapping function to the called or simply to log
+         them and carry on the computation. When `processes` is different than 1 this
+         parameter is not used.
         :returns: iterable with the results. Order is not guaranteed to be preserved
     """
     if processes == 1:
@@ -111,6 +111,7 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True):
 
 def execute(processes=0, *specs):
     """ Execute the given functions parallelly
+
         :param processes: Number of functions to execute at the same time
         :param specs: a sequence of functions, each followed by its arguments (arguments as a tuple or list)
         :return: the results that the functions returned

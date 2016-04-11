@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
 import json
 import logging
 from sys import exit
 from time import time
+
+import click
 from nltk import pos_tag, word_tokenize
 from treetaggerwrapper import TreeTagger, make_tags
-
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ def main(input_file, output_file, tt_home):
             output_item['nltk'] = nltk_tagged
             output_item['TreeTagger'] = tt_tagged
             output.append(output_item)
-            
+
     json.dump(output, output_file, indent=2)
     logger.info("Tagged data dumped to '%s'" % output_file.name)
     logger.info("Total items = %d" % len(source))
@@ -74,6 +74,6 @@ def main(input_file, output_file, tt_home):
     logger.info("TreeTagger total execution time = %f seconds" % tt_total_execution)
     return 0
 
-    
+
 if __name__ == '__main__':
     exit(main())

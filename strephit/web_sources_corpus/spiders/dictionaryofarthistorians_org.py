@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from scrapy import Request
+
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.web_sources_corpus.spiders import BaseSpider
 
@@ -14,7 +15,7 @@ class DictionaryofarthistoriansOrgSpider(BaseSpider):
 
     item_class = WebSourcesCorpusItem
     item_fields = {
-       'name': 'clean:xpath:.//h1[@class="arthist-publish-profile__name"]//text()',
+        'name': 'clean:xpath:.//h1[@class="arthist-publish-profile__name"]//text()',
         'birth': 'clean:xpath:.//div[@class="arthist-publish-profile__birthdate"]/p//text()',
         'death': 'clean:xpath:.//div[@class="arthist-publish-profile__deathdate"]/p//text()',
         'bio': 'clean:xpath:.//div[@class="arthist-publish-profile__body"]/p//text()',

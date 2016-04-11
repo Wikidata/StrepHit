@@ -2,19 +2,21 @@
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 
-import click
 import logging
-import regex
 from sys import exit
-from strephit.commons.io import load_corpus
+import json
 
+import click
+import regex
+
+from strephit.commons.io import load_corpus
 
 logger = logging.getLogger(__name__)
 
 
 class Tokenizer():
     """ Tokenization splits a natural language utterance into words (tokens) """
-    
+
     # Lookup the tokenization regex given the language code
     tokenization_regexps = {
         'en': ur'[^\p{L}\p{N}]+'
@@ -26,11 +28,13 @@ class Tokenizer():
         if tokenization_regex:
             self.tokenization_regex = tokenization_regex
         else:
-            raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (language, self.tokenization_regexps.keys()))
+            raise ValueError("Invalid or unsupported language: '%s'. Please use one of the currently supported ones: %s" % (
+                language, self.tokenization_regexps.keys()))
 
     def tokenize(self, sentence):
         """ Tokenize the given sentence.
             You can also pass a generic text, but you will lose the sentence segmentation.
+
             :param str sentence: a natural language sentence or text to be tokenized
             :return: the list of tokens
             :rtype: list

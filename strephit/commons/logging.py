@@ -71,6 +71,7 @@ def setLogLevel(module, level):
 def log_request_data(http_response, logger):
     """
     Send a debug log message with basic information of the HTTP request that was sent for the given HTTP response.
+
     :param requests.models.Response http_response: HTTP response object
     """
     sent_request = {

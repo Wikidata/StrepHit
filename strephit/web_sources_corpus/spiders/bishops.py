@@ -59,10 +59,10 @@ class BishopsSpider(BaseSpider):
 
     def parse_microdata(self, response):
         return text.extract_dict(response,
-                                  'xpath:.//section[@id="mdata"]//span',
-                                  'xpath:.//section[@id="mdata"]//span',
-                                  './@itemprop',
-                                  './text()')
+                                 'xpath:.//section[@id="mdata"]//span',
+                                 'xpath:.//section[@id="mdata"]//span',
+                                 './@itemprop',
+                                 './text()')
 
     def clean_name(self, response, name):
         if name.endswith(u'†'):

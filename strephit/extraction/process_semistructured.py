@@ -1,11 +1,12 @@
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
-import click
 import json
 import logging
 from collections import defaultdict
-from strephit.commons import io, wikidata, parallel, text
 
+import click
+
+from strephit.commons import io, wikidata, parallel, text
 
 logger = logging.getLogger(__name__)
 

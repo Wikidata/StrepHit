@@ -1,18 +1,19 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-   
+# -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 
-import click
 import json
 import logging
-import treetaggerwrapper
 from sys import exit
+
+import click
+import treetaggerwrapper
 from treetaggerpoll import TaggerProcessPoll
 from treetaggerwrapper import make_tags, NotTag, TreeTagger
 from nltk import pos_tag, word_tokenize, pos_tag_sents
+
 from strephit.commons.io import load_corpus
 from strephit.commons.tokenize import Tokenizer
-
 
 logger = logging.getLogger(__name__)
 treetaggerwrapper.logger.setLevel(logging.WARN)  # they are too verbose
@@ -20,7 +21,7 @@ treetaggerwrapper.logger.setLevel(logging.WARN)  # they are too verbose
 
 class NLTKPosTagger(object):
     """part-of-speech tagger implemented using the NLTK library"""
-    
+
     def __init__(self, language):
         self.language = language
 
@@ -81,6 +82,7 @@ class TTPosTagger(object):
 
     def tag_many(self, items, document_key, pos_tag_key, batch_size=10000, **kwargs):
         """ POS-Tags many text documents of the given items. Use this for massive text tagging
+
             :param items: Iterable of items to tag. Generator preferred
             :param document_key: Where to find the text to tag inside each item
             :param pos_tag_key: Where to put pos tagged text

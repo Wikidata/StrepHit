@@ -1,10 +1,11 @@
 from __future__ import absolute_import
-import click
-import requests
 import zipfile
 import contextlib
 import os
 import logging
+
+import click
+import requests
 
 try:
     from cStringIO import StringIO

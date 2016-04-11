@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-import json
 from scrapy import Spider, Request
-from strephit.web_sources_corpus.spiders import BaseSpider
+
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.commons import text
 
@@ -15,14 +14,14 @@ class ModernEnglishBioSpider(Spider):
 
     def parse(self, response):
         for url in response.xpath(
-                    './/a[starts-with(@title, "Modern English Biography/")]/@href'
-                ).extract():
+            './/a[starts-with(@title, "Modern English Biography/")]/@href'
+        ).extract():
             yield Request('https://en.wikisource.org' + url, self.parse_detail)
 
     def parse_detail(self, response):
         for each in response.xpath(
-                    './/div[@id="headerContainer"]/following-sibling::p'
-                ):
+            './/div[@id="headerContainer"]/following-sibling::p'
+        ):
             item = WebSourcesCorpusItem(
                 url=response.url,
                 bio=text.clean_extract(each, './/text()', sep=' '),

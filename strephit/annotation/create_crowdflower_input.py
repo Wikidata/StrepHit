@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
 import json
 import logging
 import re
 from csv import DictWriter
 from sys import exit
 
+import click
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +48,14 @@ def prepare_crowdflower_input(sentences, frame_data):
             data_unit['chunk_%02d' % j] = chunk
         logger.debug('Data unit completed: %s' % data_unit)
         # Prepare input for DictWriter, since it won't write UTF-8
-        data_units.append({k: v.encode('utf-8') for k,v in data_unit.items()})
+        data_units.append({k: v.encode('utf-8') for k, v in data_unit.items()})
     return data_units
 
 
 def write_input_spreadsheet(data_units, outfile):
     # Merge all the keys to prepare the CSV headers
     headers = set([k for d in data_units for k in d.keys()])
-    # Specific field for test (gold) units 
+    # Specific field for test (gold) units
     headers.add('_golden')
     headers = list(headers)
     gold_columns = []

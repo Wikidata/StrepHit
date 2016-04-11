@@ -1,0 +1,460 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>tests.test_commons &mdash; StrepHit 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StrepHit 1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tests.test_commons</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- encoding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">from</span> <span class="nn">strephit.commons</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">treetaggerwrapper</span> <span class="kn">import</span> <span class="n">Tag</span>
+
+
+<div class="viewcode-block" id="TestParallel"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel">[docs]</a><span class="k">class</span> <span class="nc">TestParallel</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="TestParallel.setUp"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correct</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">list_in_nones</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">if</span> <span class="n">x</span> <span class="o">%</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">20</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correct_nones</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">none_filter</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span>
+                                        <span class="nb">filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">none_filter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in_nones</span><span class="p">))))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correct_multi</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestParallel.function"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.function">[docs]</a>    <span class="k">def</span> <span class="nf">function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="TestParallel.none_filter"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.none_filter">[docs]</a>    <span class="k">def</span> <span class="nf">none_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span></div>
+
+<div class="viewcode-block" id="TestParallel.multi_function"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.multi_function">[docs]</a>    <span class="k">def</span> <span class="nf">multi_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">z</span></div>
+
+<div class="viewcode-block" id="TestParallel.exc_function"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.exc_function">[docs]</a>    <span class="k">def</span> <span class="nf">exc_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;hello!&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestParallel.consume"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.consume">[docs]</a>    <span class="k">def</span> <span class="nf">consume</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">generator</span><span class="p">):</span>
+        <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">generator</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_single_process"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_single_process">[docs]</a>    <span class="k">def</span> <span class="nf">test_single_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_out</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">list_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_multi_process"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_multi_process">[docs]</a>    <span class="k">def</span> <span class="nf">test_multi_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_out</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">list_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_with_nones_single_process"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_with_nones_single_process">[docs]</a>    <span class="k">def</span> <span class="nf">test_with_nones_single_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_out</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in_nones</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">list_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct_nones</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_with_nones_multi_process"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_with_nones_multi_process">[docs]</a>    <span class="k">def</span> <span class="nf">test_with_nones_multi_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_out</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in_nones</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">list_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct_nones</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_more_workers"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_more_workers">[docs]</a>    <span class="k">def</span> <span class="nf">test_more_workers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_out</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">20</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">list_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_flatten_single_process"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_flatten_single_process">[docs]</a>    <span class="k">def</span> <span class="nf">test_flatten_single_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_out</span> <span class="o">=</span> <span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                <span class="n">flatten</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">list_out</span><span class="p">),</span> <span class="n">Counter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">correct_multi</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_flatten_multi_process"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_flatten_multi_process">[docs]</a>    <span class="k">def</span> <span class="nf">test_flatten_multi_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_out</span> <span class="o">=</span> <span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                <span class="n">flatten</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">list_out</span><span class="p">),</span> <span class="n">Counter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">correct_multi</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_exception_single"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_exception_single">[docs]</a>    <span class="k">def</span> <span class="nf">test_exception_single</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">consume</span><span class="p">,</span>
+                          <span class="n">parallel</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exc_function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_in</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                       <span class="n">raise_exc</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestParallel.test_execute"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestParallel.test_execute">[docs]</a>    <span class="k">def</span> <span class="nf">test_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">funcs</span> <span class="o">=</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span>
+                       <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">parallel</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="n">funcs</span><span class="p">),</span>
+                         <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span></div></div>
+
+
+<div class="viewcode-block" id="TestCache"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache">[docs]</a><span class="k">class</span> <span class="nc">TestCache</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="TestCache.random_hex_string"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.random_hex_string">[docs]</a>    <span class="k">def</span> <span class="nf">random_hex_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;0123456789abcdef&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">6</span><span class="p">))</span></div>
+
+    <span class="nd">@cache.cached</span>
+    <span class="k">def</span> <span class="nf">not_entirely_random_hex_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_hex_string</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TestCache.setUp"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_hex_string</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_hash_for</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">_hash_for</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_path_for</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">_path_for</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">gettempdir</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.tearDown"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.tearDown">[docs]</a>    <span class="k">def</span> <span class="nf">tearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">)</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">_hash_for</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_hash_for</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">_path_for</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path_for</span></div>
+
+<div class="viewcode-block" id="TestCache.test_path"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_path">[docs]</a>    <span class="k">def</span> <span class="nf">test_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">hashed</span> <span class="o">=</span> <span class="s1">&#39;hashed key&#39;</span>
+        <span class="n">full</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">_path_for</span><span class="p">(</span><span class="n">hashed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">fname</span><span class="p">),</span> <span class="n">full</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonprefix</span><span class="p">([</span><span class="n">cache</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">,</span> <span class="n">full</span><span class="p">,</span> <span class="n">base</span><span class="p">]),</span>
+                         <span class="n">cache</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.test_simple_get"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_simple_get">[docs]</a>    <span class="k">def</span> <span class="nf">test_simple_get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNone</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;non existing&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;non existing&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">),</span> <span class="s1">&#39;default&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.test_simple_set"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_simple_set">[docs]</a>    <span class="k">def</span> <span class="nf">test_simple_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">),</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.test_set_overwrite"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_set_overwrite">[docs]</a>    <span class="k">def</span> <span class="nf">test_set_overwrite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;another value&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">),</span> <span class="s1">&#39;another value&#39;</span><span class="p">)</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;something else&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">),</span> <span class="s1">&#39;another value&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.test_decorator"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_decorator">[docs]</a>    <span class="k">def</span> <span class="nf">test_decorator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">not_entirely_random_hex_string</span><span class="p">(</span><span class="mi">128</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">not_entirely_random_hex_string</span><span class="p">(</span><span class="mi">128</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestCache.test_unicode"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_unicode">[docs]</a>    <span class="k">def</span> <span class="nf">test_unicode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">u&#39;</span><span class="se">\u84c4\u3048\u3066</span><span class="s1"> </span><span class="se">\u304f\u3060\u3055\u3044</span><span class="s1">&#39;</span><span class="p">,</span>
+                  <span class="s1">u&#39;</span><span class="se">\u304a\u75b2\u308c\u3055\u307e</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">u&#39;</span><span class="se">\u84c4\u3048\u3066</span><span class="s1"> </span><span class="se">\u304f\u3060\u3055\u3044</span><span class="s1">&#39;</span><span class="p">),</span>
+                         <span class="s1">u&#39;</span><span class="se">\u304a\u75b2\u308c\u3055\u307e</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.test_collisions"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_collisions">[docs]</a>    <span class="k">def</span> <span class="nf">test_collisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">collision_hash</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;key-1&#39;</span><span class="p">,</span> <span class="s1">&#39;key-2&#39;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="s1">&#39;the same hashed value&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_hash_for</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">_hash_for</span> <span class="o">=</span> <span class="n">collision_hash</span>
+
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key-1&#39;</span><span class="p">,</span> <span class="s1">&#39;value-1&#39;</span><span class="p">)</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key-2&#39;</span><span class="p">,</span> <span class="s1">&#39;value-2&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key-1&#39;</span><span class="p">),</span> <span class="s1">&#39;value-1&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key-2&#39;</span><span class="p">),</span> <span class="s1">&#39;value-2&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.test_folder_creation"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_folder_creation">[docs]</a>    <span class="k">def</span> <span class="nf">test_folder_creation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">same_prefix_path</span><span class="p">(</span><span class="n">hashed</span><span class="p">):</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">,</span> <span class="s1">&#39;some prefix&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">hashed</span><span class="p">),</span> <span class="n">base</span><span class="p">,</span> <span class="n">hashed</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">_path_for</span> <span class="o">=</span> <span class="n">same_prefix_path</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key1&#39;</span><span class="p">,</span> <span class="s1">&#39;value1&#39;</span><span class="p">)</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key2&#39;</span><span class="p">,</span> <span class="s1">&#39;value2&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="s1">&#39;failed to set cache&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCache.test_decorator_key"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_decorator_key">[docs]</a>    <span class="k">def</span> <span class="nf">test_decorator_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nd">@cache.cached</span>
+        <span class="k">def</span> <span class="nf">function1</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;something from function 1&#39;</span>
+
+        <span class="nd">@cache.cached</span>
+        <span class="k">def</span> <span class="nf">function2</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;something from function 2&#39;</span>
+
+        <span class="n">function1</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">)</span>
+        <span class="n">function2</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="n">function1</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">),</span> <span class="n">function2</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestCache.test_enabled"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">test_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">ENABLED</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;something else&#39;</span><span class="p">),</span> <span class="s1">&#39;something else&#39;</span><span class="p">)</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">ENABLED</span> <span class="o">=</span> <span class="bp">True</span></div>
+
+<div class="viewcode-block" id="TestCache.test_objects"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestCache.test_objects">[docs]</a>    <span class="k">def</span> <span class="nf">test_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;this&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;is&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]],</span> <span class="s1">&#39;complex&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span><span class="p">}</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;obj&#39;</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;obj&#39;</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="TestWikidata"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata">[docs]</a><span class="k">class</span> <span class="nc">TestWikidata</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TestWikidata.setUp"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">ENABLED</span> <span class="o">=</span> <span class="bp">False</span></div>
+
+<div class="viewcode-block" id="TestWikidata.tearDown"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.tearDown">[docs]</a>    <span class="k">def</span> <span class="nf">tearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">ENABLED</span> <span class="o">=</span> <span class="bp">True</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_date_width"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_date_width">[docs]</a>    <span class="k">def</span> <span class="nf">test_date_width</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="mi">1967</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">17</span><span class="p">),</span>
+                         <span class="s1">&#39;+00000001967-01-17T00:00:00Z/11&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_negative_year"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_negative_year">[docs]</a>    <span class="k">def</span> <span class="nf">test_negative_year</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
+                         <span class="s1">&#39;-00000000100-01-01T00:00:00Z/9&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_parse_date"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_parse_date">[docs]</a>    <span class="k">def</span> <span class="nf">test_parse_date</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">parse_date</span><span class="p">(</span><span class="s1">&#39;-00000000100-01-01T00:00:00Z/9&#39;</span><span class="p">),</span>
+                         <span class="p">{</span><span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_parse_date_with_precision"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_parse_date_with_precision">[docs]</a>    <span class="k">def</span> <span class="nf">test_parse_date_with_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">parse_date</span><span class="p">(</span><span class="s1">&#39;+00000000101-02-03T00:00:00Z&#39;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
+                         <span class="p">{</span><span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="mi">101</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_missing"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_missing">[docs]</a>    <span class="k">def</span> <span class="nf">test_missing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="n">wikidata</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="s1">&#39;date should be accepted&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_gender_resolver"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_gender_resolver">[docs]</a>    <span class="k">def</span> <span class="nf">test_gender_resolver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">gender_resolver</span><span class="p">(</span><span class="s1">&#39;P21&#39;</span><span class="p">,</span> <span class="s1">&#39;male&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">),</span> <span class="s1">&#39;Q6581097&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">gender_resolver</span><span class="p">(</span><span class="s1">&#39;P21&#39;</span><span class="p">,</span> <span class="s1">&#39;maschio&#39;</span><span class="p">,</span> <span class="s1">&#39;it&#39;</span><span class="p">),</span> <span class="s1">&#39;Q6581097&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">gender_resolver</span><span class="p">(</span><span class="s1">&#39;P21&#39;</span><span class="p">,</span> <span class="s1">&#39;female&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">),</span> <span class="s1">&#39;Q6581072&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">gender_resolver</span><span class="p">(</span><span class="s1">&#39;P21&#39;</span><span class="p">,</span> <span class="s1">&#39;femmina&#39;</span><span class="p">,</span> <span class="s1">&#39;it&#39;</span><span class="p">),</span> <span class="s1">&#39;Q6581072&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_resolvers"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_resolvers">[docs]</a>    <span class="k">def</span> <span class="nf">test_resolvers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;P1035&#39;</span><span class="p">,</span> <span class="s1">&#39;prof&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">),</span> <span class="s1">&#39;Q121594&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;P21&#39;</span><span class="p">,</span> <span class="s1">&#39;male&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">),</span> <span class="s1">&#39;Q6581097&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;P570&#39;</span><span class="p">,</span> <span class="s1">&#39;Feb 24, 2016&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">),</span>
+                         <span class="s1">&#39;+00000002016-02-24T00:00:00Z/11&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_honorifics_resolver"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_honorifics_resolver">[docs]</a>    <span class="k">def</span> <span class="nf">test_honorifics_resolver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">honorific</span><span class="p">,</span> <span class="n">id_</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;prof&#39;</span><span class="p">,</span> <span class="s1">&#39;Q121594&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;dr&#39;</span><span class="p">,</span> <span class="s1">&#39;Q4618975&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;phd&#39;</span><span class="p">,</span> <span class="s1">&#39;Q4618975&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;bishop&#39;</span><span class="p">,</span> <span class="s1">&#39;Q611644&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;arcibishop&#39;</span><span class="p">,</span> <span class="s1">&#39;Q611644&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;st&#39;</span><span class="p">,</span> <span class="s1">&#39;Q43115&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;hon&#39;</span><span class="p">,</span> <span class="s1">&#39;Q2746176&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;rev&#39;</span><span class="p">,</span> <span class="s1">&#39;Q42603&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;prof&#39;</span><span class="p">,</span> <span class="s1">&#39;Q121594&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;miss&#39;</span><span class="p">,</span> <span class="s1">&#39;Q13359947&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;mrs&#39;</span><span class="p">,</span> <span class="s1">&#39;Q313549&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;mister&#39;</span><span class="p">,</span> <span class="s1">&#39;Q177053&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;mr&#39;</span><span class="p">,</span> <span class="s1">&#39;Q177053&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;sir&#39;</span><span class="p">,</span> <span class="s1">&#39;Q209690&#39;</span><span class="p">)]:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">honorifics_resolver</span><span class="p">(</span><span class="s1">&#39;P1035&#39;</span><span class="p">,</span> <span class="n">honorific</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">),</span>
+                             <span class="n">id_</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">honorifics_resolver</span><span class="p">(</span><span class="s1">&#39;P1035&#39;</span><span class="p">,</span> <span class="s1">&#39;st&#39;</span><span class="p">,</span> <span class="s1">&#39;it&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_name_resolver_with_birth"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_name_resolver_with_birth">[docs]</a>    <span class="k">def</span> <span class="nf">test_name_resolver_with_birth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">additional_info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;P569&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;+1893-09-20T00:00:00Z/11&#39;</span><span class="p">]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">name_resolver</span><span class="p">(</span><span class="s1">&#39;P1477&#39;</span><span class="p">,</span> <span class="s1">&#39;colin fraser&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">additional_info</span><span class="p">),</span>
+                         <span class="s1">&#39;Q5145111&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_name_resolver_with_death"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_name_resolver_with_death">[docs]</a>    <span class="k">def</span> <span class="nf">test_name_resolver_with_death</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">additional_info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;P570&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;+1958-08-15T00:00:00Z/11&#39;</span><span class="p">]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">name_resolver</span><span class="p">(</span><span class="s1">&#39;P1477&#39;</span><span class="p">,</span> <span class="s1">&#39;colin fraser&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">additional_info</span><span class="p">),</span>
+                         <span class="s1">&#39;Q5145111&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_name_resolver_with_gender"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_name_resolver_with_gender">[docs]</a>    <span class="k">def</span> <span class="nf">test_name_resolver_with_gender</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">wikidata</span><span class="o">.</span><span class="n">name_resolver</span><span class="p">(</span><span class="s1">&#39;P1477&#39;</span><span class="p">,</span> <span class="s1">&#39;colin fraser&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">,</span> <span class="n">P21</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Q6581097&#39;</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="TestWikidata.test_place_resolver"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestWikidata.test_place_resolver">[docs]</a>    <span class="k">def</span> <span class="nf">test_place_resolver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">wikidata</span><span class="o">.</span><span class="n">place_resolver</span><span class="p">(</span><span class="s1">&#39;Pwhatever&#39;</span><span class="p">,</span> <span class="s1">&#39;vaughan&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span><span class="p">),</span> <span class="s1">&#39;Q44013&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TestDatetime"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestDatetime">[docs]</a><span class="k">class</span> <span class="nc">TestDatetime</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="TestDatetime.test_simple_date"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestDatetime.test_simple_date">[docs]</a>    <span class="k">def</span> <span class="nf">test_simple_date</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s1">&#39;24/2/2016&#39;</span><span class="p">),</span>
+                         <span class="p">{</span><span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="mi">2016</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="mi">24</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestDatetime.test_simply_year"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestDatetime.test_simply_year">[docs]</a>    <span class="k">def</span> <span class="nf">test_simply_year</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s1">&#39;1863&#39;</span><span class="p">),</span>
+                         <span class="p">{</span><span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="mi">1863</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestDatetime.test_fallbacks"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestDatetime.test_fallbacks">[docs]</a>    <span class="k">def</span> <span class="nf">test_fallbacks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s1">&#39;b.c. 123&#39;</span><span class="p">),</span>
+                         <span class="p">{</span><span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">123</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s1">&#39;123Bc&#39;</span><span class="p">),</span>
+                         <span class="p">{</span><span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">123</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">})</span></div></div>
+
+
+<div class="viewcode-block" id="TestText"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestText">[docs]</a><span class="k">class</span> <span class="nc">TestText</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="TestText.test"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestText.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">string</span><span class="p">,</span> <span class="n">birth</span><span class="p">,</span> <span class="n">death</span> <span class="ow">in</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="s1">&#39;b. 1234&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;b. ca. 1234&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;b. c. 1234&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;d. 1234&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;d. ca. 1234&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;d. c. 1234&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;19th century&#39;</span><span class="p">,</span> <span class="s1">&#39;1801&#39;</span><span class="p">,</span> <span class="s1">&#39;1900&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;1234-5678&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="s1">&#39;5678&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;ca. 1234-5678&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="s1">&#39;5678&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;c. 1234-5678&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="s1">&#39;5678&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;1234-ca. 5678&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="s1">&#39;5678&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;1234-c. 5678&#39;</span><span class="p">,</span> <span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="s1">&#39;5678&#39;</span><span class="p">),</span>
+                <span class="p">]:</span>
+            <span class="n">b</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">parse_birth_death</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">birth</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">death</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestText.test_honoricifs"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestText.test_honoricifs">[docs]</a>    <span class="k">def</span> <span class="nf">test_honoricifs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">full</span><span class="p">,</span> <span class="n">cleaned</span> <span class="ow">in</span> <span class="p">[(</span><span class="s1">&#39;rev. john eddowes&#39;</span><span class="p">,</span> <span class="s1">&#39;john eddowes&#39;</span><span class="p">),</span>
+                              <span class="p">(</span><span class="s1">&#39;sir john ware edgar&#39;</span><span class="p">,</span> <span class="s1">&#39;john ware edgar&#39;</span><span class="p">),</span>
+                              <span class="p">(</span><span class="s1">&#39;hon. sir malcolm fraser&#39;</span><span class="p">,</span> <span class="s1">&#39;malcolm fraser&#39;</span><span class="p">),</span>
+                              <span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">strip_honorifics</span><span class="p">(</span><span class="n">full</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                             <span class="n">cleaned</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestText.test_fix_name"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestText.test_fix_name">[docs]</a>    <span class="k">def</span> <span class="nf">test_fix_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">fix_name</span><span class="p">(</span><span class="s1">&#39;  Colin Fraser    &#39;</span><span class="p">),</span>
+                         <span class="p">(</span><span class="s1">&#39;colin fraser&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">fix_name</span><span class="p">(</span><span class="s1">&#39;Fraser, Colin&#39;</span><span class="p">),</span>
+                         <span class="p">(</span><span class="s1">&#39;colin fraser&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">fix_name</span><span class="p">(</span><span class="s1">&#39;Sir Colin Fraser&#39;</span><span class="p">),</span>
+                         <span class="p">(</span><span class="s1">&#39;colin fraser&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;sir&#39;</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">fix_name</span><span class="p">(</span><span class="s1">&#39;Fraser, Sir Colin&#39;</span><span class="p">),</span>
+                         <span class="p">(</span><span class="s1">&#39;colin fraser&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;sir&#39;</span><span class="p">]))</span></div></div>
+
+
+<div class="viewcode-block" id="TestSplitter"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestSplitter">[docs]</a><span class="k">class</span> <span class="nc">TestSplitter</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="TestSplitter.test"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestSplitter.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">splitter</span> <span class="o">=</span> <span class="n">PunktSentenceSplitter</span><span class="p">(</span><span class="s1">&#39;en&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">splitter</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;hello world. this is another sentence! got it?&#39;</span><span class="p">)),</span>
+                             <span class="p">[</span><span class="s1">&#39;hello world.&#39;</span><span class="p">,</span> <span class="s1">&#39;this is another sentence!&#39;</span><span class="p">,</span> <span class="s1">&#39;got it?&#39;</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="TestPosTag"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestPosTag">[docs]</a><span class="k">class</span> <span class="nc">TestPosTag</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">u&#39;first item to be tagged&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;correct&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;first&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;JJ&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;first&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;item&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;NN&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;item&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;to&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;TO&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;to&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;be&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;VB&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;be&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;tagged&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;VVN&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;tag&#39;</span><span class="p">)],</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">u&#39;another item ready for pos tag&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;correct&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;another&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;DT&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;another&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;item&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;NN&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;item&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;ready&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;JJ&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;ready&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;for&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;IN&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;for&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;pos&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;NNS&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;po&#39;</span><span class="p">),</span>
+                        <span class="n">Tag</span><span class="p">(</span><span class="n">word</span><span class="o">=</span><span class="s1">u&#39;tag&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="s1">u&#39;NN&#39;</span><span class="p">,</span> <span class="n">lemma</span><span class="o">=</span><span class="s1">u&#39;tag&#39;</span><span class="p">)]</span>
+
+        <span class="p">}</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="TestPosTag.setUp"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestPosTag.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tagger</span> <span class="o">=</span> <span class="n">pos_tag</span><span class="o">.</span><span class="n">TTPosTagger</span><span class="p">(</span><span class="s1">&#39;en&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestPosTag.test_tag_many"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestPosTag.test_tag_many">[docs]</a>    <span class="k">def</span> <span class="nf">test_tag_many</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tagger</span><span class="o">.</span><span class="n">tag_many</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;tagged&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s1">&#39;correct&#39;</span><span class="p">,</span> <span class="n">each</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s1">&#39;tagged&#39;</span><span class="p">,</span> <span class="n">each</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="n">each</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="s1">&#39;tagged&#39;</span><span class="p">],</span> <span class="n">each</span><span class="p">[</span><span class="s1">&#39;correct&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TestPosTag.tag_one"><a class="viewcode-back" href="../../tests.html#tests.test_commons.TestPosTag.tag_one">[docs]</a>    <span class="k">def</span> <span class="nf">tag_one</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tagger</span><span class="o">.</span><span class="n">tag_one</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]),</span>
+                             <span class="n">each</span><span class="p">[</span><span class="s1">&#39;correct&#39;</span><span class="p">])</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Marco Fossati, Emilio Dorigatti.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

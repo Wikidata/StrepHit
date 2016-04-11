@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
 import json
 import logging
+from sys import exit
+
+import click
 import requests
+from pkg_resources import resource_stream
+
 from strephit.commons import secrets
 from strephit.commons.logging import log_request_data
-from pkg_resources import resource_stream
-from sys import exit
-from urllib import unquote_plus
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ def create_job(title, instructions, cml, custom_js):
     """
      Create an empty CrowdFlower job with the specified title and instructions.
      Raise any HTTP error that may occur.
+
      :param str title: plain text title
      :param str instructions: instructions, can contain HTML
      :param str cml: worker interface CML template. See https://success.crowdflower.com/hc/en-us/articles/202817989-CML-CrowdFlower-Markup-Language-Overview
@@ -71,6 +73,7 @@ def config_job(job_id):
     """
      Setup a given CrowdFlower job with default settings.
      See :const: JOB_SETTINGS
+
      :param str job_id: job ID registered in CrowdFlower
      :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message
      :rtype: dict
@@ -91,6 +94,7 @@ def upload_units(job_id, csv_data):
     """
      Upload the job data units to the given job.
      Raises any HTTP error that may occur.
+
      :param str job_id: job ID registered in CrowdFlower
      :param file csv_data: file handle pointing to the data units CSV
      :return: the uploaded job response object, as per https://success.crowdflower.com/hc/en-us/articles/201856229-CrowdFlower-API-API-Responses-and-Messaging#job_response on success, or an error message
@@ -108,6 +112,7 @@ def activate_gold(job_id):
     """
      Activate gold units in the given job.
      Corresponds to the 'Convert Uploaded Test Questions' UI button.
+
      :param str job_id: job ID registered in CrowdFlower
      :return: True on success
      :rtype: boolean
@@ -125,6 +130,7 @@ def activate_gold(job_id):
 def tag_job(job_id, tags):
     """
      Tag a given job.
+
      :param str job_id: job ID registered in CrowdFlower
      :param list tags: list of tags
      :return: True on success
@@ -147,7 +153,9 @@ def tag_job(job_id, tags):
 @click.option('--javascript', '-j', type=click.File(), default=resource_stream(__name__, 'resources/randomize.js'))
 @click.option('--tags', help="Comma-separated list of job tags")
 def main(csv_data, title, instructions, cml, javascript, tags):
-    """ Post a CrowdFlower annotation job with title, instructions, CML interface template, custom JavaSctipt, and data units """
+    """ Post a CrowdFlower annotation job with title, instructions,
+        CML interface template, custom JavaSctipt, and data units
+    """
     logger.info("Creating CrowdFlower job ...")
     job = create_job(title, ''.join(instructions.readlines()), ''.join(cml.readlines()),
                      ''.join(javascript.readlines()))

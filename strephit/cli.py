@@ -1,10 +1,9 @@
 from __future__ import absolute_import
+
 import click
-import yaml
-import sys
+
 import strephit
 from strephit.commons import logging, cache
-
 
 CLI_COMMANDS = {
     'annotation': strephit.annotation.cli.cli,

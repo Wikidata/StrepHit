@@ -1,4 +1,5 @@
 import click
+
 from strephit.corpus_analysis import extract_framenet_frames, rank_verbs, compute_lu_distribution, statistics
 
 CLI_COMMANDS = {

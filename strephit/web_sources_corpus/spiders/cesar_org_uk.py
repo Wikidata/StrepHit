@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-import scrapy
 
 from strephit.web_sources_corpus.spiders import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.commons import text
-
 
 
 class CesarOrgUkSpider(BaseSpider):
@@ -24,15 +22,15 @@ class CesarOrgUkSpider(BaseSpider):
 
         item['other'] = {
             'biography': text.extract_dict(response,
-                'xpath:.//td[@id="keyColumn"]',
-                'xpath:.//td[@id="valueColumn"]'
-            ),
+                                           'xpath:.//td[@id="keyColumn"]',
+                                           'xpath:.//td[@id="valueColumn"]'
+                                           ),
             'scripts': [('http://cesar.org.uk/cesar2/titles/titles.php?fct=edit&script_UOID=' +
-                            script[len('javascript:scriptClicked('):-1])
+                         script[len('javascript:scriptClicked('):-1])
                         for script in response.xpath('.//td[@id="keywordColumn"]//a/@href').extract()]
         }
 
         item['name'] = '%s, %s' % (item['other']['biography'].get('Last name', ''),
                                    item['other']['biography'].get('First name', ''))
- 
+
         return super(CesarOrgUkSpider, self).refine_item(response, item)

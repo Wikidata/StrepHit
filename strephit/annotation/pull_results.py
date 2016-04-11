@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
-import json
 import logging
-import requests
-from pkg_resources import resource_stream
 from sys import exit
 from zipfile import ZipFile
 from StringIO import StringIO
+
+import click
+import requests
+
 from strephit.commons import secrets
 from strephit.commons.logging import log_request_data
 
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 def get_latest_job_id():
     """
     Get the ID of the most recent job.
+
     :return: the latest job ID
     :rtype: str
     """
@@ -34,6 +35,7 @@ def download_full_report(job_id):
     Download the full CSV report of the given job.
     See https://success.crowdflower.com/hc/en-us/articles/202703075-Guide-to-Reports-Page-and-Settings-Page#full_report
     Raises any HTTP error that may occur.
+
     :param str job_id: job ID registered in CrowdFlower
     """
     params = {

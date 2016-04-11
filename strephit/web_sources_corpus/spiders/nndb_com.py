@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import scrapy
-import json
 from strephit.commons import text
 from strephit.web_sources_corpus.spiders.BaseSpider import BaseSpider
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
@@ -30,7 +28,7 @@ class NndbComSpider(BaseSpider):
             fields = paragraph.xpath('./b/text()').extract()
             if not fields:
                 inner_text = text.clean_extract(paragraph, './/text()', sep=' ',
-                                                 unicode=False)
+                                                unicode=False)
                 item['bio'] += inner_text + '\n'
             else:
                 contents = paragraph.xpath('.//text()').extract()

@@ -23,8 +23,8 @@ class AcademiaNetSpider(BaseSpider):
     def refine_item(self, response, item):
         item['other'] = {}
         for ul in response.xpath(
-                './/div[@id="stammdaten"]/div[contains(@class, "text")]//ul'
-            ):
+            './/div[@id="stammdaten"]/div[contains(@class, "text")]//ul'
+        ):
             field = ul.xpath('preceding-sibling::h4/text()').extract()[-1]
             value = [
                 text.clean_extract(li, './/text()', sep=' ') for li in ul.xpath('li')
@@ -39,5 +39,5 @@ class AcademiaNetSpider(BaseSpider):
                 item['other'][title] = values
 
         item['name'] = text.clean(item['name'].replace('\t', ' '))
-        
+
         return super(AcademiaNetSpider, self).refine_item(response, item)

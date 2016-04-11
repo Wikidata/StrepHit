@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import click
 import json
 import logging
 from collections import defaultdict, OrderedDict
 from sys import exit
-from strephit.commons.io import load_corpus, load_scraped_items
-from strephit.commons import parallel
 from numpy import average
+
+import click
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
+
+from strephit.commons.io import load_corpus, load_scraped_items
+from strephit.commons import parallel
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,7 @@ VERBAL_PREFIXES = {
 
 def get_similarity_scores(verb_token, vectorizer, tf_idf_matrix):
     """ Compute the cosine similarity score of a given verb token against the input corpus TF/IDF matrix.
+
         :param str verb_token: Surface form of a verb, e.g., *born*
         :return: cosine similarity score
         :rtype: ndarray
@@ -36,6 +39,7 @@ def get_similarity_scores(verb_token, vectorizer, tf_idf_matrix):
 
 def produce_lemma_tokens(pos_tagged_path, pos_tag_key, language):
     """ Extracts a map from lemma to all its tokens
+
         :param pos_tagged_path: path of the pos-tagged corpus
         :param pos_tag_key: where the pos tag data is in each item
         :param language: language of the corpus
@@ -55,6 +59,7 @@ def produce_lemma_tokens(pos_tagged_path, pos_tag_key, language):
 
 def compute_tf_idf_matrix(corpus_path, document_key):
     """ Computes the TF-IDF matrix of the corpus
+
         :param corpus_path: path of the corpus
         :param document_key: where the textual content is in the corpus
         :return: a vectorizer and the computed matrix
@@ -66,6 +71,7 @@ def compute_tf_idf_matrix(corpus_path, document_key):
 
 
 class TFIDFRanking:
+
     def __init__(self, vectorizer, verbs, tfidf_matrix):
         self.vectorizer = vectorizer
         self.verbs = verbs
@@ -91,6 +97,7 @@ class TFIDFRanking:
 
 
 class PopularityRanking:
+
     def __init__(self, corpus_path, pos_tag_key):
         self.tags = self._flatten(item.get(pos_tag_key) for item in load_scraped_items(corpus_path))
 
@@ -141,12 +148,18 @@ class PopularityRanking:
 
 def harmonic_ranking(*rankings):
     """ Combines individual rankings with an harmonic mean to obtain a final ranking
+
         :param rankings: dictionary of individual rankings
         :return: the new, combined ranking
     """
-    product = lambda x, y: x * y
-    sum = lambda x, y: x + y
-    get = lambda k: (r[k] for r in rankings)
+    def product(x, y):
+        return x * y
+
+    def sum(x, y):
+        return x + y
+
+    def get(k):
+        return (r[k] for r in rankings)
 
     lemmas = reduce(lambda x, y: x.union(y), (set(r) for r in rankings))
     return OrderedDict(sorted(

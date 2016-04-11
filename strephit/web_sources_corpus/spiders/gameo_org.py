@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+
 from strephit.commons import text
 from strephit.web_sources_corpus.items import WebSourcesCorpusItem
 from strephit.web_sources_corpus.spiders.BaseSpider import BaseSpider

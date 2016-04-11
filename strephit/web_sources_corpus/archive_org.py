@@ -2,10 +2,10 @@
 # -*- encoding: utf-8 -*-
 
 import re
-import click
 import json
-import os
-import requests
+
+import click
+
 from strephit.commons.io import get_and_cache
 
 
