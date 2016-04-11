@@ -23,7 +23,7 @@ class SentenceExtractor:
     """ Base class for sentence extractors.
     """
 
-    def __init__(self, corpus, pos_tag_key, document_key, sentences_key, language, lemma_to_token):
+    def __init__(self, corpus, pos_tag_key, document_key, sentences_key, language, lemma_to_token, match_base_form):
         """ Initializes the extractor.
             :param corpus: The corpus, iterable of `dict`s. Generator preferred
             :param pos_tag_key: The key from which to retrieve the pos tagged document
@@ -38,6 +38,7 @@ class SentenceExtractor:
         self.document_key = document_key
         self.lemma_to_token = lemma_to_token
         self.language = language
+        self.lemma_to_token = lemma_to_token if match_base_form else self._filter_base_form(lemma_to_token)
 
     def extract_from_item(self, item):
         """ Extract sentences from an item. Relies on `setup_extractor`
@@ -84,6 +85,14 @@ class SentenceExtractor:
             logger.info('Total sentences extracted: %d', count)
         finally:
             self.teardown_extractor()
+
+    @staticmethod
+    def _filter_base_form(lemma_to_token):
+        """ Remove the base form from each list of tokens """
+        for lemma, tokens in lemma_to_token.iteritems():
+            if lemma in tokens:
+                tokens.remove(lemma)
+        return lemma_to_token
 
 
 class OneToOneExtractor(SentenceExtractor):
@@ -304,6 +313,9 @@ class GrammarExtractor(SentenceExtractor):
                     self.language, self.grammars.keys())
             )
 
+        for lemma, match_tokens in self.lemma_to_token.iteritems():
+            self.lemma_to_token[lemma] = set([match.lower() for match in match_tokens])
+
     def extract_from_item(self, item):
         extracted = []
 
@@ -329,18 +341,19 @@ class GrammarExtractor(SentenceExtractor):
                     # Restrict match to sub-sentence verbs only
                     if pos.startswith('V'):
                         for lemma, match_tokens in self.lemma_to_token.iteritems():
-                            for match in match_tokens:
-                                if token.lower() == match.lower():
-                                    # Return joined chunks only
-                                    # TODO test with full sentence as well
-                                    # TODO re-constitute original text (now join on space)
-                                    text = ' '.join(leaf[0] for leaf in grammar_match.leaves())
-                                    logger.debug("Extracted sentence: '%s'" % text)
-                                    extracted.append({
-                                        'lu': lemma,
-                                        'text': text,
-                                        'tagged': tags,
-                                    })
+                            if token.lower() in match_tokens:
+                                # Return joined chunks only
+                                # TODO test with full sentence as well
+                                # TODO re-constitute original text (now join on space)
+                                text = ' '.join([leaf[0] for leaf in grammar_match.leaves()])
+                                logger.debug("Extracted sentence: '%s'" % text)
+                                logger.debug("Sentence token '%s' is in matches %s" % (token, match_tokens))
+                                logger.debug("Extracted sentence: %s" % text)
+                                extracted.append({
+                                    'lu': lemma,
+                                    'text': text,
+                                    'tagged': tagged,
+                                })
 
         if extracted:
             logger.debug("%d sentences extracted. Removing the full text from the item ...", len(extracted))
@@ -350,7 +363,8 @@ class GrammarExtractor(SentenceExtractor):
             logger.debug("No sentences extracted. Skipping the whole item ...")
 
 
-def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language, lemma_to_tokens, strategy, processes=0):
+def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language,
+                      lemma_to_tokens, strategy, match_base_form, processes=0):
     """
     Extract sentences from the given corpus by matching tokens against a given set.
     :param corpus: Pos-tagged corpus, as an iterable of documents
@@ -360,6 +374,7 @@ def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language
     :param str language: ISO 639-1 language code used for tokenization and sentence splitting
     :param dict lemma_to_tokens: Dict with corpus lemmas as keys and tokens to be matched as values
     :param str strategy: One of the 4 extraction strategies ['121', 'n2n', 'grammar', 'syntactic']
+    :param bool match_base_form: whether to match verbs base form
     :param int processes: How many concurrent processes to use
     :return: the corpus, updated with the extracted sentences and the number of extracted sentences
     :rtype: generator of tuples
@@ -385,7 +400,8 @@ def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language
         raise ValueError("Malformed or unsupported extraction strategy: "
                          "please use one of ['121', 'n2n', 'grammar', or 'syntactic']")
 
-    for each in extractor(corpus, pos_tag_key, document_key, sentences_key, language, lemma_to_tokens).extract(processes):
+    for each in extractor(corpus, pos_tag_key, document_key, sentences_key, language,
+                          lemma_to_tokens, match_base_form).extract(processes):
         yield each
 
 
@@ -399,12 +415,13 @@ def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language
 @click.option('--pos-tag-key', default='pos_tag')
 @click.option('--document-key', default='bio')
 @click.option('--processes', '-p', default=0)
+@click.option('--match-base-form', is_flag=True, default=False)
 def main(pos_tagged, language_code, lemma_to_tokens, strategy, output, processes,
-         sentences_key, pos_tag_key, document_key):
+         sentences_key, pos_tag_key, document_key, match_base_form):
     """ Extract corpus sentences containing at least one token in the given set. """
     corpus = load_scraped_items(pos_tagged)
     updated = extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language_code,
-                                json.load(lemma_to_tokens), strategy, processes)
+                                json.load(lemma_to_tokens), strategy, match_base_form, processes)
     for item in updated:
         output.write(json.dumps(item) + '\n')
     return 0

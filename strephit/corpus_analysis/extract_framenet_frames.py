@@ -84,10 +84,6 @@ def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
                     fe_type = fe_data['coreType']
                     semantic_type_object = fe_data['semType']
                     semantic_type = semantic_type_object['name'] if semantic_type_object else None
-                    # Skip FEs with no mapping to Wikidata
-                    if not mapping:
-                        logger.debug("FE '%s' has no mapping to Wikidata. Skipping ..." % fe_label)
-                        continue
                     to_be_added = {
                         'fe': fe_label,
                         'type': fe_type,
@@ -122,13 +118,20 @@ def intersect_lemmas_with_framenet(corpus_lemmas, wikidata_properties):
 def extract_top_corpus_tokens(enriched_lemmas, all_lemma_tokens):
     """
      Extract the subset of corpus lemmas with tokens gievn the set of top lemmas
-     :param list enriched_lemmas: Dist returned by :func:`intersect_lemmas_with_framenet`
+     :param dict enriched_lemmas: Dict returned by :func:`intersect_lemmas_with_framenet`
      :param dict all_lemma_tokens: Dict of all corpus lemmas with tokens
      :return: the top lemmas with tokens dict
      :rtype: dict
     """
     top_lemmas_tokens = {}
-    for top in enriched_lemmas:
+    for score, frames in data.iteritems():
+        # Frames for the same lemma have the same LU:
+        # take the first frame and remove the last 2 characters '.v'
+        lu = frames[0]['lu'][:-2]
+        tokens = lemma_tokens.get(lu)
+        if tokens:
+            top_lemma_tokens[lu] = tokens
+    for score, frames in enriched_lemmas.iteritems():
         tokens = all_lemma_tokens.get(top)
         if tokens:
             top_lemmas_tokens[top] = tokens
