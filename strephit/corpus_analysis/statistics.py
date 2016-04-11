@@ -86,7 +86,7 @@ def about_sources(corpus, processes, with_bio):
 
 @main.command()
 @click.argument('corpus', type=click.Path(exists=True))
-def about_biographies(corpus):
+def about_biographies_count(corpus):
     count = with_bio = characters = 0
     for doc in load_scraped_items(corpus):
         count += 1
@@ -108,4 +108,36 @@ def about_biographies(corpus):
     plt.xticks([0.375, 1.375], ['Without Biography', 'With Biography'])
     plt.grid(True, axis='y')
     plt.xlim((-0.5, 2.25))
+    plt.show()
+
+@main.command()
+@click.argument('corpus', type=click.Path(exists=True))
+@click.option('--bins', '-b', default=50)
+@click.option('--log-y/--lin-y')
+def about_biographies_length(corpus, bins, log_y):
+    lengths = []
+    for doc in load_scraped_items(corpus):
+        if len(doc.get('bio') or '') > 5:
+            lengths.append(len(doc['bio']))
+
+    width = float(max(lengths)) / bins
+    buckets = defaultdict(int)
+    for each in lengths:
+        buckets[int(each / width)] += 1
+
+    for i in xrange(max(buckets.keys())):
+        print '%d - %d: %d' % (i * width, (i + 1) * width - 1, buckets[i])
+
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        logger.warn('Cannot import matplotlib, skipping chart')
+        return
+
+    plt.title('Biography length distribution for %d items' % len(lengths))
+    plt.xlabel('Biography length in characters')
+    plt.ylabel('Number of items')
+    plt.hist(lengths, bins=bins, log=log_y)
+    plt.grid(True)
+    plt.tight_layout()
     plt.show()
