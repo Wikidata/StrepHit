@@ -5,7 +5,9 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = _build
+BUILDDIR      = build
+SOURCEDIR     = source
+MAIN_MODULE   = ../strephit
 
 # User-friendly check for sphinx-build
 ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
@@ -15,7 +17,7 @@ endif
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SOURCEDIR)
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
@@ -51,6 +53,12 @@ help:
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/*
+
+.PHONY: apidoc
+apidoc:
+	sphinx-apidoc -o $(SOURCEDIR) $(MAIN_MODULE)
+	@echo
+	@echo "Doc sources updated. They are in $(SOURCEDIR)"
 
 .PHONY: html
 html:
