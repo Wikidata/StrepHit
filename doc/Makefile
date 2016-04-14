@@ -66,6 +66,12 @@ html:
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
+.PHONY: wikisyntax
+wikisyntax:
+	$(SPHINXBUILD) -b wikisyntax $(ALLSPHINXOPTS) $(BUILDDIR)/wikisyntax
+	@echo
+	@echo "Build finished. The HTML pages are in $(BUILDDIR)/wikisyntax."
+
 .PHONY: dirhtml
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
