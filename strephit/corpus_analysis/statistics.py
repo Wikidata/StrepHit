@@ -44,8 +44,7 @@ def about_sources(corpus, processes, with_bio):
                             doc.get('name'), doc.get('bio', '')[:100] + ' ...')
                 sources['_skipped_'] += 1
                 continue
-            elif with_bio and not doc.get('bio'):
-                sources['_skipped_'] += 1
+            elif with_bio and len(doc.get('bio') or '') < 5:
                 continue
 
             parsed = urlparse(url)
@@ -87,6 +86,8 @@ def about_sources(corpus, processes, with_bio):
 @main.command()
 @click.argument('corpus', type=click.Path(exists=True))
 def about_biographies_count(corpus):
+    """ Finds how many items have/don't have a biography
+    """
     count = with_bio = characters = 0
     for doc in load_scraped_items(corpus):
         count += 1
@@ -112,9 +113,11 @@ def about_biographies_count(corpus):
 
 @main.command()
 @click.argument('corpus', type=click.Path(exists=True))
-@click.option('--bins', '-b', default=50)
-@click.option('--log-y/--lin-y')
+@click.option('--bins', '-b', default=50, help='Number of bins to use for the histogram')
+@click.option('--log-y/--lin-y', help='Use a linear/logarithmic Y axis')
 def about_biographies_length(corpus, bins, log_y):
+    """ Computes an histogram of biography length
+    """
     lengths = []
     for doc in load_scraped_items(corpus):
         if len(doc.get('bio') or '') > 5:
