@@ -19,6 +19,7 @@ from resources.frame_repo import LU_FRAME_MAP
 from strephit.commons.date_normalizer import DateNormalizer
 from strephit.commons.scoring import compute_score, AVAILABLE_SCORES
 from strephit.commons.stopwords import StopWords
+from strephit.commons.tokenize import Tokenizer
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,8 @@ def label_sentence(entity_linking_results, debug, numerical):
     labeled['sentence'] = sentence
     labeled['FEs'] = defaultdict(list)
     # Tokenize by splitting on spaces
-    sentence_tokens = sentence.split()
+    t = Tokenizer(language)
+    sentence_tokens = t.tokenize(sentence)
     logger.debug('SENTENCE: %s' % sentence)
     logger.debug('TOKENS: %s' % sentence_tokens)
     frames = []
