@@ -43,29 +43,25 @@ def label_sentence(entity_linking_results, debug, numerical):
     labeled['FEs'] = defaultdict(list)
     # Tokenize by splitting on spaces
     sentence_tokens = sentence.split()
-    if debug:
-        print 'SENTENCE: %s' % sentence
-        print 'TOKENS: %s' % sentence_tokens
+    logger.debug('SENTENCE: %s' % sentence)
+    logger.debug('TOKENS: %s' % sentence_tokens)
     frames = []
     for lu in LU_FRAME_MAP:
         lu_tokens = lu['lu']['tokens']
         # Check if a sentence token matches a LU token and assign frames accordingly
         for sentence_token in sentence_tokens:
             if sentence_token in lu_tokens:
-                if debug:
-                    print 'TOKEN "%s" MATCHED IN LU TOKENS' % sentence_token
+                logger.debug('TOKEN "%s" MATCHED IN LU TOKENS' % sentence_token)
                 labeled['lu'] = lu['lu']['lemma']
                 frames = lu['lu']['frames']
-                if debug:
-                    print 'LU LEMMA: %s' % labeled['lu']
-                    print 'FRAMES: %s' % [frame['frame'] for frame in frames]
+                logger.debug('LU LEMMA: %s' % labeled['lu'])
+                logger.debug('FRAMES: %s' % [frame['frame'] for frame in frames])
                 # Frame processing
                 for frame in frames:
                     FEs = frame['FEs']
                     types_to_FEs = frame['DBpedia']
-                    if debug:
-                        print 'CURRENT FRAME: %s' % frame['frame']
-                        print 'FEs: %s' % FEs
+                    logger.debug('CURRENT FRAME: %s' % frame['frame'])
+                    logger.debug('FEs: %s' % FEs)
                     core = False
                     assigned_fes = []
                     for diz in val:
@@ -86,8 +82,7 @@ def label_sentence(entity_linking_results, debug, numerical):
                                 # Strip DBpedia ontology namespace
                                 looked_up = mapping.get(t[28:])
                                 if looked_up:
-                                    if debug:
-                                        print 'Chunk "%s" has an ontology type "%s" that maps to FE "%s"' % (chunk['chunk'], t[28:], looked_up)
+                                    logger.debug('Chunk "%s" has an ontology type "%s" that maps to FE "%s"' % (chunk['chunk'], t[28:], looked_up))
                                     ### Frame disambiguation strategy, part 1 ###
                                     # LAPSE ASSIGNMENT
                                     # If there is AT LEAST ONE core FE, then assign that frame
@@ -104,16 +99,14 @@ def label_sentence(entity_linking_results, debug, numerical):
                                                 if shared_fe_type:
                                                     chunk['type'] = shared_fe_type
                                                 if shared_fe_type == 'core':
-                                                    if debug:
-                                                        print 'Mapped FE "%s" is core for frame "%s"' % (shared_type_fe, frame['frame'])
+                                                    logger.debug('Mapped FE "%s" is core for frame "%s"' % (shared_type_fe, frame['frame']))
                                                     core = True
                                         else:
                                             fe_type = fe.get(looked_up)
                                             if fe_type:
                                                 chunk['type'] = fe_type
                                             if fe_type == 'core':
-                                                if debug:
-                                                    print 'Mapped FE "%s" is core for frame "%s"' % (looked_up, frame['frame'])
+                                                logger.debug('Mapped FE "%s" is core for frame "%s"' % (looked_up, frame['frame']))
                                                 core = True
                                     ### FE disambiguation strategy ###
                                     # If multiple FEs have the same ontology type, e.g., [Vincitore, Perdente] -> Club
@@ -132,14 +125,12 @@ def label_sentence(entity_linking_results, debug, numerical):
                                             assigned_fes.append(chunk)
                     # Continue to next frame if NO core FE was found
                     if not core:
-                        if debug:
-                            print 'No core FE for frame "%s": skipping' % frame['frame']
+                        logger.debug('No core FE for frame "%s": skipping' % frame['frame'])
                         continue
                     # Otherwise assign frame and previously stored FEs
                     else:
-                        if debug:
-                            print 'ASSIGNING FRAME: %s' % frame['frame']
-                            print 'ASSIGNING FEs: %s' % assigned_fes
+                        logger.debug('ASSIGNING FRAME: %s' % frame['frame'])
+                        logger.debug('ASSIGNING FEs: %s' % assigned_fes)
                         ### Frame disambiguation strategy, part 2 ###
                         # If at least 1 core FE is detected in multiple frames:
                         # BASELINE = random assignment
@@ -149,8 +140,7 @@ def label_sentence(entity_linking_results, debug, numerical):
                         if previous_frame:
                             previous_FEs = labeled['FEs']
                             choice = random.choice([previous_frame, current_frame])
-                            if debug:
-                                print 'CORE FES FOR MULTIPLE FRAMES WERE DETECTED. MAKING A RANDOM ASSIGNMENT: %s' % choice
+                            logger.debug('CORE FES FOR MULTIPLE FRAMES WERE DETECTED. MAKING A RANDOM ASSIGNMENT: %s' % choice)
                             if choice == current_frame:
                                 labeled['frame'] = current_frame
                                 labeled['FEs'] = assigned_fes
@@ -160,12 +150,10 @@ def label_sentence(entity_linking_results, debug, numerical):
 
     # Normalize + annotate numerical FEs (only if we could disambiguate the sentence)
     if labeled.get('frame') and numerical:
-        if debug:
-            print 'LABELING AND NORMALIZING NUMERICAL FEs ...'
+        logger.debug('LABELING AND NORMALIZING NUMERICAL FEs ...')
         for (start, end), tag, norm in NORMALIZER.normalize_many(sentence):
             chunk = sentence[start:end]
-            if debug:
-                print 'Chunk [%s] normalized into [%s], tagged as [%s]' % (chunk, norm, tag)
+            logger.debug('Chunk [%s] normalized into [%s], tagged as [%s]' % (chunk, norm, tag))
             fe = {  # All numerical FEs are extra ones and their values are literals
                 'chunk': chunk,
                 'FE': tag,
@@ -196,8 +184,7 @@ def process_dir(indir, debug, numerical):
             labeled['id'] = '.'.join(name.split('.')[:2])
 
             processed.append(labeled)
-            if debug:
-                print 'LABELED: %s' % labeled
+            logger.debug('LABELED: %s' % labeled)
     return processed
 
 
