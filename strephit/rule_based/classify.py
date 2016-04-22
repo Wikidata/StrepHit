@@ -14,8 +14,7 @@ import random
 from collections import defaultdict
 from urllib import quote
 from rfc3987 import parse  # URI/IRI validation
-from date_normalizer import DateNormalizer
-from resources.frame_repo import LU_FRAME_MAP
+from resources.frame_repo import FRAME_REPO
 from strephit.commons.date_normalizer import DateNormalizer
 from strephit.commons.scoring import compute_score, AVAILABLE_SCORES
 from strephit.commons.stopwords import StopWords
@@ -48,7 +47,7 @@ def label_sentence(entity_linking_results, debug, numerical):
     logger.debug('SENTENCE: %s' % sentence)
     logger.debug('TOKENS: %s' % sentence_tokens)
     frames = []
-    for lu in LU_FRAME_MAP:
+    for lu in FRAME_REPO:
         lu_tokens = lu['lu']['tokens']
         # Check if a sentence token matches a LU token and assign frames accordingly
         for sentence_token in sentence_tokens:
