@@ -3,44 +3,55 @@ FRAME_REPO = [
     {
         "lu":
         {
-            "lemma": "esordire",
+            "lemma": "pubblicare",
             "tokens":
             [
-                "esordendo",
-                "esordendovi",
-                u"esordì",
-                u"esordirà",
-                "esordiranno",
-                "esordire",
-                "esordirono",
-                "esordirvi",
-                "esordisca",
-                "esordisce",
-                "esordiscono",
-                "esordito",
-                "esordiva"
+    "pubblica",
+    "pubblicano",
+    "pubblico",
+    "pubblicarlo",
+    "pubblic\u00f2",
+    "pubblicarli",
+    "pubblicarle",
+    "pubblicarla",
+    "pubblicarne",
+    "pubblicato",
+    "pubblicandone",
+    "pubblicati",
+    "pubblicate",
+    "pubblicavano",
+    "pubblicata",
+    "pubblichiamo",
+    "pubblicarono",
+    "pubblicassi",
+    "pubblicava",
+    "pubblicare",
+    "pubblichi",
+    "pubblichino",
+    "pubblicheremo",
+    "pubblicher\u00e0",
+    "pubblicando",
+    "pubblicai",
+    "pubblicher\u00f2"
             ],
             "frames":
             [
                 {
-                    "frame": u"Attività",
+                    "frame": u"Pubblicazione",
                     "FEs":
                     [
-                        { "Competizione": "core" },
-                        { "Squadra": "core" },
-                        { "Agente": "extra" },
-                        { "Durata": "extra" },
+                        { "Autore": "core" },
+                        { "Editore": "core" },
+                        { "Lavoro": "core" },
                         { "Luogo": "extra" },
                         { "Tempo": "extra" }
                     ],
                     "DBpedia":
                     [
-                        { "SoccerLeague": "Competizione" },
-                        { "SoccerTournament": "Competizione" },
-                        { "SoccerLeagueSeason": "Competizione" },
-                        { "SoccerClub": "Squadra" },
-                        { "Place": "Luogo" },
-                        { "SoccerPlayer": "Agente" }
+                        { "Person": "Autore" },
+                        { "Organisation": "Editore" },
+                        { "Work": "Lavoro" },
+                        { "Place": "Luogo" }
                     ]
                 }
             ]
@@ -52,171 +63,72 @@ FRAME_REPO = [
             "lemma": "giocare",
             "tokens":
             [
-                "gioca",
-                "giocai",
-                "giocammo",
-                "giocandoci",
-                "giocando",
-                "giocandogli",
-                "giocandola",
-                "giocandole",
-                "giocandoli",
-                "giocandolo",
-                "giocandone",
-                "giocandosela",
-                "giocandoselo",
-                "giocandosi",
-                "giocandovi",
-                "giocane",
-                "giocano",
-                "giocante",
-                "giocanti",
-                "giocarci",
-                "giocare",
-                "giocar",
-                "giocargli",
-                "giocarla",
-                "giocarle",
-                "giocarli",
-                "giocarlo",
-                "giocarne",
-                "giocarono",
-                "giocarsela",
-                "giocarselo",
-                "giocarsi",
-                "giocarvi",
-                "giocasi",
-                "giocasse",
-                "giocassero",
-                "giocata",
-                "giocate",
-                "giocatesi",
-                "giocatevi",
-                "giocati",
-                "giocato",
-                "giocava",
-                "giocavamo",
-                "giocavano",
-                "giocavi",
-                "giocavo",
-                u"giocherà",
-                "giocheranno",
-                "giocherebbe",
-                "giocherebbero",
-                "giocherei",
-                "giocheremo",
-                "giocheresti",
-                "giocherete",
-                u"giocherò",
-                "giochiamo",
-                "giochi",
-                "giochino",
-                "gioco",
-                u"giocò"
+  "giocare",
+    "giocassero",
+    "giocherebbe",
+    "giocandosi",
+    "giocassimo",
+    "giocarvi",
+    "giocherebbero",
+    "giocammo",
+    "giocarsela",
+    "giocatesi",
+    "giocarsi",
+    "giocarsele",
+    "giocavo",
+    "giocano",
+    "giocai",
+    "giocate",
+    "giocarla",
+    "giocheranno",
+    "giocata",
+    "giocarono",
+    "giocavi",
+    "giocherei",
+    "giocavano",
+    "giocheremo",
+    "giocato",
+    "giocati",
+    "giocarsene",
+    "giocava",
+    "gioc\u00f2",
+    "giochino",
+    "giocher\u00e0",
+    "giocando",
+    "gioca",
+    "giocarli",
+    "giochiamocela",
+    "giocher\u00f2",
+    "giocarle",
+    "gioco",
+    "giocarmela",
+    "giocasse",
+    "giocandoli",
+    "giocavamo",
+    "giocarmelo",
+   "giocarcela",
+    "giocheremmo",
+    "giocarci",
+    "giochi",
+    "giochiamo",
+    "giocarmi"
             ],
             "frames":
             [
                 {
-                    "frame": "Partita",
+                    "frame": "Attivita",
                     "FEs":
                     [
-                        { "Squadra_1": "core" },
-                        { "Squadra_2": "core" },
-                        { "Competizione": "extra"},
+                        { "Attivita": "core" },
+                        { "Partecipante": "core" },
                         { "Luogo": "extra" },
                         { "Tempo": "extra" },
-                        { "Punteggio": "extra" },
-                        { "Classifica": "extra" }
                     ],
                     "DBpedia":
                     [
-                        { "SoccerLeague": "Competizione" },
-                        { "SoccerTournament": "Competizione" },
-                        { "SoccerLeagueSeason": "Competizione" },
-                        { "SoccerClub": ["Squadra_1", "Squadra_2"] },
-                        { "Place": "Luogo" }
-                    ]
-                },
-                {
-                    "frame": u"Attività",
-                    "FEs":
-                    [
-                        { "Competizione": "core" },
-                        { "Squadra": "core" },
-                        { "Agente": "extra" },
-                        { "Durata": "extra" },
-                        { "Luogo": "extra" },
-                        { "Tempo": "extra" }
-                    ],
-                    "DBpedia":
-                    [
-                        { "SoccerLeague": "Competizione" },
-                        { "SoccerTournament": "Competizione" },
-                        { "SoccerLeagueSeason": "Competizione" },
-                        { "SoccerClub": "Squadra" },
-                        { "Place": "Luogo" },
-                        { "SoccerPlayer": "Agente" }
-                    ]
-                }
-            ]
-        }
-    },
-    {
-        "lu":
-        {
-            "lemma": "perdere",
-            "tokens":
-            [
-                "perda",
-                "perde",
-                "perdemmo",
-                "perdendo",
-                "perdendola",
-                "perdendole",
-                "perdendoli",
-                "perdendolo",
-                "perdendone",
-                u"perderà",
-                "perderanno",
-                "perdere",
-                "perderla",
-                "perderlo",
-                "perderne",
-                "perdersi",
-                "perdesse",
-                "perdessero",
-                "perdessimo",
-                "perdete",
-                "perdeva",
-                "perdevano",
-                "perdilo",
-                "perdono",
-                "persa",
-                "perse",
-                "persero",
-                "persi",
-                "perso"
-            ],
-            "frames":
-            [
-                {
-                    "frame": "Sconfitta",
-                    "FEs":
-                    [
-                        { "Vincitore": "core" },
-                        { "Perdente": "core" },
-                        { "Competizione": "extra"},
-                        { "Luogo": "extra" },
-                        { "Tempo": "extra" },
-                        { "Punteggio": "extra" },
-                        { "Classifica": "extra" }
-                    ],
-                    "DBpedia":
-                    [
-                        { "SoccerLeague": "Competizione" },
-                        { "SoccerTournament": "Competizione" },
-                        { "SoccerLeagueSeason": "Competizione" },
-                        { "SoccerClub": ["Vincitore", "Perdente"] },
+                        { "Activity": "Attivita" },
+                        { "Person": "Partecipante" },
+                        { "Organisation": "Partecipante" },
                         { "Place": "Luogo" }
                     ]
                 }
@@ -226,77 +138,59 @@ FRAME_REPO = [
     {
         "lu":
         {
-            "lemma": "rimanere",
+            "lemma": "assumere",
             "tokens":
             [
-                "rimane",
-                "rimanendo",
-                "rimanendoci",
-                "rimanendolo",
-                "rimanendone",
-                "rimanendovi",
-                "rimaner",
-                "rimanerci",
-                "rimanere",
-                "rimanermi",
-                "rimanervi",
-                "rimanesse",
-                "rimanessero",
-                "rimaneva",
-                "rimanevano",
-                "rimanga",
-                "rimangono",
-                "rimani",
-                u"rimarrà",
-                "rimarrai",
-                "rimarranno",
-                "rimarrebbe",
-                "rimase",
-                "rimasero",
-                "rimasi",
-                "rimasta",
-                "rimaste",
-                "rimasti",
-                "rimasto"
+   "assumer\u00e0",
+    "assumano",
+    "assumiamo",
+    "assunse",
+    "assumiti",
+    "assumono",
+    "assumerlo",
+    "assumersi",
+    "assumersene",
+    "assumeremo",
+    "assumerne",
+    "assumer",
+    "assunti",
+    "assumerci",
+    "assumere",
+    "assunto",
+    "assunta",
+    "assunte",
+    "assumevo",
+    "assumevano",
+    "assumeva",
+    "assumendosi",
+    "assumo",
+    "assumessero",
+    "assumi",
+    "assume",
+    "assumerebbe",
+    "assuma",
+    "assumermi",
+    "assumerti",
+    "assumeranno",
+    "assumendosene",
+    "assunsero",
+    "assumendo"
             ],
             "frames":
             [
                 {
-                    "frame": u"Attività",
+                    "frame": "Assunzione",
                     "FEs":
                     [
-                        { "Competizione": "core" },
-                        { "Squadra": "core" },
-                        { "Agente": "extra" },
-                        { "Durata": "extra" },
+                        { "Datore": "core" },
+                        { "Assunto": "core" },
                         { "Luogo": "extra" },
                         { "Tempo": "extra" }
                     ],
                     "DBpedia":
                     [
-                        { "SoccerLeague": "Competizione" },
-                        { "SoccerTournament": "Competizione" },
-                        { "SoccerLeagueSeason": "Competizione" },
-                        { "SoccerClub": "Squadra" },
-                        { "Place": "Luogo" },
-                        { "SoccerPlayer": "Agente" }
-                    ]
-                },
-                {
-                    "frame": "Stato",
-                    "FEs":
-                    [
-                        { u"Entità": "core" },
-                        { "Stato": "core" },
-                        { "Durata": "extra" },
-                        { "Luogo": "extra" },
-                        { "Squadra": "extra" },
-                        { "Tempo": "extra" }
-                    ],
-                    "DBpedia":
-                    [
-                        { "SoccerClub": "Squadra" },
-                        { "SoccerPlayer": u"Entità" },
+                        { "Organisation": "Datore" },
+                        { "Person": "Assunto" },
                         { "Place": "Luogo" }
                     ]
                 }
@@ -306,110 +200,84 @@ FRAME_REPO = [
     {
         "lu":
         {
-            "lemma": "vincere",
+            "lemma": "acquistare",
             "tokens":
             [
-                "vincano", 
-                "vinca", 
-                "vincemmo", 
-                "vincendoci", 
-                "vincendogli", 
-                "vincendola", 
-                "vincendole", 
-                "vincendoli", 
-                "vincendolo", 
-                "vincendone", 
-                "vincendosi", 
-                "vincendo", 
-                "vincendovi", 
-                "vincente", 
-                "vincenti", 
-                "vincerai", 
-                "vinceranno", 
-                u"vincerà", 
-                "vincerci", 
-                "vincerebbero", 
-                "vincerebbe", 
-                "vincerei", 
-                "vinceremo", 
-                "vincerete", 
-                "vincere", 
-                "vincergli", 
-                "vincerla", 
-                "vincerle", 
-                "vincerli", 
-                "vincerlo", 
-                "vincermi", 
-                "vincerne", 
-                u"vincerò", 
-                "vincersi", 
-                "vincer", 
-                "vincervi", 
-                "vincessero", 
-                "vincesse", 
-                "vincessi", 
-                "vincesti", 
-                "vincete", 
-                "vincevano", 
-                "vinceva", 
-                "vince", 
-                "vincevo", 
-                "vinciamo", 
-                "vinciate", 
-                "vinci", 
-                "vincono", 
-                "vinco", 
-                "vinsero", 
-                "vinse", 
-                "vinsi", 
-                "vinta", 
-                "vinte", 
-                "vinti", 
-                "vinto"
+   "acquistare",
+    "acquistarne",
+    "acquistano",
+    "acquistarla",
+    "acquistassero",
+    "acquistiamo",
+    "acquistati",
+    "acquistavano",
+    "acquistava",
+    "acquistarle",
+    "acquistato",
+    "acquistata",
+    "acquistarli",
+    "acquistate",
+    "acquistarlo",
+    "acquisterete",
+    "acquister\u00e0",
+    "acquistando",
+    "acquist\u00f2",
+    "acquisteranno",
+    "acquisterebbe",
+    "acquirente",
+    "acquisti",
+    "acquister\u00f2",
+    "acquirenti",
+    "acquista",
+    "acquistandolo",
+    "acquisto",
+    "acquistandola",
+    "acquistavo"
             ],
             "frames":
             [
                 {
-                    "frame": "Vittoria",
+                    "frame": u"Acquisto",
                     "FEs":
                     [
-                        { "Vincitore": "core" },
-                        { "Perdente": "core" },
-                        { "Competizione": "extra"},
+                        { "Compratore": "core" },
+                        { "Comprato": "core" },
                         { "Luogo": "extra" },
-                        { "Tempo": "extra" },
-                        { "Punteggio": "extra" },
-                        { "Classifica": "extra" }
+                        { "Tempo": "extra" }
                     ],
                     "DBpedia":
                     [
-                        { "SoccerLeague": "Competizione" },
-                        { "SoccerTournament": "Competizione" },
-                        { "SoccerLeagueSeason": "Competizione" },
-                        { "SoccerClub": ["Vincitore", "Perdente"] },
+                        { "Agent": "Compratore" },
+                        { "Work": "Comprato" },
                         { "Place": "Luogo" }
                     ]
-                },
+                }
+            ]
+        }
+    },
+    {
+        "lu":
+        {
+            "lemma": "agglomerare",
+            "tokens":
+            [
+		"agglomerato"
+            ],
+            "frames":
+            [
                 {
-                    "frame": "Trofeo",
+                    "frame": "Agglomerazione",
                     "FEs":
                     [
-                        { "Concorrente": "core" },
-                        { "Competizione": "core" },
-                        { "Squadra": "extra" },
-                        { "Premio": "extra" },
+                        { "Agglomerato": "core" },
+                        { "Responsabile": "core" },
                         { "Luogo": "extra" },
-                        { "Tempo": "extra" },
-                        { "Punteggio": "extra" },
-                        { "Classifica": "extra" }
+                        { "Tempo": "extra" }
                     ],
                     "DBpedia":
                     [
-                        { "SoccerLeague": "Competizione" },
-                        { "SoccerTournament": "Competizione" },
-                        { "SoccerLeagueSeason": "Competizione" },
-                        { "SoccerPlayer": "Concorrente" },
-                        { "SoccerClub": "Squadra" },
+                        { "Work": "Agglomerato" },
+                        { "Agente": "Responsabile" },
                         { "Place": "Luogo" }
                     ]
                 }

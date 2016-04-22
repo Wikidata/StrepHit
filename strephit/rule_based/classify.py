@@ -26,23 +26,12 @@ logger = logging.getLogger(__name__)
 NORMALIZER = DateNormalizer()
 
 
-def label_sentence(entity_linking_results, debug, numerical):
-    """Produce a labeled sentence by comparing the linked entities to the frame definition
-
-    :param str entity_linking_results: path to JSON file containing the results of the
-                                       entity linking
-    :param bool debug: Print debugging information
-    :param bool numerical: Normalize numerical FEs
-    :return: labeled data for each sentence
-    :rtype: dict
-    """
+def label_sentence(sentence, links, debug, numerical):
     labeled = {}
-    links = json.load(codecs.open(entity_linking_results, 'rb', 'utf-8'))
-    sentence, val = links.items()[0]
     labeled['sentence'] = sentence
     labeled['FEs'] = defaultdict(list)
     # Tokenize by splitting on spaces
-    t = Tokenizer(language)
+    t = Tokenizer('it')
     sentence_tokens = t.tokenize(sentence)
     logger.debug('SENTENCE: %s' % sentence)
     logger.debug('TOKENS: %s' % sentence_tokens)
@@ -66,17 +55,22 @@ def label_sentence(entity_linking_results, debug, numerical):
                     core = False
                     assigned_fes = []
                     for diz in val:
-                        # Filter out linked stopwords
-                        if diz['chunk'].lower() in StopWords.words('italian'):
+                        spot = diz.get('spot', diz.get('nc:spot'))
+                        assert spot, diz
+                        if spot.lower() in StopWords.words('italian'):
                             continue
 
+                        uri = diz.get('uri')
+                        if not uri:
+                            uri = 'https://atoka.io/azienda/-/' + diz['nc:acheneID']
+
                         chunk = {
-                            'chunk': diz['chunk'],
-                            'uri': diz['uri'],
-                            'score': diz['score']
+                            'chunk': spot,
+                            'uri': uri,
+                            'score': diz.get('confidence', diz.get('nc:confidence'))
                         }
 
-                        types = diz['types']
+                        types = diz.get('types', diz.get('nc:types'))
                         #### FE assignment ###
                         for t in types:
                             for mapping in types_to_FEs:
@@ -163,34 +157,29 @@ def label_sentence(entity_linking_results, debug, numerical):
                 'score': 1.0
             }
             labeled['FEs'].append(fe)
-    return labeled
+
+    if 'lu' in labeled and labeled['FEs']:
+        return labeled
+    else:
+        return None
 
 
-def process_dir(indir, debug, numerical):
-    """Walk into the input directory and process all the entity linking results,
-    creating the labeled data
-
-    :param str indir: Path to the directory with the entity linking results
-    :param bool debug: Print debugging information
-    :param bool numerical: Normalize numerical FEs
-    :return: The labeled data
-    :rtype: dict
-    """
+def process_dir(sentences, debug, numerical):
     processed = []
-    for path, subdirs, files in os.walk(indir):
-        for name in files:
-            f = os.path.join(path, name)
-            labeled = label_sentence(f, debug, numerical)
-            # Filename is {WIKI_ID}.{SENTENCE_ID}(.{extension})?
-            labeled['id'] = '.'.join(name.split('.')[:2])
-
-            processed.append(labeled)
-            logger.debug('LABELED: %s' % labeled)
+    with open(sentences) as f:
+        for row in f:
+            data = json.loads(row)
+            for each in data['sentences']:
+                labeled = label_sentence(each['text'], each['links'],
+                                         debug, numerical)
+                if labeled is not None:
+                    print labeled
+                    processed.append(labeled)
     return processed
 
 
 @click.command()
-@click.argument('linked-dir', type=click.Path(exists=True, file_okay=False))
+@click.argument('sentences', type=click.Path(exists=True, file_okay=True))
 @click.argument('labeled_out', default='labeled.json')
 @click.option('--score', type=click.Choice(['arithmetic-mean', 'weighted-mean',
                                             'f-score', '']))
@@ -198,11 +187,11 @@ def process_dir(indir, debug, numerical):
 @click.option('--score-fes/--no-score-fes', help='Score individual FEs')
 @click.option('--debug/--no-debug', default=False)
 @click.option('--numerical/--no-numerical', default=True)
-def main(linked_dir, labeled_out, score, core_weight, score_fes, debug, numerical):
+def main(sentences, labeled_out, score, core_weight, score_fes, debug, numerical):
     """
     Rule-based classifier
     """
-    labeled = process_dir(linked_dir, score_fes, debug, numerical)
+    labeled = process_dir(sentences, debug, numerical)
 
     if score:
         for sentence in labeled:
