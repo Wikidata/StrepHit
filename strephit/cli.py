@@ -11,6 +11,7 @@ CLI_COMMANDS = {
     'corpus_analysis': strephit.corpus_analysis.cli.cli,
     'extraction': strephit.extraction.cli.cli,
     'web_sources_corpus': strephit.web_sources_corpus.cli.cli,
+    'classification': strephit.classification.cli.cli,
 }
 
 
