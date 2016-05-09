@@ -75,6 +75,11 @@ class TTPosTagger(object):
             clean_tags.append(tag)
         return clean_tags
 
+    def tokenize(self, text):
+        """ Splits a text into tokens
+        """
+        return self.tokenizer.tokenize(text)
+
     def tag_one(self, text, skip_unknown=True, **kwargs):
         """ POS-Tags the given text, optionally skipping unknown lemmas """
         return self._postprocess_tags(make_tags(self.tagger.tag_text(text, **kwargs)),
