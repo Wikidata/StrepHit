@@ -76,7 +76,8 @@ def write_input_spreadsheet(data_units, outfile):
 @click.argument('frame_data', type=click.File())
 @click.argument('sentences_data', type=click.File())
 @click.option('--outfile', '-o', type=click.File('w'), default='crowdflower_input.csv')
-def main(frame_data, sentences_data, outfile):
+@click.option('--sentences-key', default='sentences')
+def main(frame_data, sentences_data, outfile, sentences_key):
     """ Build the CSV input data for a CrowdFlower annotation job """
     logger.info("Loading frame data from '%s' ..." % frame_data.name)
     frames = json.load(frame_data)
@@ -85,7 +86,7 @@ def main(frame_data, sentences_data, outfile):
     logger.info("Loading sentences data from '%s ..." % sentences_data.name)
     for line in sentences_data:
         item = json.loads(line)
-        item_sentences = item.get('sentences')
+        item_sentences = item.get(sentences_key)
         if not item_sentences:
             logger.warn("Skipping item with no sentences: %s" % item)
             continue
