@@ -84,3 +84,6 @@ corpus*
 # Crawl runs
 strephit/web_sources_corpus/crawls
 
+# Project deliverables
+deliverables
+
