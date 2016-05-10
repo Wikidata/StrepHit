@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def make_batches(iterable, size):
-    if size > 1:
+    if size > 0:
         bulk = []
         for each in iterable:
             bulk.append(each)
@@ -97,7 +97,7 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True, batch_si
          the exception raised by the mapping function to the called or simply to log
          them and carry on the computation. When `processes` is different than 1 this
          parameter is not used.
-        :param batch_size: If larger than 1, the input iterable will be grouped in groups
+        :param batch_size: If larger than 0, the input iterable will be grouped in groups
          of this size and the resulting list passed to as argument to the worker.
         :returns: iterable with the results. Order is not guaranteed to be preserved
     """

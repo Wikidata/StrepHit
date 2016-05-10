@@ -76,14 +76,14 @@ class TestParallel(unittest.TestCase):
         self.assertEqual(parallel.execute(0, *funcs),
                          map(self.function, xrange(10)))
 
-    def test_bulkenize(self):
+    def test_batches(self):
         def consumer(bulk):
             self.assertEqual(len(bulk), batch_size)
             return True
 
-        batch_size = 3
-        data = range(batch_size * 5)
-        self.assertTrue(all(parallel.map(consumer, data, batch_size=batch_size)))
+        for batch_size in range(1, 10, 2):
+            data = range(batch_size * 5)
+            self.assertTrue(all(parallel.map(consumer, data, processes=5, batch_size=batch_size)))
 
 class TestCache(unittest.TestCase):
     def random_hex_string(self, length):
