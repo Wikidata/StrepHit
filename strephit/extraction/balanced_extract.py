@@ -104,21 +104,27 @@ def main(sentences, sentences_per_lu, sentences_key, processes, output):
     frequencies = lu_count(sentences, sentences_key, processes, input_encoded=True)
 
     number_of_sources = len(frequencies)
+    number_of_lus = len(reduce(lambda x, y: x | y, map(set, frequencies.values())))
     lu_per_source = sentences_per_lu / number_of_sources
 
+    logger.debug('Have %d LUs in %d sources', number_of_lus, number_of_sources)
     logger.info('Calculating the conditional probabilities of LUs given sources')
+
     probabilities = {}
     for source, lu_freqs in frequencies.iteritems():
-        count = float(sum(lu_freqs.values()))
-
         for lu, n in lu_freqs.iteritems():
-            p = lu_per_source / count
+            p = lu_per_source / n
             probabilities[(source, lu)] = p
             if p > 1.0:
                 logger.warn('Not enough sentences with LU %s in source %s, '
                             'all of them will be taken', lu, source)
+                logger.debug('should take %.2f, but only %d are available',
+                             lu_per_source, n)
 
     logger.info('Extracting sentences from the corpus')
+    logger.debug('Expect roughly %d sentences, unless some sources are lacking',
+                 sentences_per_lu * number_of_lus)
+
     sentences.seek(0)
     count = 0
     for i, sentence in enumerate(extract_sentences(sentences, probabilities, sentences_key, processes,
