@@ -10,17 +10,6 @@ from strephit.commons import parallel
 logger = logging.getLogger(__name__)
 
 
-def bulkenize(iterable, size):
-    bulk = []
-    for each in iterable:
-        bulk.append(each)
-        if len(bulk) % size == 0:
-            yield bulk
-            bulk = []
-    if bulk:
-        yield bulk
-
-
 @click.group()
 def main():
     """ Computes and plots some statistics about the corpus
@@ -56,7 +45,7 @@ def about_sources(corpus, processes, with_bio):
         return sources
 
     aggregated_sources = defaultdict(int)
-    corpus = bulkenize(load_scraped_items(corpus), 1000)
+    corpus = parallel.make_batches(load_scraped_items(corpus), 1000)
     for sources in parallel.map(worker, corpus, processes):
         for k, v in sources.iteritems():
             aggregated_sources[k] += v
