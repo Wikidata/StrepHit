@@ -82,7 +82,7 @@ def config_job(job_id):
     # Manually prepare the body, due to multiple included countries
     # i.e., requests will ignore dicts with the same key
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    data = '&'.join("job[included_countries][]=%s" % c for c in INCLUDED_COUNTRIES) + \
+    data = '&'.join("job[included_countries][]=%s" % c for c in INCLUDED_COUNTRIES) + '&' + \
            '&'.join('%s=%s' % param for param in JOB_SETTINGS.iteritems())
     r = requests.put(secrets.CF_JOB_CONFIG_URL % job_id, headers=headers, params=params, data=data)
     log_request_data(r, logger)

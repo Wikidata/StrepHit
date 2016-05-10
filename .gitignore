@@ -54,6 +54,7 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+doc/build
 
 # PyBuilder
 target/
@@ -84,4 +85,6 @@ corpus*
 # Crawl runs
 strephit/web_sources_corpus/crawls
 
-doc/build
+# Project deliverables
+deliverables
+
