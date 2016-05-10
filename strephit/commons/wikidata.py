@@ -23,7 +23,6 @@ PROPERTY_TO_WIKIDATA = {
     'alt. Names': 'P742',
     'Year born': 'P569',
     'Given Name': 'P735',
-    'First name(s)': 'P735',
     # 'Worked for': 'P108',
     # 'title': 'P97',
     # 'lblProfession': 'P106',
@@ -36,7 +35,28 @@ PROPERTY_TO_WIKIDATA = {
     'birth': 'P569',
     'name': 'P1477',
     'honorific': 'P1035',
+    ### Genealogics ###
+    'Born': 'P569',
+    'Buried': 'P570',
+    u'Children\xa0': 'P40',
+    #'Christened',
+    'Died': 'P570',
+    #'Divorced': ,
+    'Family': 'P1038',
+    'Father': 'P22',
+    'First name(s)': 'P735',
+    'Gender': 'P21',
+    'Honorific': 'P1035',
+    'Honours': 'P166',
+    'Lived In': 'P551',
+    'Married': 'P26',
+    'Mentioned': 'P1249',
+    'Mother': 'P25',
+    'Occupation': 'P106',
+    'Other Titles': 'P1449'
+    #u'Same\xa0Person\xa0Link'
 }
+PROPERTY_TO_WIKIDATA.update({'Family %d' % i: 'P1038' for i in xrange(1, 21)})
 
 PROPERTY_RESOLVERS = {}
 
