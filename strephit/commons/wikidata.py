@@ -126,17 +126,16 @@ def date_resolver(property, value, language, **kwargs):
         return ''
 
 
-@cache.cached
-@resolver('P26', 'P40', 'P1038')
-def name_resolver(property, value, language, **kwargs):
+#@resolver('P26', 'P40', 'P1038')
+def resolver_with_hints(property, value, language, **kwargs):
     """ Resolves people names. Works better if generic biographic
         information, such as birth/death dates, is provided.
 
         :param kwargs: dictionary of wikidata property -> list of values
     """
 
-    name, _ = text.fix_name(value)
-    results = search(name, language, type_=5)  # Q5 = human
+    type_ = {'type_': kwargs.pop('type_')} if 'type_' in kwargs else {}
+    results = search(value, language, label_exact=False, **type_)
 
     def date_matches(their_dates, our_dates):
         """ Finds how many dates match between the ones we have and
@@ -161,8 +160,12 @@ def name_resolver(property, value, language, **kwargs):
     # try to disambiguate using provided info
     logger.debug('disambiguating %d entities, searching for %s', len(results), value)
     most_matches = None
-    known_properties = set(PROPERTY_TO_WIKIDATA.values())
+    known_properties = set(PROPERTY_TO_WIKIDATA.values()) | set(kwargs)
     for entity in results:
+        # for disambiguation pages
+        if 'claims' not in entity:
+            continue
+
         matches = 0
         for property, claim in entity['claims'].iteritems():
             try:
@@ -179,7 +182,12 @@ def name_resolver(property, value, language, **kwargs):
                                                    for v in claim)))
                     our_val = set(filter(None, kwargs.get(property, [])))
                     weight = 0.5 if property == 'P21' else 1  # avoid matching only by gender
-                    matches += len(our_val.intersection(entity_val)) * weight
+                    m = len(our_val.intersection(entity_val))
+                    matches += m * weight
+
+                    logger.debug('property %s of entity %s is "%s" while provided value is "%s", '
+                                 'match is %d', property, entity['id'], entity_val,
+                                 our_val, m)
 
             except (KeyError, TypeError):
                 continue
@@ -189,6 +197,7 @@ def name_resolver(property, value, language, **kwargs):
             most_matches = matches, entity
 
     if most_matches is None:
+        logger.debug('failed to resolve "%s"; no entity matches', value)
         return ''  # if no results
     else:
         if most_matches[0] >= 1:
@@ -250,7 +259,7 @@ def call_api(action, cache=True, **kwargs):
     return json.loads(resp)
 
 
-def search(term, language, type_=None):
+def search(term, language, type_=None, label_exact=True):
     """ Uses the wikidata APIs to search for a term. Can optionally specify a type
         (corresponding to the 'instance of' P31 wikidata property. If no type is
         specified simply returns all the items containing `term` in `label`
@@ -259,27 +268,50 @@ def search(term, language, type_=None):
         :param language: Search in this language
         :param type_: Type of the entity to look for, wikidata numeric id (i.e. without starting Q)
                       Can be int or anything iterable
+        :param label_exact: Filter entities whose labels matches exactly the search term
         :returns: List of dicts with details (which details depend on `type_`)
     """
     term = term.strip().lower()
     results = call_api('wbsearchentities', search=term, language=language, limit='max').get('search', [])
     logger.debug('found %d entities with term "%s"', len(results), term)
+
+    titles = call_api('query', list='search', srsearch=term, srlimit='50').get('query', {}).get('search', [])
+    logger.debug('found %d pages with term "%s"', len(titles), term)
+
+    for each in titles:
+        title = each['title']
+        entities = call_api('wbsearchentities', search=title, language=language, limit='max').get('search', [])
+        results.extend(entities)
+
+    logger.debug('obtained %d entities for "%s"', len(results), term)
     if type_:
         if not isinstance(type_, (list, set)):
             type_ = set([type_])
         else:
             type_ = set(type_)
 
-        ids = '|'.join(r['id'] for r in results)
-        details = call_api('wbgetentities', ids=ids, props='claims|labels')
-        results = []
-        for eid, entity in details.get('entities', {}).iteritems():
-            entity_type = entity.get('claims', {}).get('P31', [])
-            if any(t['mainsnak']['datavalue']['value']['numeric-id'] in type_ for t in entity_type):
-                results.append(entity)
-        logger.debug('refined search to %d entities of types %s', len(results), repr(type_))
-    else:
-        results = [r for r in results if r.get('label', '').lower() == term]
+    ids = '|'.join(r['id'] for r in results)
+    details = call_api('wbgetentities', ids=ids, props='claims|labels')
+    results = []
+    for eid, entity in details.get('entities', {}).iteritems():
+        entity_type = entity.get('claims', {}).get('P31', [])
+        if type_ and not any(t['mainsnak']['datavalue']['value']['numeric-id'] in type_ for t in entity_type):
+            continue
+        elif label_exact:
+            if 'label' in entity and entity['label'].lower() != term:
+                continue
+            elif 'labels' in entity and entity['labels'][language]['value'].lower().encode('utf8') != term:
+                continue
+
+        results.append(entity)
+
+    msg = 'refined search to %d entities' % len(results)
+    if type_:
+        msg += ' of types %s' % repr(type_)
+    if label_exact:
+        msg += ' of label exact "%s"' % term
+    logger.debug(msg)
+
     return results
 
 
@@ -310,9 +342,9 @@ def finalize_statement(subject, property, value, language, url=None,
     if not value:
         return None
 
-    statement = '%s\t%s\t%s' % (subject, property, value)
+    statement = u'%s\t%s\t%s' % (subject, property, value)
     if url:
-        statement += '\tS854\t"%s"' % url
+        statement += u'\tS854\t"%s"' % url
 
     return statement
 

@@ -267,16 +267,16 @@ class TestWikidata(unittest.TestCase):
 
     def test_name_resolver_with_birth(self):
         additional_info = {'P569': ['+1893-09-20T00:00:00Z/11']}
-        self.assertEqual(wikidata.name_resolver('P1477', 'colin fraser', 'en', **additional_info),
+        self.assertEqual(wikidata.resolver_with_hints('P1477', 'colin fraser', 'en', **additional_info),
                          'Q5145111')
 
     def test_name_resolver_with_death(self):
         additional_info = {'P570': ['+1958-08-15T00:00:00Z/11']}
-        self.assertEqual(wikidata.name_resolver('P1477', 'colin fraser', 'en', **additional_info),
+        self.assertEqual(wikidata.resolver_with_hints('P1477', 'colin fraser', 'en', **additional_info),
                          'Q5145111')
 
     def test_name_resolver_with_gender(self):
-        self.assertEqual('', wikidata.name_resolver('P1477', 'colin fraser', 'en', P21=['Q6581097']))
+        self.assertEqual('', wikidata.resolver_with_hints('P1477', 'colin fraser', 'en', P21=['Q6581097']))
 
     def test_place_resolver(self):
         self.assertEqual(wikidata.place_resolver('Pwhatever', 'vaughan', 'en'), 'Q44013')
