@@ -11,8 +11,8 @@ import click
 logger = logging.getLogger(__name__)
 
 # header with sentence
-HEADER = 
-'''
+HEADER = '''
+<h2 style="text-align:center">{{lu}}</h2>
 <blockquote style="text-align:center">{{sentence}}</blockquote>
 <hr />
 
