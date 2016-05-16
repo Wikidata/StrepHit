@@ -10,8 +10,9 @@ import click
 
 logger = logging.getLogger(__name__)
 
-# header with frame + sentence
-HEADER = '''<h2 style="text-align:center">{{frame}}</h2>
+# header with sentence
+HEADER = 
+'''
 <blockquote style="text-align:center">{{sentence}}</blockquote>
 <hr />
 
