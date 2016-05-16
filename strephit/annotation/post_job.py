@@ -27,13 +27,13 @@ JOB_SETTINGS = {
     # Highest quality workers
     "job[minimum_requirements][skill_scores][level_3_contributors]": 1,
     "job[options][after_gold]": "2",
-    # Minimum time per page (seconds)
-    "job[options][calibrated_unit_time]": 30,
+    # Minimum time per page = 20 seconds
+    "job[options][calibrated_unit_time]": 20,
     "job[options][include_unfinished]": "true",
     "job[options][logical_aggregation]": "true",
     "job[options][mail_to]": "fossati@fbk.eu",
-    # Minimum worker accuracy
-    "job[options][reject_at]": "70",
+    # Minimum worker accuracy = 60 % (3/5 test questions to pass)
+    "job[options][reject_at]": "60",
     "job[options][req_ttl_in_seconds]": 900,
     "job[options][track_clones]": "true",
     "job[pages_per_assignment]": 1,
