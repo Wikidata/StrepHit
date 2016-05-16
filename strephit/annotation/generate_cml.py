@@ -26,7 +26,7 @@ TOKEN_TEMPLATE = '''
     <!-- BEGIN token %(question_num)d -->
     {%% if %(token_field)s != 'No data available' %%}
     <div class="span2">
-        <cml:radios label="{{%(token_field)s}}" class="rando" name="name="answer_{{%(token_field)s}}"{{%(token_field)s}}" validates="required" gold="true">
+        <cml:radios label="{{%(token_field)s}}" class="rando" name="answer_{{%(token_field)s}}" validates="required" gold="true">
 
             <cml:radio label="None"></cml:radio>
             %(fe_blocks)s
