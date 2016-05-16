@@ -121,6 +121,7 @@ class OneToOneExtractor(SentenceExtractor):
 
         tagged = item.get(self.pos_tag_key)
         if not tagged:
+            logger.warn('skipped item')
             return
 
         sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
@@ -165,26 +166,51 @@ class ManyToManyExtractor(SentenceExtractor):
 
     def extract_from_item(self, item):
         extracted = []
-
-        tagged = item.get(self.pos_tag_key)
-        if not tagged:
+        text = item.get(self.document_key)
+        if not text:
             return
 
-        sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
-        tokens = 0
-        for sentence in sentences:
-            tags = tagged[tokens:tokens + len(sentence)]
-            tokens += len(sentence)
+        sentences = self.splitter.split(text)
+        datatxt_links = item.get('nc:contentInfo', {}).get('nc:companyTXTInfo', {}).get('rnews:articleBody', {}).get('annotations', [])
+        subject_links = [x for x in item.get('nc:annotations', {}).get('nc:subjectAnnotation', [])
+                         if 'nc:offsets' in x]
+        for each in subject_links:
+            each['start'], each['end'] = each.pop('nc:offsets')
 
-            sentence_tokens = [token for token, pos, lemma in tags if pos.startswith('V')]
+        all_links = sorted(datatxt_links + subject_links, key=lambda x:x['start'])
+
+        cursor = 0
+        for sentence in sentences:
+            # move cursor to start of this sentence
+            cursor += text.index(sentence)
+            text = text[text.index(sentence):]
+
+            link_counts = 0
+            for each in all_links:
+                if each['end'] <= cursor + len(sentence):
+                    link_counts += 1
+                else:
+                    break
+
+            this_links, all_links = all_links[:link_counts], all_links[link_counts:]
+            for each in this_links:
+                each['start'] -= cursor
+                each['end'] -= cursor
+
+            # move cursor to end of this sentence
+            cursor += len(sentence)
+            text = text[len(sentence):]
+
+            if len(sentence.split()) > 25:
+                continue
 
             for lemma, match_tokens in self.lemma_to_token.iteritems():
                 for match in match_tokens:
-                    if match.lower() in sentence_tokens:
+                    if match.lower() in sentence:
                         extracted.append({
                             'lu': lemma,
-                            'text': ' '.join(sentence),
-                            'tagged': tags,
+                            'text': sentence,
+                            'links': this_links,
                         })
 
         if extracted:

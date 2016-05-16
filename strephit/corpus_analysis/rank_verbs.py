@@ -17,7 +17,8 @@ from strephit.commons import parallel
 logger = logging.getLogger(__name__)
 
 VERBAL_PREFIXES = {
-    'en': 'V'
+    'en': 'V',
+    'it': 'VER',
 }
 
 

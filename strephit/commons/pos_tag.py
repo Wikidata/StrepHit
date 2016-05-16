@@ -12,7 +12,7 @@ from treetaggerpoll import TaggerProcessPoll
 from treetaggerwrapper import make_tags, NotTag, TreeTagger
 from nltk import pos_tag, word_tokenize, pos_tag_sents
 
-from strephit.commons.io import load_corpus
+from strephit.commons.io import load_scraped_items
 from strephit.commons.tokenize import Tokenizer
 
 logger = logging.getLogger(__name__)
@@ -66,9 +66,6 @@ class TTPosTagger(object):
         """ Clean tagged data from non-tags and unknown lemmas (optionally) """
         clean_tags = []
         for tag in tags:
-            if type(tag) == NotTag:
-                logger.debug("Non-tag found: %s. Skipping ..." % repr(tag))
-                continue
             if skip_unknown and tag.lemma == u'<unknown>':
                 logger.debug("Unknown lemma found: %s. Skipping ..." % repr(tag))
                 continue
@@ -142,7 +139,7 @@ def main(corpus, document_key, pos_tag_key, language_code, tagger, output_file, 
     else:
         pos_tagger = NLTKPosTagger(language_code)
 
-    corpus = load_corpus(corpus, document_key)
+    corpus = load_scraped_items(corpus)
     for i, tagged_document in enumerate(pos_tagger.tag_many(corpus, document_key, pos_tag_key, batch_size)):
         output_file.write(json.dumps(tagged_document) + '\n')
         if (i + 1) % 10000 == 0:

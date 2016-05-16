@@ -19,7 +19,8 @@ class Tokenizer():
 
     # Lookup the tokenization regex given the language code
     tokenization_regexps = {
-        'en': ur'[^\p{L}\p{N}]+'
+        'en': ur'[^\p{L}\p{N}]+',
+        'it': ur'[^\p{L}\p{N}]+',
     }
 
     def __init__(self, language):

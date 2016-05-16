@@ -13,6 +13,7 @@ CLI_COMMANDS = {
     'web_sources_corpus': strephit.web_sources_corpus.cli.cli,
     'classification': strephit.classification.cli.cli,
     'side_projects': strephit.side_projects.cli.cli,
+    'rule_based': strephit.rule_based.cli.cli,
 }
 
 

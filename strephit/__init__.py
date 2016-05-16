@@ -5,3 +5,4 @@ import extraction
 import web_sources_corpus
 import classification
 import side_projects
+import rule_based
