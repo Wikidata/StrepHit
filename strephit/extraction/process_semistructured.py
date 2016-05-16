@@ -68,7 +68,8 @@ def serialize_item((i, item, cache, language, sourced_only)):
             statements[property].append(value)
 
     info = dict(data, **statements)  # provide all available info to the resolver
-    wid = wikidata.name_resolver('P1477', name, language, **info)
+    info['type_'] = 5  # Q5 = human
+    wid = wikidata.resolver_with_hints('P1477', name, language, **info)
 
     if not wid:
         logger.debug('cannod find wikidata id for item %s (%s) with properties %s, skipping',

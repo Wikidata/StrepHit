@@ -6,7 +6,22 @@ import signal
 logger = logging.getLogger(__name__)
 
 
-def _master(function, iterable, processes, task_queue, result_queue, flatten):
+def make_batches(iterable, size):
+    if size > 0:
+        bulk = []
+        for each in iterable:
+            bulk.append(each)
+            if len(bulk) % size == 0:
+                yield bulk
+                bulk = []
+        if bulk:
+            yield bulk
+    else:
+        for each in iterable:
+            yield each
+
+
+def _master(function, iterable, processes, task_queue, result_queue, flatten, batch_size):
     """ Controls the computation. Starts/stops the workers and assigns tasks """
     workers = [mp.Process(target=_worker,
                           args=(function, task_queue, result_queue, flatten))
@@ -14,7 +29,7 @@ def _master(function, iterable, processes, task_queue, result_queue, flatten):
     [p.start() for p in workers]
 
     try:
-        for each in iterable:
+        for each in make_batches(iterable, batch_size):
             if each is None:
                 logger.debug('received None task, ignoring it')
             else:
@@ -67,7 +82,7 @@ def _process_task(function, task, flatten, raise_exc):
             logger.exception('caught exception in worker process')
 
 
-def map(function, iterable, processes=0, flatten=False, raise_exc=True):
+def map(function, iterable, processes=0, flatten=False, raise_exc=True, batch_size=0):
     """ Applies the given function to each element of the iterable in parallel.
         `None` values are not allowed in the iterable nor as return values, they will
         simply be discarded. Can be "safely" stopped with a keboard interrupt.
@@ -82,10 +97,12 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True):
          the exception raised by the mapping function to the called or simply to log
          them and carry on the computation. When `processes` is different than 1 this
          parameter is not used.
+        :param batch_size: If larger than 0, the input iterable will be grouped in groups
+         of this size and the resulting list passed to as argument to the worker.
         :returns: iterable with the results. Order is not guaranteed to be preserved
     """
     if processes == 1:
-        for task in iterable:
+        for task in make_batches(iterable, batch_size):
             if task is not None:
                 for each in _process_task(function, task, flatten, raise_exc):
                     yield each
@@ -98,7 +115,7 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True):
 
         master = mp.Process(target=_master,
                             args=(function, iterable, processes, task_queue,
-                                  result_queue, flatten))
+                                  result_queue, flatten, batch_size))
         master.start()
 
         result = result_queue.get()

@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 import logging
-
+import numpy as np
+from scipy.sparse import csr_matrix
 from strephit.commons.pos_tag import TTPosTagger
 
 logger = logging.getLogger(__name__)
@@ -22,25 +23,51 @@ class SortedSet:
         return self.items.get(item, -1)
 
 
-class FactExtractorFeatureExtractor:
+class BaseFeatureExtractor:
+    """ Feature extractor template. Will process sentences one by one
+        accumulating their features and finalizes them into the final
+        training set.
+    """
+
+    def process_sentence(self, sentence, fes):
+        """ Extracts and accumulates features for the given sentence
+            :param sentence: Text of the sentence
+            :param fes: Dictionary with FEs and corresponding chunks
+            :return: Nothing
+        """
+        raise NotImplemented
+
+    def get_training_set(self):
+        """ Returns the final training set
+            :return: A matrix whose rows are samples and columns are features and a
+            column vector with the sample label (i.e. the correct answer for the classifier)
+            :rtype: tuple
+        """
+        raise NotImplemented
+
+
+class FactExtractorFeatureExtractor(BaseFeatureExtractor):
     """ Feature extractor inspired from the fact-extractor
     """
 
     def __init__(self, language, window_width=2):
         self.tagger = TTPosTagger(language)
         self.feature_index = SortedSet()
+        self.role_index = SortedSet()
         self.window_width = window_width
+        self.features = []
 
-    def sentence_to_tokens(self, sentence_data):
+    def sentence_to_tokens(self, sentence, fes):
         """ Transforms a sentence into a list of tokens
-            :param sentence_data: Sentence data, i.e. text, frame and FEs
+            :param sentence: Text of the sentence
+            :param fes: mapping FE -> chunk
             :return: List of tokens
         """
 
-        tagged = self.tagger.tag_one(sentence_data['sentence'], skip_unknown=False)
+        tagged = self.tagger.tag_one(sentence, skip_unknown=False)
 
         # find entities and group them into single tokens,
-        for fe, chunk in sentence_data['fes'].iteritems():
+        for fe, chunk in fes.iteritems():
             if chunk is None:
                 continue
 
@@ -62,10 +89,10 @@ class FactExtractorFeatureExtractor:
             if found:
                 position = i - len(fe_tokens) + 1
                 pos = 'ENT' if len(fe_tokens) > 1 else tagged[position][1]
-                tagged = tagged[:position] + [[chunk, pos, chunk]] + tagged[position + len(fe_tokens):]
+                tagged = tagged[:position] + [[chunk, pos, chunk, fe]] + tagged[position + len(fe_tokens):]
             else:
                 logger.warn('cunk "%s" of fe "%s" not found in sentence "%s"',
-                            chunk, fe, sentence_data['sentence'])
+                            chunk, fe, sentence)
 
         return tagged
 
@@ -95,17 +122,43 @@ class FactExtractorFeatureExtractor:
 
         return features
 
-    def extract_features(self, sentence_data):
+    def extract_features(self, sentence, fes):
         """ Extracts the features for each token of the sentence
-            :param sentence_data: Data of the sentence, i.e. text and FEs
+            :param sentence: Text of the sentence
+            :param fes: mapping FE -> chunk
             :return: List of features, each one as a sparse row
-            (i.e. with the indexes of the relevant columns)
+             (i.e. with the indexes of the relevant columns)
         """
-        tagged = self.sentence_to_tokens(sentence_data)
+        tagged = self.sentence_to_tokens(sentence, fes)
         features = []
 
         for i in xrange(len(tagged)):
             feat = self.token_to_features(tagged, i)
-            features.append(feat)
+            label = 'O' if len(tagged[i]) == 3 else tagged[i][3]
+
+            features.append((feat, self.role_index.put(label)))
 
         return features
+
+    def process_sentence(self, sentence, fes):
+        self.features.extend(self.extract_features(sentence, fes))
+
+    def get_training_set(self):
+        X, Y = [], []
+        data, indices, indptr = [], [], []
+
+        for sample, label in self.features:
+            Y.append(label)
+
+            indptr.append(len(data))
+            for feature in sample:
+                indices.append(int(feature))
+                data.append(1.0)
+
+        indptr.append(len(data))
+        X = csr_matrix((data, indices, indptr),
+                       shape=(len(indptr) - 1, len(self.feature_index.items)),
+                       dtype=np.float32)
+        Y = np.array(Y)
+
+        return X, Y
