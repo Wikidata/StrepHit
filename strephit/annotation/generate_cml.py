@@ -10,8 +10,9 @@ import click
 
 logger = logging.getLogger(__name__)
 
-# header with frame + sentence
-HEADER = '''<h2 style="text-align:center">{{frame}}</h2>
+# header with sentence
+HEADER = '''
+<h2 style="text-align:center">{{lu}}</h2>
 <blockquote style="text-align:center">{{sentence}}</blockquote>
 <hr />
 
@@ -26,7 +27,7 @@ TOKEN_TEMPLATE = '''
     <!-- BEGIN token %(question_num)d -->
     {%% if %(token_field)s != 'No data available' %%}
     <div class="span2">
-        <cml:radios label="{{%(token_field)s}}" class="rando" name="{{%(token_field)s}}" validates="required" gold="true">
+        <cml:radios label="{{%(token_field)s}}" class="rando" name="answer_{{%(token_field)s}}" validates="required" gold="true">
 
             <cml:radio label="None"></cml:radio>
             %(fe_blocks)s

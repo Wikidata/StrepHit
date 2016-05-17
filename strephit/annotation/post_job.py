@@ -16,7 +16,16 @@ logger = logging.getLogger(__name__)
 
 # TODO consider adding "job[auto_order]": "true" for automatic ordering
 
-INCLUDED_COUNTRIES = ["US", "GB"]  # Only workers from U.S.A. and Great Britain
+# Enable English-speaking workers from:
+# Australia, Canada, Denmark, Finland, Great Britain, Gibraltar,
+# Ireland, Iceland, Malta, Norway, New Zealand, Sweden, United States,
+# South Africa
+INCLUDED_COUNTRIES = [
+    "AU", "CA", "DK", "FI",
+    "GB", "GI", "IE", "IS",
+    "MT", "NO", "NZ", "SE",
+    "US", "ZA"
+    ]
 
 JOB_SETTINGS = {
     "job[judgments_per_unit]": 3,
@@ -27,13 +36,13 @@ JOB_SETTINGS = {
     # Highest quality workers
     "job[minimum_requirements][skill_scores][level_3_contributors]": 1,
     "job[options][after_gold]": "2",
-    # Minimum time per page (seconds)
-    "job[options][calibrated_unit_time]": 30,
+    # Minimum time per page = 20 seconds
+    "job[options][calibrated_unit_time]": 20,
     "job[options][include_unfinished]": "true",
     "job[options][logical_aggregation]": "true",
     "job[options][mail_to]": "fossati@fbk.eu",
-    # Minimum worker accuracy
-    "job[options][reject_at]": "70",
+    # Minimum worker accuracy = 60 % (3/5 test questions to pass)
+    "job[options][reject_at]": "60",
     "job[options][req_ttl_in_seconds]": 900,
     "job[options][track_clones]": "true",
     "job[pages_per_assignment]": 1,
@@ -152,11 +161,16 @@ def tag_job(job_id, tags):
 @click.option('--cml', '-c', type=click.File(), default=resource_stream(__name__, 'resources/cml.html'))
 @click.option('--javascript', '-j', type=click.File(), default=resource_stream(__name__, 'resources/randomize.js'))
 @click.option('--tags', help="Comma-separated list of job tags")
-def main(csv_data, title, instructions, cml, javascript, tags):
+@click.option('--activate-gold', is_flag=True, default=False, help="Activate test questions")
+@click.option('--disable-quiz-mode', is_flag=True, default=False)
+def main(csv_data, title, instructions, cml, javascript, tags, activate_gold, disable_quiz_mode):
     """ Post a CrowdFlower annotation job with title, instructions,
         CML interface template, custom JavaSctipt, and data units
     """
     logger.info("Creating CrowdFlower job ...")
+    if disable_quiz_mode:
+        JOB_SETTINGS['quiz_mode_enabled'] = False
+        logger.info("Quiz mode disabled")
     job = create_job(title, ''.join(instructions.readlines()), ''.join(cml.readlines()),
                      ''.join(javascript.readlines()))
     logger.debug("Job object response from CrowdFlower: %s" % json.dumps(job, indent=2))
@@ -168,9 +182,10 @@ def main(csv_data, title, instructions, cml, javascript, tags):
     logger.info("Uploading data units from '%s' to job ID %d ..." % (csv_data.name, job_id))
     uploaded = upload_units(job_id, csv_data)
     logger.debug("Job ID %d object response from CrowdFlower: %s" % (job_id, json.dumps(uploaded, indent=2)))
-    logger.info("Activating gold units ...")
-    activated = activate_gold(job_id)
-    logger.debug("CrowdFlower API inconsistent response: %s" % json.dumps(activated, indent=2))
+    if activate_gold:
+        logger.info("Activating gold units ...")
+        activated = activate_gold(job_id)
+        logger.debug("CrowdFlower API inconsistent response: %s" % json.dumps(activated, indent=2))
     logger.info("Setting up job parameters ...")
     configurated = config_job(job_id)
     logger.debug("Updated job ID %d object: %s" % (job_id, json.dumps(configurated, indent=2)))
