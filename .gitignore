@@ -74,6 +74,7 @@ dev
 
 # PyCharm IDE
 .idea/
+*.iml
 
 # API credentials
 secret_keys.py

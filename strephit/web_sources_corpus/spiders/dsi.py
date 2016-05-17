@@ -23,12 +23,19 @@ class DsiSpider(BaseSpider):
             yield Request(self.page_url % i, self.parse)
 
     def refine_item(self, response, item):
-        data = text.extract_dict(response,
-                                 'xpath:(.//table)[last()]//tr/td[@class="td_label_details"]',
-                                 'xpath:(.//table)[last()]//tr/td[@class="td_value_details"]'
-                                 )
+        data = {
+            key: [v.strip() for v in value.split(';')
+                  if v.strip() and 'http://' not in v and 'viaf.org' not in v]
+            for key, value in text.extract_dict(
+                response,
+                'xpath:(.//table)[last()]//tr/td[@class="td_label_details"]',
+                'xpath:(.//table)[last()]//tr/td[@class="td_value_details"]'
+            ).iteritems()
+        }
 
-        item['name'] = '%s, %s' % (data.get('Last Name', ''), data.get('Given Name'))
+        last = ' '.join(data.get('Last Name', ''))
+        first = ' '.join(data.get('Given Name', ''))
+        item['name'] = '%s, %s' % (last, first)
         item['other'] = data
 
         return super(DsiSpider, self).refine_item(response, item)

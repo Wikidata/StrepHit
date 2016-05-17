@@ -60,12 +60,12 @@ def serialize_item((i, item, cache, language, sourced_only)):
                 continue
 
             info = dict(data, **statements)  # provide all available info to the resolver
-            value = wikidata.resolve(property, val, language, **info)
-            if not value:
+            resolved = wikidata.resolve(property, val, language, **info)
+            if not resolved:
                 logger.debug('cannot resolve value %s of property %s, skipping', val, property)
                 continue
 
-            statements[property].append(value)
+            statements[property].append(resolved)
 
     info = dict(data, **statements)  # provide all available info to the resolver
     info['type_'] = 5  # Q5 = human
