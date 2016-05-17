@@ -20,7 +20,8 @@ class RKDArtistsSpider(BaseSpider):
     item_class = WebSourcesCorpusItem
     # There seems to be semi-structured data only here
     item_fields = {
-        'name': 'clean:xpath:.//h2/text()'
+        'name': 'clean:xpath:.//h2/text()',
+        'url': 'make_url:xpath:.//div[@class="record-id"]//text()',
     }
 
     def extract_dl_key_value(self, dl_pairs, item):
@@ -57,3 +58,6 @@ class RKDArtistsSpider(BaseSpider):
         else:
             logging.debug("No relevant key-value pairs found on the right box for '%s'" % name)
         return super(RKDArtistsSpider, self).refine_item(response, item)
+
+    def make_url(self, response, artist_id):
+        return 'http://rkd.nl/explore/artists/' + artist_id[0]
