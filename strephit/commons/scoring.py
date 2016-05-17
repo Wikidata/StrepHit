@@ -3,14 +3,9 @@
 from __future__ import absolute_import
 
 import logging
-from sys import exit
 
 
 logger = logging.getLogger(__name__)
-
-
-if __name__ == '__main__':
-    exit(main())
 
 
 AVAILABLE_SCORES = ['arithmetic-mean', 'weighted-mean', 'f-score']

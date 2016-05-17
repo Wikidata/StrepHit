@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+import logging
+
 import click
 
 import strephit
-from strephit.commons import logging, cache
+from strephit import commons
 
 CLI_COMMANDS = {
     'annotation': strephit.annotation.cli.cli,
@@ -16,15 +18,17 @@ CLI_COMMANDS = {
     'rule_based': strephit.rule_based.cli.cli,
 }
 
+logging.getLogger("requests").setLevel(logging.WARNING)
+
 
 @click.group(commands=CLI_COMMANDS)
 @click.pass_context
-@click.option('--log-level', type=(unicode, click.Choice(logging.LEVELS)), multiple=True)
+@click.option('--log-level', type=(unicode, click.Choice(commons.logging.LEVELS)), multiple=True)
 @click.option('--cache-dir', type=click.Path(file_okay=False, resolve_path=True), default=None)
 def cli(ctxm, log_level, cache_dir):
-    logging.setup()
+    commons.logging.setup()
     for module, level in log_level:
-        logging.setLogLevel(module, level)
+        commons.logging.setLogLevel(module, level)
 
     if cache_dir:
-        cache.BASE_DIR = cache_dir
+        commons.cache.BASE_DIR = cache_dir

@@ -13,12 +13,9 @@ from strephit.commons import secrets, cache
 
 logger = logging.getLogger(__name__)
 
-# Data to be POSTed to Dandelion APIs
-NEX_DATA = {}
-
 
 @cache.cached
-def link(text):
+def link(text, min_confidence, language):
     """
      Run entity linking on the given text using Dandelion APIs.
      Raise any HTTP error that may occur.
@@ -27,9 +24,17 @@ def link(text):
      :return: The linked entities
      :rtype: list
     """
+
     logger.debug("Will run entity linking on: %s" % text)
-    NEX_DATA['text'] = text
-    r = requests.post(secrets.NEX_URL, data=NEX_DATA)
+    nex_data = {
+        'text': text,
+        '$app_id': secrets.NEX_ID,
+        '$app_key': secrets.NEX_KEY,
+        'include': 'types,alternate_labels',
+        'min_confidence': min_confidence,
+        'lang': language,
+    }
+    r = requests.post(secrets.NEX_URL, data=nex_data)
     r.raise_for_status()
     response = r.json()
     logger.debug("Response: %s " % response)
@@ -64,7 +69,7 @@ def extract_entities(response_json):
 @click.command()
 @click.argument('input_file', type=click.File())
 @click.argument('language')
-@click.option('--output', '-o', type=click.File('w'), default='entity_linked.json')
+@click.option('--output', '-o', type=click.File('w'), default='dev/entity_linked.json')
 @click.option('--confidence', '-c', default=0.25, help='Minimum confidence score, defaults to 0.25.')
 def main(input_file, language, output, confidence):
     """ Perform entity linking over a set of input sentences.
@@ -73,11 +78,7 @@ def main(input_file, language, output, confidence):
         Links having confidence score below the given
         threshold are discarded.
     """
-    NEX_DATA['$app_id'] = secrets.NEX_ID
-    NEX_DATA['$app_key'] = secrets.NEX_KEY
-    NEX_DATA['include'] = 'types,alternate_labels'
-    NEX_DATA['min_confidence'] = confidence
-    NEX_DATA['lang'] = language
+
     logger.info("Will perform entity linking over '%s' sentences" % input_file.name)
     for line in input_file:
         item = json.loads(line)
@@ -87,7 +88,7 @@ def main(input_file, language, output, confidence):
             for sentence in sentences:
                 text = sentence.get('text')
                 if text:
-                    sentence['linked_entities'] = link(text)
+                    sentence['linked_entities'] = link(text, confidence, language)
                 else:
                     logger.warn("No text for sentence #%d: skipping ..." % sentence['id'])
         else:

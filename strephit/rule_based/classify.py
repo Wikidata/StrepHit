@@ -2,140 +2,109 @@
 # -*- encoding: utf-8 -*-
 
 import logging
-from sys import exit
-
-import os
-
-
-import click
-import codecs
 import json
 import random
 from collections import defaultdict
-from urllib import quote
-from rfc3987 import parse  # URI/IRI validation
-from resources.frame_repo import FRAME_REPO
-from strephit.commons.date_normalizer import DateNormalizer
-from strephit.commons.scoring import compute_score, AVAILABLE_SCORES
-from strephit.commons.stopwords import StopWords
-from strephit.commons.tokenize import Tokenizer
 
+import click
+
+from strephit.commons.date_normalizer import DateNormalizer
+from strephit.commons import scoring
+from strephit.commons.stopwords import StopWords
 
 logger = logging.getLogger(__name__)
 
-NORMALIZER = DateNormalizer()
 
+class RuleBasedClassifier:
+    def __init__(self, frame_data, language):
+        self.language = language
+        self.frame_data = frame_data
+        for lu, frame in self.frame_data.iteritems():
+            frame['ontology_to_fe'] = defaultdict(list)
+            frame['fes'] = {}
+            for fe in frame['extra_fes'] + frame['core_fes']:
+                frame['fes'][fe['fe']] = fe
+                if fe.get('dbpedia_classes'):
+                    for each in fe['dbpedia_classes']:
+                        frame['ontology_to_fe'][each].append(fe)
 
-def label_sentence(sentence, links, debug, numerical):
-    labeled = {}
-    labeled['sentence'] = sentence
-    labeled['FEs'] = defaultdict(list)
-    # Tokenize by splitting on spaces
-    t = Tokenizer('it')
-    sentence_tokens = t.tokenize(sentence)
-    logger.debug('SENTENCE: %s' % sentence)
-    logger.debug('TOKENS: %s' % sentence_tokens)
-    frames = []
-    for lu in FRAME_REPO:
-        lu_tokens = lu['lu']['tokens']
-        # Check if a sentence token matches a LU token and assign frames accordingly
-        for sentence_token in sentence_tokens:
-            if sentence_token in lu_tokens:
-                logger.debug('TOKEN "%s" MATCHED IN LU TOKENS' % sentence_token)
-                labeled['lu'] = lu['lu']['lemma']
-                frames = lu['lu']['frames']
-                logger.debug('LU LEMMA: %s' % labeled['lu'])
-                logger.debug('FRAMES: %s' % [frame['frame'] for frame in frames])
-                # Frame processing
-                for frame in frames:
-                    FEs = frame['FEs']
-                    types_to_FEs = frame['DBpedia']
-                    logger.debug('CURRENT FRAME: %s' % frame['frame'])
-                    logger.debug('FEs: %s' % FEs)
-                    core = False
-                    assigned_fes = []
-                    for diz in val:
-                        spot = diz.get('spot', diz.get('nc:spot'))
-                        assert spot, diz
-                        if spot.lower() in StopWords.words('italian'):
-                            continue
+    def assign_frame_elements(self, linked, frame):
+        """ Try to assign a frame element to each of the linked entities
+            based on their ontology type(s)
+            :param linked: Entities found in the sentence
+            :param frame: Frame data
+            :return: List of assigned frames
+        """
 
-                        uri = diz.get('uri')
-                        if not uri:
-                            uri = 'https://atoka.io/azienda/-/' + diz['nc:acheneID']
+        assigned_fes = {}
 
-                        chunk = {
-                            'chunk': spot,
-                            'uri': uri,
-                            'score': diz.get('confidence', diz.get('nc:confidence'))
-                        }
+        # greedy best-effort FE assignment:
+        # try to assign a FE to entities with fewer available types first
+        by_count = sorted(linked, key=lambda e: len(e['types']), reverse=True)
+        for entity in by_count:
+            if entity['chunk'].lower() in StopWords.words(self.language):
+                continue
 
-                        types = diz.get('types', diz.get('nc:types'))
-                        #### FE assignment ###
-                        for t in types:
-                            for mapping in types_to_FEs:
-                                # Strip DBpedia ontology namespace
-                                looked_up = mapping.get(t[28:])
-                                if looked_up:
-                                    logger.debug('Chunk "%s" has an ontology type "%s" that maps to FE "%s"' % (chunk['chunk'], t[28:], looked_up))
-                                    ### Frame disambiguation strategy, part 1 ###
-                                    # LAPSE ASSIGNMENT
-                                    # If there is AT LEAST ONE core FE, then assign that frame
-                                    # TODO strict assignment: ALL core FEs must be found
-                                    # Will not work if the FEs across competing frames have the same ontology type
-                                    # e.g., Attività > Squadra and Partita > [Squadra_1, Squadra_2]
+            for type_uri in entity['types']:
+                dbpedia_class = type_uri[len('http://dbpedia.org/ontology/'):]
 
-                                    # Check if looked up FE is core
-                                    for fe in FEs:
-                                        if type(looked_up) == list:
-                                            for shared_type_fe in looked_up:
-                                                shared_fe_type = fe.get(shared_type_fe)
-                                                # TODO overwritten value
-                                                if shared_fe_type:
-                                                    chunk['type'] = shared_fe_type
-                                                if shared_fe_type == 'core':
-                                                    logger.debug('Mapped FE "%s" is core for frame "%s"' % (shared_type_fe, frame['frame']))
-                                                    core = True
-                                        else:
-                                            fe_type = fe.get(looked_up)
-                                            if fe_type:
-                                                chunk['type'] = fe_type
-                                            if fe_type == 'core':
-                                                logger.debug('Mapped FE "%s" is core for frame "%s"' % (looked_up, frame['frame']))
-                                                core = True
-                                    ### FE disambiguation strategy ###
-                                    # If multiple FEs have the same ontology type, e.g., [Vincitore, Perdente] -> Club
-                                    # BASELINE = random assignment
-                                    # Needs to be adjusted by humans
-                                    if type(looked_up) == list:
-                                        chosen = random.choice(looked_up)
-                                        chunk['FE'] = chosen
-                                        # Avoid duplicates
-                                        if chunk not in assigned_fes:
-                                            assigned_fes.append(chunk)
-                                    else:
-                                        chunk['FE'] = looked_up
-                                        # Avoid duplicates
-                                        if chunk not in assigned_fes:
-                                            assigned_fes.append(chunk)
+                # if more than one FE with that type choose randomly
+                # but do not consider already picked FEs
+                available = set(fe['fe'] for fe in frame['ontology_to_fe'][dbpedia_class])
+                available.difference_update(set(assigned_fes))
+
+                if available:
+                    chosen = frame['fes'][random.choice(list(available))]
+                    assigned_fes[chosen['fe']] = {
+                        'fe': chosen['fe'],
+                        'type': chosen['type'],
+                        'chunk': entity['chunk'],
+                        'uri': entity['uri'],
+                        'score': entity['confidence']
+                    }
+                    logger.debug('assigned FE %s of frame %s to chunk "%s" of type %s',
+                                 chosen['fe'], frame['frame'], entity['chunk'], dbpedia_class)
+                else:
+                    # we could back-track and change some past assignments
+                    logger.debug('could not assign a FE to chunk "%s" of type %s',
+                                 entity['chunk'], dbpedia_class)
+
+        return assigned_fes
+
+    def label_sentence(self, sentence, normalize_numerical):
+        """ Labels a single sentence
+            :param sentence: Sentence data to label
+            :param normalize_numerical: Automatically normalize numerical FEs
+            :return: Labeled data
+        """
+        labeled = {
+            'sentence': sentence['text'],
+            'FEs': defaultdict(list),
+        }
+
+        for token, pos, lemma in sentence['tagged']:
+            for frame in self.frame_data.get(lemma, []):
+                if pos.startswith(frame['pos']):
+                    logger.debug('trying frame %s' % frame['frame'])
+                    assigned_fes = self.assign_frame_elements(sentence['linked_entities'], frame)
+
                     # Continue to next frame if NO core FE was found
-                    if not core:
-                        logger.debug('No core FE for frame "%s": skipping' % frame['frame'])
-                        continue
-                    # Otherwise assign frame and previously stored FEs
+                    # TODO strict assignment: ALL core FEs must be found
+                    # TODO best-effort assignment: the one with most FEs wins
+                    if not any(fe['type'] == 'Core' for fe in assigned_fes):
+                        logger.debug('no core FEs found for frame "%s": skipping' % frame['frame'])
                     else:
-                        logger.debug('ASSIGNING FRAME: %s' % frame['frame'])
-                        logger.debug('ASSIGNING FEs: %s' % assigned_fes)
-                        ### Frame disambiguation strategy, part 2 ###
-                        # If at least 1 core FE is detected in multiple frames:
-                        # BASELINE = random assignment
-                        # Needs to be adjusted by humans
+                        logger.debug('assigning frame: %s', frame['frame'])
+                        logger.debug('assigning FEs: %s', assigned_fes)
+
+                        # If at least 1 core FE is detected in multiple frames then assign randomly
                         current_frame = frame['frame']
                         previous_frame = labeled.get('frame')
                         if previous_frame:
-                            previous_FEs = labeled['FEs']
                             choice = random.choice([previous_frame, current_frame])
-                            logger.debug('CORE FES FOR MULTIPLE FRAMES WERE DETECTED. MAKING A RANDOM ASSIGNMENT: %s' % choice)
+                            logger.debug('core FEs for multiple frames detected; '
+                                         'assigning (randomly) to: %s', choice)
+
                             if choice == current_frame:
                                 labeled['frame'] = current_frame
                                 labeled['FEs'] = assigned_fes
@@ -143,65 +112,84 @@ def label_sentence(sentence, links, debug, numerical):
                             labeled['frame'] = current_frame
                             labeled['FEs'] = assigned_fes
 
-    # Normalize + annotate numerical FEs (only if we could disambiguate the sentence)
-    if labeled.get('frame') and numerical:
-        logger.debug('LABELING AND NORMALIZING NUMERICAL FEs ...')
-        for (start, end), tag, norm in NORMALIZER.normalize_many(sentence):
-            chunk = sentence[start:end]
-            logger.debug('Chunk [%s] normalized into [%s], tagged as [%s]' % (chunk, norm, tag))
-            fe = {  # All numerical FEs are extra ones and their values are literals
-                'chunk': chunk,
-                'FE': tag,
-                'type': 'extra',
-                'literal': norm,
-                'score': 1.0
-            }
-            labeled['FEs'].append(fe)
+        # Normalize + annotate numerical FEs (only if we could disambiguate the sentence)
+        if labeled.get('frame') and normalize_numerical:
+            normalizer = DateNormalizer()
 
-    if 'lu' in labeled and labeled['FEs']:
-        return labeled
-    else:
-        return None
+            logger.debug('labeling and normalizing numerical FEs ...')
+            for (start, end), tag, norm in normalizer.normalize_many(sentence):
+                chunk = sentence[start:end]
+                logger.debug('Chunk [%s] normalized into [%s], tagged as [%s]' % (chunk, norm, tag))
+                fe = {  # All numerical FEs are extra ones and their values are literals
+                        'chunk': chunk,
+                        'FE': tag,
+                        'type': 'extra',
+                        'literal': norm,
+                        'score': 1.0
+                        }
+                labeled['FEs'].append(fe)
 
+        if 'lu' in labeled and labeled['FEs']:
+            return labeled
+        else:
+            return None
 
-def process_dir(sentences, debug, numerical):
-    processed = []
-    with open(sentences) as f:
-        for row in f:
-            data = json.loads(row)
-            for each in data['sentences']:
-                labeled = label_sentence(each['text'], each['links'],
-                                         debug, numerical)
-                if labeled is not None:
-                    print labeled
-                    processed.append(labeled)
-    return processed
+    def label_sentences(self, sentences, normalize_numerical, score_type, core_weight):
+        """ Process all the given sentences with the rule-based classifier,
+            optionally giving a confidence score
+            :param sentences: List of sentence data
+            :param normalize_numerical: Whether to automatically
+             normalize numerical expressions
+            :param score_type: Which type of score (if any) to use to
+            compute the classification confidence
+            :param core_weight: Weight of the core FEs (used in the scoring)
+            :return: Generator of labeled sentences
+        """
+
+        for each in sentences:
+            labeled = self.label_sentence(each, normalize_numerical)
+            if labeled is None:
+                continue
+
+            if score_type:
+                labeled['score'] = scoring.compute_score(labeled,
+                                                         score_type,
+                                                         core_weight)
+
+            yield labeled
 
 
 @click.command()
-@click.argument('sentences', type=click.Path(exists=True, file_okay=True))
-@click.argument('labeled_out', default='labeled.json')
-@click.option('--score', type=click.Choice(['arithmetic-mean', 'weighted-mean',
-                                            'f-score', '']))
+@click.argument('sentences', type=click.File('r'))
+@click.argument('language')
+@click.argument('output', default='dev/labeled.jsonlines')
+@click.option('--frame-data', type=click.File('r'), default='dev/framenet_lus.json')
+@click.option('--score-type', type=click.Choice(scoring.AVAILABLE_SCORES))
 @click.option('--core-weight', default=2)
-@click.option('--score-fes/--no-score-fes', help='Score individual FEs')
-@click.option('--debug/--no-debug', default=False)
-@click.option('--numerical/--no-numerical', default=True)
-def main(sentences, labeled_out, score, core_weight, score_fes, debug, numerical):
+@click.option('--normalize-numerical', is_flag=True, default=True)
+def main(sentences, language, output, frame_data, score_type, core_weight, normalize_numerical):
+    """ Rule-based role labeling
     """
-    Rule-based classifier
-    """
-    labeled = process_dir(sentences, debug, numerical)
 
-    if score:
-        for sentence in labeled:
-            sentence['score'] = compute_score(sentence, score, core_weight)
-            if not score_fes:
-                [fe.pop('score') for fe in sentence['FEs']]
+    def _flatten(iterable):  # Good job, itertools
+        for x in iterable:
+            for y in x:
+                yield y
 
-    with codecs.open(labeled_out, 'w', 'utf8') as f:
-        json.dump(labeled, f, ensure_ascii=False, indent=2)
-    return 0
+    frame_data = json.load(frame_data)
+    sentences = _flatten(json.loads(row)['sentences'] for row in sentences)
 
-if __name__ == '__main__':
-    exit(main())
+    labeled = RuleBasedClassifier(frame_data, language).label_sentences(
+        sentences, normalize_numerical, score_type, core_weight
+    )
+
+    count = 0
+    for i, each in enumerate(labeled):
+        output.write(json.dumps(each))
+        output.write('\n')
+
+        count = i + 1
+        if count % 1000 == 0:
+            logger.info('Labeled %d sentences', count)
+
+    logger.info('Done, labeled %d sentences', count)

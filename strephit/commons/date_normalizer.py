@@ -22,7 +22,7 @@ class DateNormalizer(object):
     """
 
     def __init__(self):
-        path = os.path.join(os.path.dirname(__file__), 'normalization_rules_it.yml')
+        path = os.path.join(os.path.dirname(__file__), 'resources', 'normalization_rules_it.yml')
         with open(path) as f:
             specs = yaml.load(f)
 
