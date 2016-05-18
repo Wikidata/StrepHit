@@ -39,13 +39,18 @@ class RuleBasedClassifier:
             :return: List of assigned frames
         """
 
-        assigned_fes = {}
+        assigned_fes = []
 
         # greedy best-effort FE assignment:
         # try to assign a FE to entities with fewer available types first
         by_count = sorted(linked, key=lambda e: len(e['types']), reverse=True)
         for entity in by_count:
             if entity['chunk'].lower() in StopWords.words(self.language):
+                continue
+
+            if not entity['types']:
+                logger.debug('entity "%s" has no types attached, skipping',
+                             entity['chunk'])
                 continue
 
             assigned = False
@@ -57,18 +62,22 @@ class RuleBasedClassifier:
                     continue
 
                 # if more than one FE with that type choose randomly
-                # but do not consider already picked FEs
-                available = set(fe['fe'] for fe in frame['ontology_to_fe'][dbpedia_class])
-                available.difference_update(set(assigned_fes))
+                # and give core FEs precedence over extra FEs
+                available = set(fe['fe'] for fe in frame['ontology_to_fe'][dbpedia_class]
+                                if fe['type'] == 'Core')
+                if not available:
+                    available = set(fe['fe'] for fe in frame['ontology_to_fe'][dbpedia_class])
 
                 if available:
                     chosen = frame['fes'][random.choice(list(available))]
-                    assigned_fes[chosen['fe']] = {
-                        'type': chosen['type'],
+                    assigned_fes.append({
+                        'fe': chosen['fe'],
+                        'fe_type': chosen['type'],
+                        'entity_type': type_uri,
                         'chunk': entity['chunk'],
                         'uri': entity['uri'],
                         'score': entity['confidence']
-                    }
+                    })
                     logger.debug('assigned FE %s of frame %s to chunk "%s" of type %s',
                                  chosen['fe'], frame['frame'], entity['chunk'], dbpedia_class)
                     assigned = True
@@ -94,22 +103,46 @@ class RuleBasedClassifier:
         """
         logger.debug('processing sentence "%s"', sentence['text'])
         tagged = self.tagger.tag_one(sentence['text'])
+
+        # Normalize + annotate numerical FEs
+        numerical_fes = []
+        if normalize_numerical:
+            normalizer = DateNormalizer(self.language)
+
+            logger.debug('labeling and normalizing numerical FEs ...')
+            for (start, end), tag, norm in normalizer.normalize_many(sentence['text']):
+                chunk = sentence['text'][start:end]
+                logger.debug('Chunk [%s] normalized into [%s], tagged as [%s]' % (chunk, norm, tag))
+                fe = {  # All numerical FEs are extra ones and their values are literals
+                    'fe': tag,
+                    'chunk': chunk,
+                    'type': 'extra',
+                    'literal': norm,
+                    'score': 1.0
+                }
+                numerical_fes.append(fe)
+
         for token, pos, lemma in tagged:
             if lemma not in self.frame_data or not pos.startswith(self.frame_data[lemma]['pos']):
                 continue
 
             frame = self.frame_data[lemma]
+            if not frame['ontology_to_fe'].keys():
+                logger.debug('missing FE types for frame %s, skipping',
+                             frame['frame'])
+                continue
+
             logger.debug('trying frame %s with FE of types %s', frame['frame'],
                          frame['ontology_to_fe'].keys())
 
             assigned_fes = self.assign_frame_elements(sentence['linked_entities'], frame)
-
-            if assigned_fes:
-                logger.debug('assigning frame: %s and FEs %s', frame['frame'], assigned_fes.keys())
+            all_fes = numerical_fes + assigned_fes
+            if assigned_fes or numerical_fes:
+                logger.debug('assigning frame: %s and FEs %s', frame['frame'], all_fes)
                 labeled = {
                     'sentence': sentence['text'],
                     'frame': frame['frame'],
-                    'fes': assigned_fes,
+                    'fes': all_fes,
                     'lu': lemma,
                 }
                 break
@@ -118,22 +151,6 @@ class RuleBasedClassifier:
         else:
             logger.debug('did not assign any frame to sentence "%s"', sentence['text'])
             return None
-
-        # Normalize + annotate numerical FEs
-        if normalize_numerical:
-            normalizer = DateNormalizer()
-
-            logger.debug('labeling and normalizing numerical FEs ...')
-            for (start, end), tag, norm in normalizer.normalize_many(sentence['text']):
-                chunk = sentence['text'][start:end]
-                logger.debug('Chunk [%s] normalized into [%s], tagged as [%s]' % (chunk, norm, tag))
-                fe = {  # All numerical FEs are extra ones and their values are literals
-                    'chunk': chunk,
-                    'type': 'extra',
-                    'literal': norm,
-                    'score': 1.0
-                }
-                labeled['fes'][tag] = fe
 
         if score_type:
             labeled['score'] = scoring.compute_score(labeled,
