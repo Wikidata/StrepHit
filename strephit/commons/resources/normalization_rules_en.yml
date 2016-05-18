@@ -1,0 +1,138 @@
+__meta_vars__:
+  month: (gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)
+  lit_digit: (zero|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove)
+  tens: (dieci|venti|trenta|quaranta|cinquanta|sessanta|settanta|ottanta|novanta)
+  prep_art: (il\s|l\s?'\s?|nel\s|nell\s?'\s?|del\s|dell\s?'\s?)
+  schema:
+    year: http://www.w3.org/2001/XMLSchema#gYear
+    month: http://www.w3.org/2001/XMLSchema#gMonth
+    yearMonth: http://www.w3.org/2001/XMLSchema#gYearMonth
+    monthDay: http://www.w3.org/2001/XMLSchema#gMonthDay
+    date: http://www.w3.org/2001/XMLSchema#date
+    duration: http://www.w3.org/2001/XMLSchema#duration
+
+
+__meta_funcs__:
+  - >
+    def index_in_or(or_pattern, element):
+        return or_pattern[1:-1].split('|').index(element)
+  - >
+    def month_to_num(month):
+        """ gennaio -> 1, febbraio -> 2, ..., dicembre -> 12 """
+        try:
+            return index_in_or(meta_vars['month'], month) + 1
+        except ValueError:
+            return month
+  - >
+    def lit_digit_to_num(digit):
+        """ uno -> 1, due -> 2, ..., nove -> 9 """
+        translation = {
+            "zero": "0",
+            "uno": "1",
+            "una": "1",
+            "due": "2",
+            "tre": "3",
+            "quattro": "4",
+            "cinque": "5",
+            "sei": "6",
+            "sette": "7",
+            "otto": "8",
+            "nove": "9"
+        }
+        try:
+            return translation[digit]
+        except KeyError:
+            return digit
+  - >
+    def abs_year(year):
+        """ 87 -> 1987, 1987 -> 1987 """
+        return year if len(str(year)) == 4 else '19' + str(year)
+  - >
+    def tens_to_num(tens):
+        try:
+            return 10 * (index_in_or(meta_vars['tens'], tens) + 1)
+        except ValueError:
+            return tens
+
+Time:
+  - in (the (early|late|mid-))? (?P<year>\d{{4}}): >
+      '"{}"^^<{schema}>'.format(
+        match.group('year'),
+        schema=schema['year']
+      )
+
+  - in the (early|late|mid-)? (?P<year>\d{{4}})s: >
+      '"{}"^^<{schema}>'.format(
+        match.group('year'),
+        schema=schema['year']
+      )
+
+Duration:
+  - from (the (early|late|mid-))? (?P<y1>\d{{4}}) to (the (early|late|mid-))? (?P<y2>\d{{4}}): >
+      {
+        'duration': '"P{}Y"^^<{schema}>'.format(
+          int(match.group('y2')) - int(match.group('y1')),
+          schema=schema['duration']
+        ),
+        'start': '"{}"^^<{schema}>'.format(
+          match.group('y1'),
+          schema=schema['year']
+        ),
+        'end': '"{}"^^<{schema}>'.format(
+          match.group('y2'),
+          schema=schema['year']
+        ),
+      }
+
+  - from (the (early|late|mid-))? (?P<year>\d{{4}}): >
+      {
+        'start': '"{}"^^<{schema}>'.format(
+          match.group('year'),
+          schema=schema['year']
+        )
+      }
+
+  - until (the (early|late|mid-))? (?P<y>\d{{4}}): >
+      {
+        'end': '"{}"^^<{schema}>'.format(
+          match.group('y'),
+          schema=schema['year']
+        )
+      }
+
+  - during the (early|late|mid-?)? (?P<y>\d{{4}})s: >
+      {
+        'duration': '"P10Y"^^<{}>'.format(schema['duration']),
+        'start': '"{}"^^<{schema}>'.format(
+          match.group('y'),
+          schema=schema['year']
+        ),
+        'end': '"{}"^^<{schema}>'.format(
+          int(match.group('y')) + 9,
+          schema=schema['year']
+        ),
+      }
+
+  - (began|started) in the (early|late|mid-?)? (?P<y>\d{{4}})s: >
+      {
+        'start': '"{}"^^<{schema}>'.format(
+          match.group('y'),
+          schema=schema['year']
+        )
+      }
+
+  - between (the (early|late|mid-?))? (?P<y1>\d{{4}}) and (the (early|late|mid-?))? (?P<y2>\d{{4}}): >
+      {
+       'duration': '"P{}Y"^^<{schema}>'.format(
+         int(match.group('y2')) - int(match.group('y1')),
+         schema=schema['duration']
+       ),
+       'start': '"{}"^^<{schema}>'.format(
+         match.group('y1'),
+         schema=schema['year']
+       ),
+       'end': '"{}"^^<{schema}>'.format(
+         match.group('y2'),
+         schema=schema['year']
+       ),
+      }

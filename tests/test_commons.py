@@ -2,10 +2,11 @@
 import os
 import shutil
 import tempfile
+import yaml
 import random
 import unittest
 import itertools
-from strephit.commons import pos_tag, cache, parallel, datetime, text, wikidata, split_sentences
+from strephit.commons import pos_tag, cache, parallel, datetime, text, wikidata, split_sentences, date_normalizer
 from collections import Counter
 from treetaggerwrapper import Tag
 
@@ -382,3 +383,17 @@ class TestPosTag(unittest.TestCase):
         for each in self.items:
             self.assertEqual(self.tagger.tag_one(each['text']),
                              each['correct'])
+
+
+class TestDateNormalizer(unittest.TestCase):
+    def test_english_rules(self):
+        language = 'en'
+        test_file = os.path.join(os.path.dirname(__file__), 'resources',
+                                 'normalization_rules_%s_tests.yml' % language)
+        with open(test_file) as f:
+            test_cases = yaml.load(f)
+
+        d = date_normalizer.DateNormalizer(language)
+        for text, expected in test_cases.iteritems():
+            position, category, result = d.normalize_one(text)
+            self.assertEqual(result, expected)

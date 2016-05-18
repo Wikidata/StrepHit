@@ -1,0 +1,22 @@
+which he left in 1975: '"1975"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+moved to Amsterdam in the early 1660s: '"1660"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+From 1940, after his:
+  start: '"1940"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+from 1915 to 1922 lived in:
+  duration: '"P7Y"^^<http://www.w3.org/2001/XMLSchema#duration>'
+  start: '"1915"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  end: '"1922"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+During the early 1950s he was:
+  duration: '"P10Y"^^<http://www.w3.org/2001/XMLSchema#duration>'
+  start: '"1950"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  end: '"1959"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+began in the 1980s:
+  start: '"1980"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+continued teaching until 1958:
+  end: '"1958"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+From the mid-1960s the feeling:
+  start: '"1960"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+between 1879 and 1886:
+  duration: '"P7Y"^^<http://www.w3.org/2001/XMLSchema#duration>'
+  start: '"1879"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  end: '"1886"^^<http://www.w3.org/2001/XMLSchema#gYear>'
