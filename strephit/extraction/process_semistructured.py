@@ -69,7 +69,7 @@ def serialize_item((i, item, cache, language, sourced_only)):
 
     info = dict(data, **statements)  # provide all available info to the resolver
     info['type_'] = 5  # Q5 = human
-    wid = wikidata.resolver_with_hints('P1477', name, language, **info)
+    wid = wikidata.resolver_with_hints('P1559', name, language, **info)
 
     if not wid:
         logger.debug('cannod find wikidata id for item %s (%s) with properties %s, skipping',
@@ -77,7 +77,7 @@ def serialize_item((i, item, cache, language, sourced_only)):
         return
 
     # now that we are sure about the subject we can produce the actual statements
-    yield wikidata.finalize_statement(wid, 'P1477', '"%s"' % name, language, url,
+    yield wikidata.finalize_statement(wid, 'P1559', '"%s"' % name.title(), language, url,
                                       resolve_property=False, resolve_value=False)
     for property, values in statements.iteritems():
         for val in values:

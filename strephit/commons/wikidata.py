@@ -33,7 +33,7 @@ PROPERTY_TO_WIKIDATA = {
     'Gender:': 'P21',
     'death': 'P570',
     'birth': 'P569',
-    'name': 'P1477',
+    'name': 'P1559',
     'honorific': 'P1035',
     ### Genealogics ###
     'Born': 'P569',
@@ -93,7 +93,7 @@ def resolve(property, value, language, **kwargs):
         return None
 
 
-@resolver('P509', 'P734', 'P742', 'P735', 'P1477')
+@resolver('P509', 'P734', 'P742', 'P735', 'P1559')
 def identity_resolver(property, value, language, **kwargs):
     """ Default resolver, converts to unicode and surrounds with double quotes """
     return '"%s"' % unicode(value).replace('"', '\\"') if value else None
