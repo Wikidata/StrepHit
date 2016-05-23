@@ -38,8 +38,8 @@ class DateNormalizer(object):
         self.regexes = {}
         for category, regexes in specs.iteritems():
             regexes = sum((x.items() for x in regexes), [])
-            self.regexes[category] = [(re.compile(pattern.replace(' ', '\\s*') \
-                                                         .format(**basic_r),
+            self.regexes[category] = [(re.compile(pattern.format(**basic_r)
+                                                         .replace(' ', '\\s*'),
                                                   re.IGNORECASE), result)
                                       for pattern, result in regexes]
 
@@ -49,15 +49,26 @@ class DateNormalizer(object):
         :param dict specs: The specifications loaded from the file
         :return: None
         """
-        self.meta_vars = specs.pop('__meta_vars__')
+        # read meta variables and perform substitutions
+        self.meta_vars = {}
+        if '__meta_vars__' in specs:
+            for definition in specs.pop('__meta_vars__'):
+                var, value = definition.items()[0]
+                if isinstance(value, basestring):
+                    self.meta_vars[var] = value.format(**self.meta_vars)
+                elif isinstance(value, dict):
+                    self.meta_vars[var] = {
+                        k: v.format(**self.meta_vars) for k, v in value.iteritems()
+                    }
 
         # compile meta functions in a dictionary
         self.meta_funcs = {}
-        for f in specs.pop('__meta_funcs__'):
-            exec f in self.meta_funcs
+        if '__meta_funcs__' in specs:
+            for f in specs.pop('__meta_funcs__'):
+                exec f in self.meta_funcs
 
-        # make meta variables available to the meta functions just defined
-        self.meta_funcs['__builtins__']['meta_vars'] = self.meta_vars
+            # make meta variables available to the meta functions just defined
+            self.meta_funcs['__builtins__']['meta_vars'] = self.meta_vars
 
         self.globals = self.meta_funcs
         self.globals.update(self.meta_vars)
@@ -104,10 +115,12 @@ class DateNormalizer(object):
         :param str expression: The expression in which to look for
         :return: Generator of tuples (start, end), category, result
         """
+
+        # start matching from here, and move forward as new matches
+        # are found so to avoid overlapping matches and return
+        # the correct offset inside the original sentence
+        position = 0
         expression = expression.lower()
-        position = 0  # start matching from here, and move forward as new matches
-                      # are found so to avoid overlapping matches and return
-                      # the correct offset inside the original sentence
 
         for category, regexes in self.regexes.iteritems():
             for regex, transform in regexes:
@@ -147,4 +160,4 @@ def normalize_numerical_fes(language, text):
         }
         count += 1
         yield fe
-    logger.debug('found %d numericsl FEs into "%s"', count, text)
+    logger.debug('found %d numerical FEs into "%s"', count, text)
