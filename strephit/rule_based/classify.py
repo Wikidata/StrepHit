@@ -8,7 +8,7 @@ from collections import defaultdict
 
 import click
 
-from strephit.commons.date_normalizer import DateNormalizer
+from strephit.commons.date_normalizer import normalize_numerical_fes
 from strephit.commons import scoring, pos_tag, parallel
 from strephit.commons.stopwords import StopWords
 
@@ -107,20 +107,7 @@ class RuleBasedClassifier:
         # Normalize + annotate numerical FEs
         numerical_fes = []
         if normalize_numerical:
-            normalizer = DateNormalizer(self.language)
-
-            logger.debug('labeling and normalizing numerical FEs ...')
-            for (start, end), tag, norm in normalizer.normalize_many(sentence['text']):
-                chunk = sentence['text'][start:end]
-                logger.debug('Chunk [%s] normalized into [%s], tagged as [%s]' % (chunk, norm, tag))
-                fe = {  # All numerical FEs are extra ones and their values are literals
-                    'fe': tag,
-                    'chunk': chunk,
-                    'type': 'extra',
-                    'literal': norm,
-                    'score': 1.0
-                }
-                numerical_fes.append(fe)
+            numerical_fes.extend(list(normalize_numerical_fes(self.language, sentence['text'])))
 
         for token, pos, lemma in tagged:
             if lemma not in self.frame_data or not pos.startswith(self.frame_data[lemma]['pos']):
