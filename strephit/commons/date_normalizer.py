@@ -26,11 +26,15 @@ class DateNormalizer(object):
     to a variable named 'match' containing the regex match found
     """
 
-    def __init__(self, language):
-        path = os.path.join(os.path.dirname(__file__), 'resources',
-                            'normalization_rules_%s.yml' % language)
-        with open(path) as f:
-            specs = yaml.load(f)
+    def __init__(self, language=None, specs=None):
+        assert language or specs, 'please specify either one of the pre-set ' \
+                                  'languages or provide a custom rule set'
+        if specs is None:
+            path = os.path.join(os.path.dirname(__file__), 'resources',
+                                'normalization_rules_%s.yml' % language)
+
+            with open(path) as f:
+                specs = yaml.load(f)
 
         self._meta_init(specs)
         basic_r = {name: pattern for name, pattern in self.meta_vars.iteritems()}

@@ -386,10 +386,20 @@ class TestPosTag(unittest.TestCase):
 
 
 class TestDateNormalizer(unittest.TestCase):
+    def setUp(self):
+        self.specs = {
+            'rules': [
+                {r'\d+': '"digit"'},
+                {r'[aeiou]+': '"vowel"'},
+                {r'[zxcvbnm]+': '"cons"'},
+            ]
+        }
+        self.expression = '1234 ao mcvbcvxn'
+
     def test_english_rules(self):
         language = 'en'
         test_file = os.path.join(os.path.dirname(__file__), 'resources',
-                                 'normalization_rules_%s_tests.yml' % language)
+                                 'normalization_rules_%s.yml' % language)
         with open(test_file) as f:
             test_cases = yaml.load(f)
 
@@ -397,3 +407,18 @@ class TestDateNormalizer(unittest.TestCase):
         for text, expected in test_cases.iteritems():
             position, category, result = d.normalize_one(text)
             self.assertEqual(result, expected)
+
+    def test_match_first(self):
+        d = date_normalizer.DateNormalizer(specs=self.specs)
+        (start, end), category, result = d.normalize_one(self.expression, conflict='first')
+        self.assertEqual(result, 'digit')
+
+    def test_match_shortest(self):
+        d = date_normalizer.DateNormalizer(specs=self.specs)
+        (start, end), category, result = d.normalize_one(self.expression, conflict='shortest')
+        self.assertEqual(result, 'vowel')
+
+    def test_match_longest(self):
+        d = date_normalizer.DateNormalizer(specs=self.specs)
+        (start, end), category, result = d.normalize_one(self.expression, conflict='longest')
+        self.assertEqual(result, 'cons')
