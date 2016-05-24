@@ -26,8 +26,8 @@ def process_unit(unit_id, sentences):
     chunks = defaultdict(lambda: list())
     for each in sentences:
         for i in xrange(chunk_count):
-            fe = each['chunk_%02d' % i]
-            chunk = each['orig_chunk_%02d' % i]
+            fe = each['answer_chunk_%02d' % i]
+            chunk = each['chunk_%02d' % i]
             if fe and chunk and fe != 'None':
                 chunks[chunk].append(fe)
 
@@ -40,8 +40,6 @@ def process_unit(unit_id, sentences):
 
         most = max(counts.values())
         fe = random.choice([c for c, j in counts.iteritems() if j == most])
-        if not fe:
-            import pdb; pdb.set_trace()
         fes[fe] = chunk
 
     # fill in missing FEs
