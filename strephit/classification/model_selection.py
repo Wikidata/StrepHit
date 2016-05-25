@@ -25,10 +25,10 @@ def main(training_set, language, gold_standard):
     extractor = FactExtractorFeatureExtractor(language)
     for row in training_set:
         data = json.loads(row)
-        extractor.process_sentence(data['sentence'], data['fes'])
+        extractor.process_sentence(data['sentence'], data['fes'], add_unknown=True)
 
     logger.info('Finalizing training set')
-    X, Y = extractor.get_training_set()
+    x, y = extractor.get_features()
 
     logger.info('Searching for the best model parameters')
     svc = LinearSVC()
@@ -40,7 +40,7 @@ def main(training_set, language, gold_standard):
         }],
         scoring='f1_weighted',
         cv=10)
-    search.fit(X, Y)
+    search.fit(x, y)
 
     logger.info('The best model (weighted-averaged F1 of %.4f) has parameters %s',
                 search.best_score_, search.best_params_)
@@ -53,10 +53,10 @@ def main(training_set, language, gold_standard):
     for row in gold_standard:
         data = json.loads(row)
         extractor.process_sentence(data['sentence'], data['fes'])
-    x_gold, y_gold = extractor.get_training_set()
+    x_gold, y_gold = extractor.get_features()
 
     dummy = DummyClassifier(strategy='stratified')
-    dummy.fit(X, Y)
+    dummy.fit(x, y)
 
     y_dummy = dummy.predict(x_gold)
     logger.info('Dummy model has a weighted-averaged F1 on the gold standard of %.4f',

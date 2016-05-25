@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 @click.command()
 @click.argument('training-set', type=click.File('r'))
 @click.argument('language')
-@click.option('-o', '--output', type=click.File('w'), default='dev/classifier.pkl',
-              help='Where to save the model')
+@click.option('-o', '--output', type=click.Path(dir_okay=False, writable=True),
+              default='dev/classifier.pkl', help='Where to save the model')
 @click.option('-c', default=1.0, help='Penalty parameter C of the error term.')
 @click.option('--loss', default='squared_hinge', help='Specifies the loss function.',
               type=click.Choice(['hinge', 'squared_hinge']))
@@ -38,17 +38,17 @@ def main(training_set, language, output, **kwargs):
     logger.info('Building training set')
     for row in training_set:
         data = json.loads(row)
-        extractor.process_sentence(data['sentence'], data['fes'])
+        extractor.process_sentence(data['sentence'], data['fes'], add_unknown=True)
 
     logger.info('Finalizing training set')
-    X, Y = extractor.get_training_set()
+    x, y = extractor.get_features()
 
-    logger.info('Got %d samples with %d features each', *X.shape)
+    logger.info('Got %d samples with %d features each', *x.shape)
 
     logger.info('Fitting model')
     kwargs['C'] = kwargs.pop('c')
     svc = LinearSVC(**kwargs)
-    svc.fit(X, Y)
+    svc.fit(x, y)
 
-    logger.info('Saving model to %s', output.name)
-    joblib.dump(svc, output.name)
+    logger.info('Saving model to %s', output)
+    joblib.dump((svc, extractor), output)

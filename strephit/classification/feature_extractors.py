@@ -22,26 +22,42 @@ class SortedSet:
     def index(self, item):
         return self.items.get(item, -1)
 
+    def reverse_map(self):
+        return {v: k for k, v in self.items.iteritems()}
 
 class BaseFeatureExtractor:
     """ Feature extractor template. Will process sentences one by one
         accumulating their features and finalizes them into the final
         training set.
+
+        It should be used to extract features prior to classification,
+        in which case the fe arguments can be used to group tokens of
+        the same entity into a single chunk while ignoring the actual
+        frame element name, e.g. `fes = dict(enumerate(entities))`
     """
 
-    def process_sentence(self, sentence, fes):
+    def process_sentence(self, sentence, fes, add_unknown):
         """ Extracts and accumulates features for the given sentence
             :param sentence: Text of the sentence
             :param fes: Dictionary with FEs and corresponding chunks
+            :param add_unknown: Whether unknown tokens should be added
+             to the index of treaded as a special, unknown token.
+             Set to True when building the training set and to False
+             when building the features used to classify new sentences
             :return: Nothing
         """
         raise NotImplemented
 
-    def get_training_set(self):
+    def get_features(self):
         """ Returns the final training set
             :return: A matrix whose rows are samples and columns are features and a
             column vector with the sample label (i.e. the correct answer for the classifier)
             :rtype: tuple
+        """
+        raise NotImplemented
+
+    def start(self):
+        """ Clears the features accumulated so far and starts over.
         """
         raise NotImplemented
 
@@ -51,11 +67,13 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
     """
 
     def __init__(self, language, window_width=2):
+        self.language = language
         self.tagger = TTPosTagger(language)
         self.feature_index = SortedSet()
         self.role_index = SortedSet()
         self.window_width = window_width
         self.features = []
+        self.unk_index = self.feature_index.put('UNK')
 
     def sentence_to_tokens(self, sentence, fes):
         """ Transforms a sentence into a list of tokens
@@ -91,22 +109,29 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
                 pos = 'ENT' if len(fe_tokens) > 1 else tagged[position][1]
                 tagged = tagged[:position] + [[chunk, pos, chunk, fe]] + tagged[position + len(fe_tokens):]
             else:
-                logger.warn('cunk "%s" of fe "%s" not found in sentence "%s"',
+                logger.warn('cunk "%s" of fe "%s" not found in sentence "%s". Overlapping chunks?',
                             chunk, fe, sentence)
 
         return tagged
 
-    def feature_for(self, term, type_, position):
+    def feature_for(self, term, type_, position, add_unknown):
         """ Returns the feature for the given token, i.e. the column of the feature in a sparse matrix
             :param term: Actual term
             :param type_: Type of the term, for example token, pos or lemma
             :param position: Relative position (used for context windows)
+            :param
             :return: Column of the corresponding feature
         """
         feat = '%s_%s_%+d' % (term.lower(), type_.lower(), position)
-        return self.feature_index.put(feat)
+        if add_unknown:
+            index = self.feature_index.put(feat)
+        else:
+            index = self.feature_index.index(feat)
+            if index == -1:
+                index = self.unk_index
+        return index
 
-    def token_to_features(self, tokens, position):
+    def token_to_features(self, tokens, position, add_unknown):
         """ Extracts the features for the token in the given position
             :param tokens: POS-tagged tokens of the sentence
             :param position: position of the token for which features are requestsd
@@ -116,13 +141,13 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
 
         for i in xrange(max(position - self.window_width, 0), min(position + self.window_width + 1, len(tokens))):
             rel = i - position
-            features.add(self.feature_for(tokens[i][0], 'TERM', rel))
-            features.add(self.feature_for(tokens[i][1], 'POS', rel))
-            features.add(self.feature_for(tokens[i][2], 'LEMMA', rel))
+            features.add(self.feature_for(tokens[i][0], 'TERM', rel, add_unknown))
+            features.add(self.feature_for(tokens[i][1], 'POS', rel, add_unknown))
+            features.add(self.feature_for(tokens[i][2], 'LEMMA', rel, add_unknown))
 
         return features
 
-    def extract_features(self, sentence, fes):
+    def extract_features(self, sentence, fes, add_unknown):
         """ Extracts the features for each token of the sentence
             :param sentence: Text of the sentence
             :param fes: mapping FE -> chunk
@@ -133,22 +158,26 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
         features = []
 
         for i in xrange(len(tagged)):
-            feat = self.token_to_features(tagged, i)
+            feat = self.token_to_features(tagged, i, add_unknown)
             label = 'O' if len(tagged[i]) == 3 else tagged[i][3]
-
             features.append((feat, self.role_index.put(label)))
 
-        return features
+        return tagged, features
 
-    def process_sentence(self, sentence, fes):
-        self.features.extend(self.extract_features(sentence, fes))
+    def process_sentence(self, sentence, fes, add_unknown):
+        tagged, features = self.extract_features(sentence, fes, add_unknown)
+        self.features.extend(features)
+        return tagged
 
-    def get_training_set(self):
-        X, Y = [], []
+    def start(self):
+        self.features = []
+
+    def get_features(self):
+        x, y = [], []
         data, indices, indptr = [], [], []
 
         for sample, label in self.features:
-            Y.append(label)
+            y.append(label)
 
             indptr.append(len(data))
             for feature in sample:
@@ -156,9 +185,20 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
                 data.append(1.0)
 
         indptr.append(len(data))
-        X = csr_matrix((data, indices, indptr),
+        x = csr_matrix((data, indices, indptr),
                        shape=(len(indptr) - 1, len(self.feature_index.items)),
                        dtype=np.float32)
-        Y = np.array(Y)
+        y = np.array(y)
 
-        return X, Y
+        return x, y
+
+    def __getstate__(self):
+        return (self.language, self.unk_index, self.window_width, self.role_index.items,
+                self.feature_index.items, self.features)
+
+    def __setstate__(self, (language, unk_index, window_width, role_index, feature_index, features)):
+        self.__init__(language, window_width)
+        self.feature_index.items = feature_index
+        self.role_index.items = role_index
+        self.features = features
+        self.unk_index = unk_index
