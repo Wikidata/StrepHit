@@ -75,6 +75,7 @@ class SentenceExtractor:
                 for each in extracted:
                     each['id'] = count
                     each['url'] = item['url']
+                    each['name'] = item['name']
                     count += 1
 
                     yield each

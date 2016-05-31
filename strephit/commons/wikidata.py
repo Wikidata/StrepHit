@@ -349,7 +349,7 @@ def finalize_statement(subject, property, value, language, url=None,
     return statement
 
 
-def format_date(year, month, day):
+def format_date(year=None, month=None, day=None):
     """ Formats a date according to Wikidata syntax. Assumes that the date is mostly
         correct. The allowed values of the parameters are shown in the following
         truth table

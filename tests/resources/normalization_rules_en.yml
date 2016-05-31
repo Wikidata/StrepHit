@@ -1,37 +1,70 @@
-which he left in 1975: '"1975"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-moved to Amsterdam in the early 1660s: '"1660"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+which he left in 1975:
+  year: 1975
+moved to Amsterdam in the early 1660s:
+  year: 1660
 From 1940, after his:
-  start: '"1940"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  start:
+    year: 1940
 from 1915 to 1922 lived in:
-  duration: '"P7Y"^^<http://www.w3.org/2001/XMLSchema#duration>'
-  start: '"1915"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-  end: '"1922"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  start:
+    year: 1915
+  end:
+    year: 1922
 During the early 1950s he was:
-  duration: '"P10Y"^^<http://www.w3.org/2001/XMLSchema#duration>'
-  start: '"1950"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-  end: '"1959"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  start:
+    year: 1950
+  end:
+    year: 1959
 began in the 1980s:
-  start: '"1980"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  start:
+    year: 1980
 continued teaching until 1958:
-  end: '"1958"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  end:
+    year: 1958
 From the mid-1960s the feeling:
-  start: '"1960"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  start:
+    year: 1960
 between 1879 and 1886:
-  duration: '"P7Y"^^<http://www.w3.org/2001/XMLSchema#duration>'
-  start: '"1879"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-  end: '"1886"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-c. 1234: '"1234"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-In July 1790: '"1790-07"^^<http://www.w3.org/2001/XMLSchema#gYearMonth>'
-On 3 April 1855: '"1855-04-03"^^<http://www.w3.org/2001/XMLSchema#date>'
-1 March 1531: '"1531-03-01"^^<http://www.w3.org/2001/XMLSchema#date>'
-in early 1907: '"1907"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-By 1863: '"1863"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-In the 1908 London Games: '"1908"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  start:
+    year: 1879
+  end:
+    year: 1886
+c. 1234:
+  year: 1234
+In July 1790:
+  year: 1790
+  month: 7
+On 3 April 1855:
+  year: 1855
+  month: 4
+  day: 3
+1 March 1531:
+  year: 1531
+  month: 03
+  day: 1
+in early 1907:
+  year: 1907
+By 1863:
+  year: 1863
+In the 1908 London Games:
+  year: 1908
 Since 1954:
-  start: '"1954"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-6th of April 1806: '"1806-04-06"^^<http://www.w3.org/2001/XMLSchema#date>'
-September 9, 1966: '"1966-09-09"^^<http://www.w3.org/2001/XMLSchema#date>'
+  start:
+    year: 1954
+6th of April 1806:
+  year: 1806
+  month: 4
+  day: 6
+September 9, 1966:
+  year: 1966
+  month: 9
+  day: 9
 During 1855:
-  duration: '"P1Y"^^<http://www.w3.org/2001/XMLSchema#duration>'
-  start: '"1855"^^<http://www.w3.org/2001/XMLSchema#gYear>'
-  end: '"1856"^^<http://www.w3.org/2001/XMLSchema#gYear>'
+  start:
+    year: 1855
+  end:
+    year: 1856
+14 feb 1880:
+  year: 1880
+  month: 2
+  day: 14

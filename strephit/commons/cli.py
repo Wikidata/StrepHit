@@ -1,6 +1,6 @@
 import click
 
-from strephit.commons import tokenize, pos_tag, entity_linking, split_sentences, download
+from strephit.commons import tokenize, pos_tag, entity_linking, split_sentences, download, serialize
 
 CLI_COMMANDS = {
     'tokenize': tokenize.main,
@@ -8,6 +8,7 @@ CLI_COMMANDS = {
     'entity_linking': entity_linking.main,
     'split_sentences': split_sentences.main,
     'download': download.main,
+    'serialize': serialize.main,
 }
 
 

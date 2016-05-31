@@ -10,4 +10,5 @@ import text
 import entity_linking
 import secrets
 import download
+import serialize
 from split_sentences import PunktSentenceSplitter

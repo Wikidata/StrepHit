@@ -6,13 +6,6 @@ __meta_vars__:
   - early_late_mid: (the)? (early|late|mid -?)
   - match_year: (?P<year>\d{{4}})
   - match_month: (?P<month>{month})
-  - schema:
-      year: http://www.w3.org/2001/XMLSchema#gYear
-      month: http://www.w3.org/2001/XMLSchema#gMonth
-      yearMonth: http://www.w3.org/2001/XMLSchema#gYearMonth
-      monthDay: http://www.w3.org/2001/XMLSchema#gMonthDay
-      date: http://www.w3.org/2001/XMLSchema#date
-      duration: http://www.w3.org/2001/XMLSchema#duration
 
 __meta_funcs__:
   - >
@@ -22,107 +15,67 @@ __meta_funcs__:
   - >
     def month_to_num(month):
         """ january -> 1, february -> 2, ..., december -> 12 """
+
         try:
-            return index_in_or(meta_vars['month_full'], month) + 1
-            return index_in_or(meta_vars['month_abbr'], month) + 1
+          return int(month)
         except ValueError:
-            return month
+          if month in meta_vars['month_abbr']:
+            return index_in_or(meta_vars['month_abbr'], month) + 1
+          elif month in meta_vars['month_full']:
+            return index_in_or(meta_vars['month_full'], month) + 1
+          else:
+            raise ValueError('unknown month: %s' % month)
+
+  - >
+    def make_date(**data):
+      res = {}
+      if data.get('year'):
+        res['year'] = int(data['year'])
+      if data.get('month'):
+        res['month'] = month_to_num(data['month'])
+      if data.get('day'):
+        res['day'] = int(data['day'])
+
+      return res or None
 
 Time:
   - (in|by) {early_late_mid}? {match_month}? {match_year}: >
-      '"{}-{:02d}"^^<{schema}>'.format(
-        match.group('year'),
-        month_to_num(match.group('month')),
-        schema=schema['yearMonth']
-      ) if match.group('month') else
-      '"{}"^^<{schema}>'.format(
-        match.group('year'),
-        schema=schema['year']
-      )
+      make_date(**match.groupdict())
 
   - (?P<day>\d{{1,2}}){cardinal_suffix}? (of)? {match_month} {match_year}: >
-      '"{}-{:02d}-{:02d}"^^<{schema}>'.format(
-        match.group('year'),
-        month_to_num(match.group('month')),
-        int(match.group('day')),
-        schema=schema['date']
-      )
+      make_date(**match.groupdict())
 
   - (?P<month>{month}) (?P<day>\d{{1,2}}){cardinal_suffix}?, {match_year}: >
-      '"{}-{:02d}-{:02d}"^^<{schema}>'.format(
-          match.group('year'),
-          month_to_num(match.group('month')),
-          int(match.group('day')),
-          schema=schema['date']
-        )
+      make_date(**match.groupdict())
 
   - (c\.|on|about|the|of|circa|around|year) {match_year}: >
-      '"{}"^^<{schema}>'.format(
-        match.group('year'),
-        schema=schema['year']
-      )
+      make_date(**match.groupdict())
 
 Duration:
   - from {early_late_mid}? (?P<y1>\d{{4}}) to {early_late_mid}? (?P<y2>\d{{4}}): >
       {
-        'duration': '"P{}Y"^^<{schema}>'.format(
-          int(match.group('y2')) - int(match.group('y1')),
-          schema=schema['duration']
-        ),
-        'start': '"{}"^^<{schema}>'.format(
-          match.group('y1'),
-          schema=schema['year']
-        ),
-        'end': '"{}"^^<{schema}>'.format(
-          match.group('y2'),
-          schema=schema['year']
-        ),
+        'start': make_date(year=match.group('y1')),
+        'end': make_date(year=match.group('y2')),
       }
 
   - until {early_late_mid}? {match_year}: >
       {
-        'end': '"{}"^^<{schema}>'.format(
-          match.group('year'),
-          schema=schema['year']
-        )
+        'end': make_date(**match.groupdict()),
       }
 
   - during {early_late_mid}? {match_year}(?P<decade>s?): >
       {
-        'duration': '"P{}Y"^^<{}>'.format(
-          10 if match.group('decade') else 1,
-          schema['duration']
-        ),
-        'start': '"{}"^^<{schema}>'.format(
-          match.group('year'),
-          schema=schema['year']
-        ),
-        'end': '"{}"^^<{schema}>'.format(
-          int(match.group('year')) + (9 if match.group('decade') else 1),
-          schema=schema['year']
-        ),
+        'start': make_date(**match.groupdict()),
+        'end': make_date(year=int(match.group('year')) + (9 if match.group('decade') else 1)),
       }
 
   - (began in|started in|from|since) {early_late_mid}? {match_year}s?: >
       {
-        'start': '"{}"^^<{schema}>'.format(
-          match.group('year'),
-          schema=schema['year']
-        )
+        'start': make_date(**match.groupdict()),
       }
 
   - between {early_late_mid}? (?P<y1>\d{{4}}) and {early_late_mid}? (?P<y2>\d{{4}}): >
       {
-       'duration': '"P{}Y"^^<{schema}>'.format(
-         int(match.group('y2')) - int(match.group('y1')),
-         schema=schema['duration']
-       ),
-       'start': '"{}"^^<{schema}>'.format(
-         match.group('y1'),
-         schema=schema['year']
-       ),
-       'end': '"{}"^^<{schema}>'.format(
-         match.group('y2'),
-         schema=schema['year']
-       ),
+       'start': make_date(year=match.group('y1')),
+       'end': make_date(year=match.group('y2')),
       }

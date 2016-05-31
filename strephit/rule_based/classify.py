@@ -131,6 +131,7 @@ class RuleBasedClassifier:
             if assigned_fes or numerical_fes:
                 logger.debug('assigning frame: %s and FEs %s', frame['frame'], all_fes)
                 labeled = {
+                    'name': sentence['name'],
                     'url': sentence['url'],
                     'sentence': sentence['text'],
                     'frame': frame['frame'],

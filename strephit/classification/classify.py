@@ -42,7 +42,7 @@ class SentenceClassifier:
         role_index_to_label = self.extractor.role_index.reverse_map()
 
         for data in sentences_data:
-            fes = {}
+            fes = []
             for each in data['tagged']:
                 chunk = each[0]
                 predicted_role = y[token_offset]
@@ -50,16 +50,26 @@ class SentenceClassifier:
                 if predicted_role != role_label_to_index['O']:
                     label = role_index_to_label[predicted_role]
                     logger.debug('chunk "%s" classified as "%s"', chunk, label)
-                    fes[label] = chunk
+                    fes.append({
+                        'chunk': chunk,
+                        'fe': label,
+                    })
+                    # TODO
+                    # do not group entities into a single chunk, and after classification
+                    # check if the word is contained in an entity; if so, assign the label
+                    # to the whole entity
 
                 token_offset += 1
 
             logger.debug('found %d FEs in sentence "%s"', len(fes), data['text'])
             if fes:
                 classified = {
+                    'name': data['name'],
                     'url': data['url'],
                     'text': data['text'],
                     'fes': fes,
+                    'linked_entities': data.get('linked_entities', []),
+                    'type': 'Core',
                 }
 
                 yield classified
@@ -68,9 +78,10 @@ class SentenceClassifier:
 @click.command()
 @click.argument('sentences', type=click.File('r'))
 @click.argument('output', type=click.File('w'))
+@click.option('--processes', '-p', default=0)
 @click.option('--model', type=click.Path(dir_okay=False, writable=True),
               default='dev/classifier.pkl')
-def main(sentences, output, model):
+def main(sentences, output, model, processes):
     logger.info('Loading model from %s', model)
     model, extractor = joblib.load(model)
 
@@ -82,7 +93,8 @@ def main(sentences, output, model):
             yield json.dumps(classified)
 
     count = 0
-    for each in parallel.map(worker, sentences, batch_size=1000, flatten=True):
+    for each in parallel.map(worker, sentences, batch_size=1000,
+                             flatten=True, processes=processes):
         output.write(each)
         output.write('\n')
 
