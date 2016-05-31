@@ -10,10 +10,9 @@ import random
 logger = logging.getLogger(__name__)
 
 
-def lu_count(corpus, sentences_key, processes=0, input_encoded=False):
+def lu_count(sentences, processes=0, input_encoded=False):
     """ Count how many sentences per LU there are for each source
-        :param corpus: Corpus with the POS-tagged sentences
-        :param sentences_key: Dictionary key containing the sentences
+        :param sentences: Corpus with the POS-tagged sentences
         :param processes: how many processes to use for parallel execution
         :param input_encoded: whether the corpus is an iterable of dictionaries
          or an iterable of JSON-input_encoded documents. JSON-input_encoded
@@ -22,34 +21,34 @@ def lu_count(corpus, sentences_key, processes=0, input_encoded=False):
          another dictionary lemma -> count
     """
 
-    def worker(row):
+    def worker(batch):
         freqs = defaultdict(lambda: 0)
-        doc = json.loads(row) if input_encoded else row
+        for row in batch:
+            sentence = json.loads(row) if input_encoded else row
 
-        parsed = urlparse(doc['url'])
-        if not parsed.netloc:
-            logger.warn('cannot parse URL: %s', doc['url'])
-            return
+            parsed = urlparse(sentence['url'])
+            if not parsed.netloc:
+                logger.warn('cannot parse URL: %s', sentence['url'])
+                return
 
-        for sentence in doc.get(sentences_key, []):
             lu = sentence['lu']
             freqs[(parsed.netloc, lu)] += 1
 
         return freqs.items()
 
     frequencies = defaultdict(lambda: defaultdict(lambda: 0))
-    for (source, lemma), count in parallel.map(worker, corpus, processes, flatten=True):
+    for (source, lemma), count in parallel.map(worker, sentences, processes,
+                                               batch_size=100, flatten=True):
         frequencies[source][lemma] += count
     return frequencies
 
 
-def extract_sentences(corpus, probabilities, sentences_key, processes, input_encoded=False, output_encoded=False):
+def extract_sentences(sentences, probabilities, processes=0, input_encoded=False, output_encoded=False):
     """ Extracts some sentences from the corpus following the given probabilities
-        :param corpus: Corpus with the extracted sentences
+        :param sentences: Extracted sentences
         :param probabilities: Conditional probabilities of extracting a sentence containing
          a specific LU given the source of the sentence. It is therefore a mapping
          source -> probabilities, where probabilities is itself a mapping LU -> probability
-        :param sentences_key: Dictionary key containing the sentences
         :param processes: how many processes to use for parallel execution
         :param input_encoded: whether the corpus is an iterable of dictionaries or an
          iterable of JSON-encoded documents. JSON-encoded documents are preferable
@@ -59,22 +58,23 @@ def extract_sentences(corpus, probabilities, sentences_key, processes, input_enc
         :return: Generator of sentences
     """
 
-    def worker(row):
-        doc = json.loads(row) if input_encoded else row
-        parsed = urlparse(doc['url'])
-        if not parsed.netloc:
-            logger.warn('cannot parse URL: %s', doc['url'])
-            return
+    def worker(batch):
+        for row in batch:
+            sentence = json.loads(row) if input_encoded else row
+            parsed = urlparse(sentence['url'])
+            if not parsed.netloc:
+                logger.warn('cannot parse URL: %s', sentence['url'])
+                return
 
-        for sent in doc.get(sentences_key, []):
-            lu = sent['lu']
+            lu = sentence['lu']
             p = probabilities[(parsed.netloc, lu)]
 
             if random.random() < p:
-                yield parsed.netloc, lu, json.dumps(sent) if output_encoded else sent
+                yield parsed.netloc, lu, json.dumps(sentence) if output_encoded else sentence
 
     counts = defaultdict(lambda: 0)
-    for source, lu, sentence in parallel.map(worker, corpus, processes, flatten=True):
+    for source, lu, sentence in parallel.map(worker, sentences, processes,
+                                             batch_size=100, flatten=True):
         counts[(source, lu)] += 1
         yield sentence
 
@@ -91,17 +91,16 @@ def extract_sentences(corpus, probabilities, sentences_key, processes, input_enc
 @click.command()
 @click.argument('sentences', type=click.File('r'))
 @click.argument('sentences-per-lu', type=click.FLOAT)
-@click.option('--sentences_key', default='sentences')
 @click.option('--processes', '-p', default=0)
 @click.option('-o', '--output', type=click.File('w'),
               default='dev/sentences-balanced.jsonlines')
-def main(sentences, sentences_per_lu, sentences_key, processes, output):
+def main(sentences, sentences_per_lu, processes, output):
     """ Stochastically extracts sentences so that there are a given number
         of sentences for each LU equally spread amongst the different sources
     """
 
     logger.info('Obtaining the LU distribution amongst sources')
-    frequencies = lu_count(sentences, sentences_key, processes, input_encoded=True)
+    frequencies = lu_count(sentences, processes, input_encoded=True)
 
     number_of_sources = len(frequencies)
     number_of_lus = len(reduce(lambda x, y: x | y, map(set, frequencies.values())))
@@ -127,7 +126,7 @@ def main(sentences, sentences_per_lu, sentences_key, processes, output):
 
     sentences.seek(0)
     count = 0
-    for i, sentence in enumerate(extract_sentences(sentences, probabilities, sentences_key, processes,
+    for i, sentence in enumerate(extract_sentences(sentences, probabilities, processes,
                                                    input_encoded=True, output_encoded=True)):
         output.write(sentence)
         output.write('\n')

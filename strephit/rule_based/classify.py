@@ -102,6 +102,10 @@ class RuleBasedClassifier:
             :return: Labeled data
         """
         logger.debug('processing sentence "%s"', sentence['text'])
+        if not sentence.get('url'):
+            logger.warn('a sentence is missing the url, skipping it')
+            return None
+
         tagged = self.tagger.tag_one(sentence['text'])
 
         # Normalize + annotate numerical FEs
@@ -127,6 +131,7 @@ class RuleBasedClassifier:
             if assigned_fes or numerical_fes:
                 logger.debug('assigning frame: %s and FEs %s', frame['frame'], all_fes)
                 labeled = {
+                    'url': sentence['url'],
                     'sentence': sentence['text'],
                     'frame': frame['frame'],
                     'fes': all_fes,

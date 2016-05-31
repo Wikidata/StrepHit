@@ -87,7 +87,7 @@ def serialize_item((i, item, language, sourced_only)):
     for each in honorifics:
         hon = wikidata.resolve('P1035', each, language)
         if hon:
-            yield wid, 'P1035', each, url
+            yield wid, 'P1035', hon, url
 
 
 def resolve_genealogics_family(input_file, url_to_id):

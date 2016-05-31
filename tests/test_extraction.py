@@ -12,16 +12,16 @@ class TestSemistructured(unittest.TestCase):
     def tearDown(self):
         cache.ENABLED = True
 
-    def get_statements(self, cache=False, sourced_only=False, language='en', **kwargs):
+    def get_statements(self, sourced_only=False, language='en', **kwargs):
         return [
             s for s in process_semistructured.serialize_item(
-                (10, kwargs, cache, language, sourced_only))
+                (10, kwargs, language, sourced_only))
         ]
 
     def test_complete_statements(self):
         self.assertEqual(set(self.get_statements(name='Fraser, Sir Colin', url='here')),
-                         {u'Q5145111\tP1477\t"colin fraser"\tS854\t"here"',
-                          u'Q5145111\tP1035\tQ209690\tS854\t"here"'})
+                         {('Q5145111', 'P1559', '"Colin Fraser"', 'here'),
+                          ('Q5145111', 'P1035', 'Q209690', 'here')})
 
     def test_unsourced(self):
         self.assertEqual(self.get_statements(name='no-url', sourced_only=True), [])
@@ -32,6 +32,7 @@ class TestExtractSentences(unittest.TestCase):
         self.text_key = 'txt'
         self.tagged_key = 'tg'
         self.sent_key = 'sent'
+        self.url = 'http://www.example.org'
         self.match_base_form = False
 
         self.text_real = 'Forbes William was born on 3 January'
@@ -42,7 +43,9 @@ class TestExtractSentences(unittest.TestCase):
                             Tag(word=u'on', pos=u'IN', lemma=u'on'),
                             Tag(word=u'3', pos=u'CD', lemma=u'3'),
                             Tag(word=u'January', pos=u'NP', lemma=u'January')]
-        self.corpus_real = [{self.tagged_key: self.tagged_real, self.text_key: self.text_real}]
+        self.corpus_real = [{self.tagged_key: self.tagged_real,
+                             self.text_key: self.text_real,
+                             'url': self.url}]
         self.lemma_to_token_real = {'bear': ['born'], 'die': ['died']}
 
         self.text_fake = 'sentence with no verbs'
@@ -50,7 +53,9 @@ class TestExtractSentences(unittest.TestCase):
                             Tag(word=u'with', pos=u'IN', lemma=u'with'),
                             Tag(word=u'no', pos=u'DT', lemma=u'no'),
                             Tag(word=u'verbs', pos=u'NNS', lemma=u'verb')]
-        self.corpus_fake = [{self.tagged_key: self.tagged_fake, self.text_key: self.text_fake}]
+        self.corpus_fake = [{self.tagged_key: self.tagged_fake,
+                             self.text_key: self.text_fake,
+                             'url': self.url}]
         self.lemma_to_token_fake = {'123': ['bbb', 'ccc']}
 
     def test_121_real(self):
@@ -63,6 +68,7 @@ class TestExtractSentences(unittest.TestCase):
         self.assertEqual(len(sentences), 1)
 
         sentence = sentences[0]
+        self.assertIn('url', sentence)
         self.assertIn('text', sentence)
         self.assertIn('lu', sentence)
         self.assertEqual(sentence['text'], self.text_real)
@@ -84,6 +90,7 @@ class TestExtractSentences(unittest.TestCase):
 
         missing_lus = set(self.lemma_to_token_real.keys())
         for sentence in sentences:
+            self.assertIn('url', sentence)
             self.assertIn('text', sentence)
             self.assertIn('lu', sentence)
             self.assertEqual(sentence['text'], self.text_real)
@@ -96,7 +103,7 @@ class TestExtractSentences(unittest.TestCase):
         self.assertEqual(items, [])
 
     def test_syntactic(self):
-        items = list(SyntacticExtractor([{'bio': 'this is part a1, and this is part a2'}],
+        items = list(SyntacticExtractor([{'bio': 'this is part a1, and this is part a2','url': 'www.example.org'}],
                                         'tag', 'bio', 'sentences', 'en', {'be': ['is', 'are']}, self.match_base_form
                                         ).extract(1))
         self.assertEqual(len(items), 1)
@@ -106,6 +113,7 @@ class TestExtractSentences(unittest.TestCase):
 
         missing_parts = {'a1', 'a2'}
         for sentence in sentences:
+            self.assertIn('url', sentence)
             self.assertIn('text', sentence)
             self.assertIn('lu', sentence)
             self.assertEqual(sentence['lu'], 'be')
@@ -130,6 +138,7 @@ class TestExtractSentences(unittest.TestCase):
         self.assertEqual(1, len(sentences))
 
         sentence = sentences[0]
+        self.assertIn('url', sentence)
         self.assertIn('text', sentence)
         self.assertIn('lu', sentence)
         self.assertEqual(sentence['text'], self.text_real)

@@ -74,10 +74,10 @@ class SentenceExtractor:
                 # assign an unique incremental ID to each sentence
                 for each in extracted:
                     each['id'] = count
+                    each['url'] = item['url']
                     count += 1
 
-                item[self.sentences_key] = extracted
-                yield item
+                    yield each
 
                 if (i + 1) % 10000 == 0:
                     logger.info('Processed %d items, extracted %d sentences',
@@ -90,7 +90,7 @@ class SentenceExtractor:
     @staticmethod
     def _filter_base_form(lemma_to_token):
         """ Remove the base form from each list of tokens """
-        for lemma, tokens in lemma_to_token.iteritems():
+        for lemma, tokens in lemma_to_token.iterite:
             if lemma in tokens:
                 tokens.remove(lemma)
         return lemma_to_token
@@ -118,6 +118,10 @@ class OneToOneExtractor(SentenceExtractor):
 
     def extract_from_item(self, item):
         extracted = []
+        url = item.get('url')
+        if not url:
+            logger.warn('skipping item without url')
+            return
 
         tagged = item.get(self.pos_tag_key)
         if not tagged:
@@ -146,6 +150,7 @@ class OneToOneExtractor(SentenceExtractor):
                     'lu': assigned_lu,
                     'text': ' '.join(sentence),
                     'tagged': tags,
+                    'url': url,
                 })
 
         if extracted:
@@ -167,7 +172,9 @@ class ManyToManyExtractor(SentenceExtractor):
     def extract_from_item(self, item):
         extracted = []
         text = item.get(self.document_key)
-        if not text:
+        url = item.get('url')
+        if not text or not url:
+            logger.warn('skipping item without url or bio')
             return
 
         sentences = self.splitter.split(text)
@@ -177,7 +184,7 @@ class ManyToManyExtractor(SentenceExtractor):
         for each in subject_links:
             each['start'], each['end'] = each.pop('nc:offsets')
 
-        all_links = sorted(datatxt_links + subject_links, key=lambda x:x['start'])
+        all_links = sorted(datatxt_links + subject_links, key=lambda x: x['start'])
 
         cursor = 0
         for sentence in sentences:
@@ -208,6 +215,7 @@ class ManyToManyExtractor(SentenceExtractor):
                 for match in match_tokens:
                     if match.lower() in sentence:
                         extracted.append({
+                            'url': url,
                             'lu': lemma,
                             'text': sentence,
                             'links': this_links,
@@ -245,7 +253,9 @@ class SyntacticExtractor(SentenceExtractor):
     def extract_from_item(self, item):
         extracted = []
         bio = item.get(self.document_key, '').lower()
-        if not bio:
+        url = item.get('url')
+        if not bio or not url:
+            logger.warn('skipping item without url or bio')
             return
 
         try:
@@ -279,6 +289,7 @@ class SyntacticExtractor(SentenceExtractor):
                     extracted.append({
                         'lu': self.token_to_lemma[found.pop()],
                         'text': text,
+                        'url': url,
                     })
                 else:
                     logger.debug('More than one matching verbs found in sentence %s: %s',
@@ -345,6 +356,10 @@ class GrammarExtractor(SentenceExtractor):
 
     def extract_from_item(self, item):
         extracted = []
+        url = item.get('url')
+        if not url:
+            logger.warn('skipping item without url')
+            return
 
         tagged = item.get(self.pos_tag_key)
         if not tagged:
@@ -380,6 +395,7 @@ class GrammarExtractor(SentenceExtractor):
                                     'lu': lemma,
                                     'text': text,
                                     'tagged': tags,
+                                    'url': url,
                                 })
 
         if extracted:

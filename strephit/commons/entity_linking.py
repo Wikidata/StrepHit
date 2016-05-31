@@ -67,11 +67,11 @@ def extract_entities(response_json):
 
 
 @click.command()
-@click.argument('input_file', type=click.File())
+@click.argument('sentence_data', type=click.File())
 @click.argument('language')
 @click.option('--output', '-o', type=click.File('w'), default='dev/entity_linked.json')
 @click.option('--confidence', '-c', default=0.25, help='Minimum confidence score, defaults to 0.25.')
-def main(input_file, language, output, confidence):
+def main(sentence_data, language, output, confidence):
     """ Perform entity linking over a set of input sentences.
         The service is Dandelion Entity Extraction API:
         https://dandelion.eu/docs/api/datatxt/nex/v1/ .
@@ -79,21 +79,16 @@ def main(input_file, language, output, confidence):
         threshold are discarded.
     """
 
-    logger.info("Will perform entity linking over '%s' sentences" % input_file.name)
-    for line in input_file:
-        item = json.loads(line)
-        sentences = item.get('sentences')
-        if sentences:
-            logger.debug("Sentences: %s" % sentences)
-            for sentence in sentences:
-                text = sentence.get('text')
-                if text:
-                    sentence['linked_entities'] = link(text, confidence, language)
-                else:
-                    logger.warn("No text for sentence #%d: skipping ..." % sentence['id'])
+    logger.info("Will perform entity linking over '%s' sentences" % sentence_data.name)
+    for line in sentence_data:
+        sentence = json.loads(line)
+        logger.debug('Sentence: "%s"' % sentence)
+        text = sentence.get('text')
+        if text:
+            sentence['linked_entities'] = link(text, confidence, language)
         else:
-            logger.warn("No sentences to link for item with URL '%s': skipping ..." % item['url'])
-        json.dump(item, output)
+            logger.warn("No text for sentence #%d: skipping ..." % sentence['id'])
+        json.dump(sentence, output)
         output.write('\n')
     logger.info("Linked entities added, will dump to '%s'" % output.name)
     return 0

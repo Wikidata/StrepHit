@@ -99,6 +99,9 @@ class TTPosTagger(object):
         try:
             jobs = []
             for i, item in enumerate(items):
+                if not item.get(document_key):
+                    continue
+
                 jobs.append((item, tt_pool.tag_text_async(item[document_key], **kwargs)))
                 if i % batch_size == 0:
                     for each in self._finalize_batch(jobs, pos_tag_key):
