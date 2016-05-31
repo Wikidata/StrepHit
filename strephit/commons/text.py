@@ -123,6 +123,8 @@ def fix_name(name):
     except ValueError:
         pass
 
+    name = ''.join(c if c.isalnum() else ' '
+                   for c in name if c.isalnum() or c.isspace())
     name, honorifics = strip_honorifics(name)
 
     return name.strip(), honorifics

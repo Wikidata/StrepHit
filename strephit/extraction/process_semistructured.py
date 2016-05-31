@@ -11,8 +11,10 @@ from strephit.commons import io, wikidata, parallel, text
 logger = logging.getLogger(__name__)
 
 
-def serialize_item((i, item, cache, language, sourced_only)):
+def serialize_item((i, item, language, sourced_only)):
     """ Converts an item to quick statements. Takes a single tuple as parameter
+        and returns generator of tuples <subject, property, object, source>
+        with already resolved items
     """
     _id = item.pop('id', i)
     name = item.pop('name')
@@ -77,39 +79,110 @@ def serialize_item((i, item, cache, language, sourced_only)):
         return
 
     # now that we are sure about the subject we can produce the actual statements
-    yield wikidata.finalize_statement(wid, 'P1559', '"%s"' % name.title(), language, url,
-                                      resolve_property=False, resolve_value=False)
+    yield wid, 'P1559', '"%s"' % name.title(), url
     for property, values in statements.iteritems():
         for val in values:
-            statement = wikidata.finalize_statement(wid, property, val, language, url,
-                                                    resolve_property=False, resolve_value=False)
-            if statement:
-                yield statement
+            yield wid, property, val, url
 
     for each in honorifics:
-        statement = wikidata.finalize_statement(wid, 'honorific', each, language, url)
-        if statement:
-            yield statement
+        hon = wikidata.resolve('P1035', each, language)
+        if hon:
+            yield wid, 'P1035', each, url
+
+
+def resolve_genealogics_family(input_file, url_to_id):
+    """ Performs a second pass on genealogics to resolve additional family members
+
+    """
+    family_properties = {
+        'Family': 'P1038',
+        'Father': 'P22',
+        'Married': 'P26',
+        'Mother': 'P25',
+        u'Children\xa0': 'P40',
+    }
+
+    for row in input_file:
+        data = json.loads(row)
+
+        if 'url' not in data or data['url'] not in url_to_id:
+            continue
+
+        subj = url_to_id[data['url']]
+
+        for key, value in data.get('other', {}).iteritems():
+            if key in family_properties:
+                prop = family_properties[key]
+
+                if not isinstance(value, list):
+                    logger.debug('unexpected value "%s", property "%s" subject %s',
+                                 value, key, subj)
+                    continue
+
+                for member in value:
+                    for name, url in member.iteritems():
+                        if url in url_to_id:
+                            val = url_to_id[url]
+                            logger.debug('resolved "%s", %s of/with %s to %s',
+                                         name.strip(), key, subj, val)
+                            yield subj, prop, val, data['url']
+                        else:
+                            logger.debug('skipping "%s" (%s), %s of/with %s',
+                                         name.strip(), url, key, subj)
 
 
 @click.command()
 @click.argument('corpus-dir', type=click.Path())
 @click.argument('out-file', type=click.File('w'))
-@click.option('--cache/--no-cache', default=True, help='Cache HTTP requests')
+@click.option('--genealogics', type=click.File('r'))
 @click.option('--sourced-only/--allow-unsourced', default=True)
 @click.option('--language', default='en', help='The names are searched in this language')
 @click.option('--processes', '-p', default=0)
-def process_semistructured(corpus_dir, out_file, cache, language, processes, sourced_only):
+def process_semistructured(corpus_dir, out_file, language, processes, sourced_only, genealogics):
     """ Processes the corpus and extracts semistructured data serialized into quick statements
+        Needs a second pass on genealogics to correctly resolve family members
     """
 
-    params = ((i, item, cache, language, sourced_only)
+    genealogics_url_to_id = {}
+
+    params = ((i, item, language, sourced_only)
               for i, item in enumerate(io.load_scraped_items(corpus_dir)))
-    for i, statement in enumerate(parallel.map(serialize_item, params, processes, flatten=True)):
+
+    count = 0
+    for subj, prop, val, url in parallel.map(serialize_item, params,
+                                             processes, flatten=True):
+        statement = wikidata.finalize_statement(subj, prop, val, language, url,
+                                                resolve_property=False, resolve_value=False)
+        if not statement:
+            continue
+
         out_file.write(statement.encode('utf8'))
         out_file.write('\n')
 
-        if (i + 1) % 10000 == 0:
-            logger.info('Produced %d statements so far' % (i + 1))
+        if genealogics and url.startswith('http://www.genealogics.org/'):
+            genealogics_url_to_id[url] = subj
 
-    logger.info('Produced %d statements' % (i + 1))
+        count += 1
+        if count % 10000 == 0:
+            logger.info('Produced %d statements so far' % count)
+
+    logger.info('Produced %d statements' % count)
+
+    if genealogics:
+        logger.info('Starting second pass on genealogics')
+        for subj, prop, val, url in resolve_genealogics_family(genealogics, genealogics_url_to_id):
+            statement = wikidata.finalize_statement(subj, prop, val, language, url,
+                                                    resolve_property=False, resolve_value=False)
+            if not statement:
+                continue
+
+            out_file.write(statement.encode('utf8'))
+            out_file.write('\n')
+
+            count += 1
+            if count % 10000 == 0:
+                logger.info('Produced %d statements so far' % count)
+
+        logger.info('Done, produced %d statements' % count)
+    else:
+        logger.info('skipping genealogics pass')

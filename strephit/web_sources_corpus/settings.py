@@ -13,4 +13,4 @@ AUTOTHROTTLE_MAX_DELAY = 60
 AUTOTHROTTLE_DEBUG = False
 HTTPCACHE_ENABLED = True
 HTTPCACHE_EXPIRATION_SECS = 0
-HTTPCACHE_DIR = '/tmp/strephit_cache/scrapy-httpcache'
+HTTPCACHE_DIR = 'dev/cache/scrapy-httpcache'
