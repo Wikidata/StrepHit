@@ -83,6 +83,7 @@ class TTPosTagger(object):
             :param bool skip_unknown: Automatically emove unrecognized tags from the result
 
             Sample usage:
+
             >>> from strephit.commons.pos_tag import TTPosTagger
             >>> from pprint import pprint
             >>> pprint(TTPosTagger('en').tag_one(u'sample sentence to be tagged fycgvkuhbj'))
@@ -103,6 +104,7 @@ class TTPosTagger(object):
             :param pos_tag_key: Where to put pos tagged text
 
             Sample usage:
+
             >>> from strephit.commons.pos_tag import TTPosTagger
             >>> from pprint import pprint
             >>> pprint(list(TTPosTagger('en').tag_many(

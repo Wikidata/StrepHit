@@ -102,6 +102,7 @@ def map(function, iterable, processes=0, flatten=False, raise_exc=True, batch_si
         :returns: iterable with the results. Order is not guaranteed to be preserved
 
         Sample usage:
+
         >>> from strephit.commons import parallel
         >>> list(parallel.map(lambda x: 2*x, range(10)))
         [0, 8, 10, 12, 14, 16, 18, 2, 4, 6]

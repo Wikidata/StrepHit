@@ -30,6 +30,7 @@ def get(key, default=None):
          the default value
 
         Sample usage:
+
         >>> from strephit.commons import cache
         >>> cache.get('kk', 13)
         13
@@ -65,6 +66,7 @@ def set(key, value, overwrite=True):
         :return: Nothing
 
         Sample usage:
+
         >>> from strephit.commons import cache
         >>> cache.get('kk', 13)
         13
@@ -101,6 +103,7 @@ def cached(function):
     """ Decorator to cache function results based on its arguments
 
     Sample usage:
+
     >>> from strephit.commons import cache
     >>> @cache.cached
     ... def f(x):

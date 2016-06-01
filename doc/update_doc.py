@@ -13,7 +13,7 @@ class WikimediaApi:
 
     def call_api(self, action, **kwargs):
         r = self.session.post(self.api_endpoint + '?format=json&action=' + action,
-                             data=kwargs)
+                              data=kwargs)
         r.raise_for_status()
         return r.json()
 

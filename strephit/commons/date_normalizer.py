@@ -93,6 +93,7 @@ class DateNormalizer(object):
         :rtype: tuple
 
         Sample usage:
+
         >>> from strephit.commons.date_normalizer import DateNormalizer
         >>> DateNormalizer('en').normalize_one('Today is the 1st of June, 2016')
         ((13, 30), 'Time', {'month': 6, 'day': 1, 'year': 2016})
@@ -124,7 +125,9 @@ class DateNormalizer(object):
         :param str expression: The expression in which to look for
         :return: Generator of tuples (start, end), category, result
 
+
         Sample usage:
+
         >>> from pprint import pprint
         >>> from strephit.commons.date_normalizer import DateNormalizer
         >>> pprint(list(DateNormalizer('en').normalize_many('I was born on April 18th, '
