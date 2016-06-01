@@ -30,41 +30,29 @@ class TestSemistructured(unittest.TestCase):
 class TestExtractSentences(unittest.TestCase):
     def setUp(self):
         self.text_key = 'txt'
-        self.tagged_key = 'tg'
         self.sent_key = 'sent'
+
         self.url = 'http://www.example.org'
+        self.name = 'Forbes William'
+
         self.match_base_form = False
 
-        self.text_real = 'Forbes William was born on 3 January'
-        self.tagged_real = [Tag(word=u'Forbes', pos=u'NP', lemma=u'Forbes'),
-                            Tag(word=u'William', pos=u'NP', lemma=u'William'),
-                            Tag(word=u'was', pos=u'VBD', lemma=u'be'),
-                            Tag(word=u'born', pos=u'VVN', lemma=u'bear'),
-                            Tag(word=u'on', pos=u'IN', lemma=u'on'),
-                            Tag(word=u'3', pos=u'CD', lemma=u'3'),
-                            Tag(word=u'January', pos=u'NP', lemma=u'January')]
-        self.corpus_real = [{self.tagged_key: self.tagged_real,
-                             self.text_key: self.text_real,
-                             'url': self.url}]
+        self.text_real = u'Forbes William was born on 3 January'
+        self.corpus_real = [{self.text_key: self.text_real, 'url': self.url,
+                             'name': self.name}]
         self.lemma_to_token_real = {'bear': ['born'], 'die': ['died']}
 
-        self.text_fake = 'sentence with no verbs'
-        self.tagged_fake = [Tag(word=u'sentence', pos=u'NN', lemma=u'sentence'),
-                            Tag(word=u'with', pos=u'IN', lemma=u'with'),
-                            Tag(word=u'no', pos=u'DT', lemma=u'no'),
-                            Tag(word=u'verbs', pos=u'NNS', lemma=u'verb')]
-        self.corpus_fake = [{self.tagged_key: self.tagged_fake,
-                             self.text_key: self.text_fake,
-                             'url': self.url}]
+        self.text_fake = u'sentence with no verbs'
+        self.corpus_fake = [{self.text_key: self.text_fake, 'url': self.url,
+                             'name': self.name}]
         self.lemma_to_token_fake = {'123': ['bbb', 'ccc']}
 
     def test_121_real(self):
-        items = list(OneToOneExtractor(self.corpus_real, self.tagged_key, self.text_key, self.sent_key,
-                                       'en', self.lemma_to_token_real, self.match_base_form).extract(1))
+        sentences = list(OneToOneExtractor(
+            self.corpus_real, self.text_key, self.sent_key, 'en',
+            self.lemma_to_token_real, self.match_base_form
+        ).extract(1))
 
-        self.assertEqual(len(items), 1)
-
-        sentences = items[0][self.sent_key]
         self.assertEqual(len(sentences), 1)
 
         sentence = sentences[0]
@@ -75,18 +63,17 @@ class TestExtractSentences(unittest.TestCase):
         self.assertIn(sentence['lu'], self.lemma_to_token_real.keys())
 
     def test_121_fake(self):
-        items = list(OneToOneExtractor(self.corpus_real, self.tagged_key, self.text_key, self.sent_key,
-                                       'en', self.lemma_to_token_fake, self.match_base_form).extract(1))
-        self.assertEqual(items, [])
+        sentences = list(OneToOneExtractor(
+            self.corpus_real, self.text_key, self.sent_key,
+            'en', self.lemma_to_token_fake, self.match_base_form
+        ).extract(1))
+        self.assertEqual(sentences, [])
 
     def test_n2n_real(self):
-        items = list(ManyToManyExtractor(self.corpus_real, self.tagged_key, self.text_key, self.sent_key,
-                                         'en', self.lemma_to_token_real, self.match_base_form).extract(1))
-
-        self.assertEqual(len(items), 1)
-
-        sentences = items[0][self.sent_key]
-        self.assertEqual(len(sentences), 1)
+        sentences = list(ManyToManyExtractor(
+            self.corpus_real, self.text_key, self.sent_key,
+            'en', self.lemma_to_token_real, self.match_base_form
+        ).extract(1))
 
         missing_lus = set(self.lemma_to_token_real.keys())
         for sentence in sentences:
@@ -98,17 +85,18 @@ class TestExtractSentences(unittest.TestCase):
             missing_lus.remove(sentence['lu'])
 
     def test_n2n_fake(self):
-        items = list(ManyToManyExtractor(self.corpus_real, self.tagged_key, self.text_key, self.sent_key,
-                                         'en', self.lemma_to_token_fake, self.match_base_form).extract(1))
-        self.assertEqual(items, [])
+        sentences = list(ManyToManyExtractor(
+            self.corpus_real, self.text_key, self.sent_key,
+            'en', self.lemma_to_token_fake, self.match_base_form
+        ).extract(1))
+        self.assertEqual(sentences, [])
 
     def test_syntactic(self):
-        items = list(SyntacticExtractor([{'bio': 'this is part a1, and this is part a2','url': 'www.example.org'}],
-                                        'tag', 'bio', 'sentences', 'en', {'be': ['is', 'are']}, self.match_base_form
-                                        ).extract(1))
-        self.assertEqual(len(items), 1)
+        sentences = list(SyntacticExtractor(
+            [{'bio': u'this is part a1, and this is part a2', 'url': 'www.example.org', 'name': 'abc def'}],
+            'bio', 'sentences', 'en', {'be': ['is', 'are']}, self.match_base_form
+        ).extract(1))
 
-        sentences = items[0]['sentences']
         self.assertEqual(len(sentences), 2)
 
         missing_parts = {'a1', 'a2'}
@@ -130,11 +118,11 @@ class TestExtractSentences(unittest.TestCase):
             self.fail('Did not find parts: %s' % repr(missing_parts))
 
     def test_grammar(self):
-        items = list(GrammarExtractor(self.corpus_real, self.tagged_key, self.text_key, self.sent_key,
-                                      'en', self.lemma_to_token_real, self.match_base_form).extract(1))
-        self.assertEqual(1, len(items))
+        sentences = list(GrammarExtractor(
+            self.corpus_real, self.text_key, self.sent_key,
+            'en', self.lemma_to_token_real, self.match_base_form
+        ).extract(1))
 
-        sentences = items[0][self.sent_key]
         self.assertEqual(1, len(sentences))
 
         sentence = sentences[0]

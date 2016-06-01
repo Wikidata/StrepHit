@@ -11,6 +11,8 @@ from nltk import RegexpParser
 from nltk.parse.stanford import StanfordParser
 from nltk.tree import Tree
 
+from strephit.commons.tokenize import Tokenizer
+from strephit.commons.pos_tag import TTPosTagger
 from strephit.commons.io import load_scraped_items
 from strephit.commons.split_sentences import PunktSentenceSplitter
 from strephit.commons import parallel
@@ -22,23 +24,23 @@ class SentenceExtractor:
     """ Base class for sentence extractors.
     """
 
-    def __init__(self, corpus, pos_tag_key, document_key, sentences_key, language, lemma_to_token, match_base_form):
+    def __init__(self, corpus, document_key, sentences_key, language, lemma_to_token, match_base_form):
         """ Initializes the extractor.
 
             :param corpus: The corpus, iterable of `dict`s. Generator preferred
-            :param pos_tag_key: The key from which to retrieve the pos tagged document
             :param document_key: The key from which to retrieve the textual document
             :param sentences_key: The key to which the extracted sentences should be stored
             :param language: The language the text is in
             :param lemma_to_token: Mapping from lemma to list of tokens
         """
         self.corpus = corpus
-        self.pos_tag_key = pos_tag_key
         self.sentences_key = sentences_key
         self.document_key = document_key
         self.lemma_to_token = lemma_to_token
         self.language = language
         self.lemma_to_token = lemma_to_token if match_base_form else self._filter_base_form(lemma_to_token)
+        self.tokenizer = Tokenizer(self.language)
+        self.tagger = TTPosTagger(self.language)
 
     def extract_from_item(self, item):
         """ Extract sentences from an item. Relies on `setup_extractor`
@@ -71,7 +73,12 @@ class SentenceExtractor:
             for i, (item, extracted) in enumerate(parallel.map(self.extract_from_item,
                                                                self.corpus, processes)):
 
+                if not item.get('name') or not item.get('url'):
+                    logger.warn('skipping item without name or url')
+                    continue
+
                 # assign an unique incremental ID to each sentence
+                # and store information about the originating document
                 for each in extracted:
                     each['id'] = count
                     each['url'] = item['url']
@@ -91,7 +98,7 @@ class SentenceExtractor:
     @staticmethod
     def _filter_base_form(lemma_to_token):
         """ Remove the base form from each list of tokens """
-        for lemma, tokens in lemma_to_token.iterite:
+        for lemma, tokens in lemma_to_token.iteritems():
             if lemma in tokens:
                 tokens.remove(lemma)
         return lemma_to_token
@@ -124,20 +131,17 @@ class OneToOneExtractor(SentenceExtractor):
             logger.warn('skipping item without url')
             return
 
-        tagged = item.get(self.pos_tag_key)
-        if not tagged:
-            logger.warn('skipped item')
+        document = item.get(self.document_key)
+        if not document:
+            logger.warn('skipping item without document')
             return
+        elif isinstance(document, list):
+            document = '\n'.join(document)
 
-        sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
-        tokens = 0
-
+        sentences = self.splitter.split(document)
         for sentence in sentences:
-            # retrieve POS tags of this sentence
-            tags = tagged[tokens:tokens + len(sentence)]
-            tokens += len(sentence)
-
-            sentence_verbs = [token for token, pos, lemma in tags if pos.startswith('V')]
+            tagged = self.tagger.tag_one(sentence, skip_unknown=False)
+            sentence_verbs = [token for token, pos, lemma in tagged if pos.startswith('V')]
 
             matched = []
             for token in self.all_verb_tokens:
@@ -149,8 +153,8 @@ class OneToOneExtractor(SentenceExtractor):
                 assigned_lu = self.token_to_lemma[assigned_token]
                 extracted.append({
                     'lu': assigned_lu,
-                    'text': ' '.join(sentence),
-                    'tagged': tags,
+                    'text': sentence,
+                    'tagged': tagged,
                     'url': url,
                 })
 
@@ -177,49 +181,22 @@ class ManyToManyExtractor(SentenceExtractor):
         if not text or not url:
             logger.warn('skipping item without url or bio')
             return
+        elif isinstance(text, list):
+            text = '\n'.join(text)
 
         sentences = self.splitter.split(text)
-        datatxt_links = item.get('nc:contentInfo', {}).get('nc:companyTXTInfo', {}).get('rnews:articleBody', {}).get('annotations', [])
-        subject_links = [x for x in item.get('nc:annotations', {}).get('nc:subjectAnnotation', [])
-                         if 'nc:offsets' in x]
-        for each in subject_links:
-            each['start'], each['end'] = each.pop('nc:offsets')
-
-        all_links = sorted(datatxt_links + subject_links, key=lambda x: x['start'])
-
-        cursor = 0
         for sentence in sentences:
-            # move cursor to start of this sentence
-            cursor += text.index(sentence)
-            text = text[text.index(sentence):]
-
-            link_counts = 0
-            for each in all_links:
-                if each['end'] <= cursor + len(sentence):
-                    link_counts += 1
-                else:
-                    break
-
-            this_links, all_links = all_links[:link_counts], all_links[link_counts:]
-            for each in this_links:
-                each['start'] -= cursor
-                each['end'] -= cursor
-
-            # move cursor to end of this sentence
-            cursor += len(sentence)
-            text = text[len(sentence):]
-
-            if len(sentence.split()) > 25:
-                continue
+            tagged = self.tagger.tag_one(sentence, skip_unknown=False)
+            sentence_verbs = {token.lower() for token, pos, lemma in tagged if pos.startswith('V')}
 
             for lemma, match_tokens in self.lemma_to_token.iteritems():
                 for match in match_tokens:
-                    if match.lower() in sentence:
+                    if match.lower() in sentence_verbs:
                         extracted.append({
                             'url': url,
                             'lu': lemma,
                             'text': sentence,
-                            'links': this_links,
+                            'tagged': tagged,
                         })
 
         if extracted:
@@ -362,19 +339,20 @@ class GrammarExtractor(SentenceExtractor):
             logger.warn('skipping item without url')
             return
 
-        tagged = item.get(self.pos_tag_key)
-        if not tagged:
+        document = item.get(self.document_key)
+        if not document:
             return
+        elif isinstance(document, list):
+            document = '\n'.join(document)
 
         # Sentence splitting
-        sentences = self.splitter.split_tokens([token for token, pos, lemma in tagged])
+        sentences = self.splitter.split(document)
         tokens = 0
         for sentence in sentences:
-            tags = tagged[tokens:tokens + len(sentence)]
-            tokens += len(sentence)
+            tagged = [(token, pos) for token, pos, lemma in self.tagger.tag_one(sentence)]
 
             # Parsing via grammar
-            parsed = self.parser.parse([(token, pos) for token, pos, lemma in tags])
+            parsed = self.parser.parse(tagged)
 
             # Loop over sub-sentences that match the grammar
             for grammar_match in parsed.subtrees(lambda t: t.label() == 'CHUNK'):
@@ -395,7 +373,7 @@ class GrammarExtractor(SentenceExtractor):
                                 extracted.append({
                                     'lu': lemma,
                                     'text': text,
-                                    'tagged': tags,
+                                    'tagged': tagged,
                                     'url': url,
                                 })
 
@@ -407,14 +385,13 @@ class GrammarExtractor(SentenceExtractor):
             logger.debug("No sentences extracted. Skipping the whole item ...")
 
 
-def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language,
+def extract_sentences(corpus, sentences_key, document_key, language,
                       lemma_to_tokens, strategy, match_base_form, processes=0):
     """
     Extract sentences from the given corpus by matching tokens against a given set.
 
-    :param corpus: Pos-tagged corpus, as an iterable of documents
+    :param corpus: Corpus as an iterable of documents
     :param str sentences_key: dict key where to put extracted sentences
-    :param str pos_tag_key: dict key where the pos-tagged text is
     :param str document_key: dict key where the textual document is
     :param str language: ISO 639-1 language code used for tokenization and sentence splitting
     :param dict lemma_to_tokens: Dict with corpus lemmas as keys and tokens to be matched as values
@@ -445,27 +422,26 @@ def extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language
         raise ValueError("Malformed or unsupported extraction strategy: "
                          "please use one of ['121', 'n2n', 'grammar', or 'syntactic']")
 
-    for each in extractor(corpus, pos_tag_key, document_key, sentences_key, language,
+    for each in extractor(corpus, document_key, sentences_key, language,
                           lemma_to_tokens, match_base_form).extract(processes):
         yield each
 
 
 @click.command()
-@click.argument('pos_tagged', type=click.Path(exists=True))
+@click.argument('corpus', type=click.Path(exists=True))
 @click.argument('language_code')
 @click.argument('lemma_to_tokens', type=click.File('r'))
 @click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'grammar', 'syntactic']), default='n2n')
 @click.option('--output', '-o', type=click.File('w'), default='dev/sentences.jsonlines')
 @click.option('--sentences-key', default='sentences')
-@click.option('--pos-tag-key', default='pos_tag')
 @click.option('--document-key', default='bio')
 @click.option('--processes', '-p', default=0)
 @click.option('--match-base-form', is_flag=True, default=False)
-def main(pos_tagged, language_code, lemma_to_tokens, strategy, output, processes,
-         sentences_key, pos_tag_key, document_key, match_base_form):
+def main(corpus, language_code, lemma_to_tokens, strategy, output, processes,
+         sentences_key, document_key, match_base_form):
     """ Extract corpus sentences containing at least one token in the given set. """
-    corpus = load_scraped_items(pos_tagged)
-    updated = extract_sentences(corpus, pos_tag_key, sentences_key, document_key, language_code,
+    corpus = load_scraped_items(corpus)
+    updated = extract_sentences(corpus, sentences_key, document_key, language_code,
                                 json.load(lemma_to_tokens), strategy, match_base_form, processes)
     for item in updated:
         output.write(json.dumps(item) + '\n')
