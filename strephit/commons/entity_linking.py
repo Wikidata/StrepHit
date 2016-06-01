@@ -9,7 +9,7 @@ from sys import exit
 import click
 import requests
 
-from strephit.commons import secrets, cache
+from strephit.commons import secrets, cache, parallel
 
 logger = logging.getLogger(__name__)
 
@@ -67,11 +67,12 @@ def extract_entities(response_json):
 
 
 @click.command()
-@click.argument('sentence_data', type=click.File())
+@click.argument('sentences', type=click.File('r'))
 @click.argument('language')
+@click.option('--processes', '-p', default=0)
 @click.option('--output', '-o', type=click.File('w'), default='dev/entity_linked.json')
 @click.option('--confidence', '-c', default=0.25, help='Minimum confidence score, defaults to 0.25.')
-def main(sentence_data, language, output, confidence):
+def main(sentences, language, output, confidence, processes):
     """ Perform entity linking over a set of input sentences.
         The service is Dandelion Entity Extraction API:
         https://dandelion.eu/docs/api/datatxt/nex/v1/ .
@@ -79,20 +80,19 @@ def main(sentence_data, language, output, confidence):
         threshold are discarded.
     """
 
-    logger.info("Will perform entity linking over '%s' sentences" % sentence_data.name)
-    for line in sentence_data:
-        sentence = json.loads(line)
-        logger.debug('Sentence: "%s"' % sentence)
+    def worker(row):
+        sentence = json.loads(row)
         text = sentence.get('text')
         if text:
             sentence['linked_entities'] = link(text, confidence, language)
-        else:
-            logger.warn("No text for sentence #%d: skipping ..." % sentence['id'])
-        json.dump(sentence, output)
+            return json.dumps(sentence)
+
+    count = 0
+    for each in parallel.map(worker, sentences, processes):
+        output.write(each)
         output.write('\n')
-    logger.info("Linked entities added, will dump to '%s'" % output.name)
-    return 0
 
-
-if __name__ == '__main__':
-    exit(main())
+        count += 1
+        if count % 1000 == 0:
+            logger.info('linked %d sentences', count)
+    logger.info('done, linked %d sentences')
