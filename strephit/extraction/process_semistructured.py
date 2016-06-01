@@ -92,7 +92,6 @@ def serialize_item((i, item, language, sourced_only)):
 
 def resolve_genealogics_family(input_file, url_to_id):
     """ Performs a second pass on genealogics to resolve additional family members
-
     """
     family_properties = {
         'Family': 'P1038',

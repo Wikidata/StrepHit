@@ -77,7 +77,7 @@ class DateNormalizer(object):
         self.globals = self.meta_funcs
         self.globals.update(self.meta_vars)
 
-    def normalize_one(self, expression, conflict='first'):
+    def normalize_one(self, expression, conflict='longest'):
         """ Find the matching part in the given expression
 
         :param str expression: The expression in which to search the match
@@ -91,6 +91,11 @@ class DateNormalizer(object):
          Allowed values are `first`, `longest` and `shortest`
         :return: Tuple with (start, end), category, result
         :rtype: tuple
+
+        Sample usage:
+        >>> from strephit.commons.date_normalizer import DateNormalizer
+        >>> DateNormalizer('en').normalize_one('Today is the 1st of June, 2016')
+        ((13, 30), 'Time', {'month': 6, 'day': 1, 'year': 2016})
         """
 
         best_match = None
@@ -118,6 +123,15 @@ class DateNormalizer(object):
 
         :param str expression: The expression in which to look for
         :return: Generator of tuples (start, end), category, result
+
+        Sample usage:
+        >>> from pprint import pprint
+        >>> from strephit.commons.date_normalizer import DateNormalizer
+        >>> pprint(list(DateNormalizer('en').normalize_many('I was born on April 18th, '
+        ...                                                 'and today is April 18th, 2016!')))
+        [((14, 24), 'Time', {'day': 18, 'month': 4}),
+         ((39, 55), 'Time', {'day': 18, 'month': 4, 'year': 2016})]
+
         """
 
         # start matching from here, and move forward as new matches

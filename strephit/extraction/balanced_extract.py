@@ -12,13 +12,14 @@ logger = logging.getLogger(__name__)
 
 def lu_count(sentences, processes=0, input_encoded=False):
     """ Count how many sentences per LU there are for each source
-        :param sentences: Corpus with the POS-tagged sentences
-        :param processes: how many processes to use for parallel execution
-        :param input_encoded: whether the corpus is an iterable of dictionaries
+        :param iterable sentences: Corpus with the POS-tagged sentences
+        :param int processes: how many processes to use for parallel execution
+        :param bool input_encoded: whether the corpus is an iterable of dictionaries
          or an iterable of JSON-input_encoded documents. JSON-input_encoded
          documents are preferable over large size dictionaries for performance reasons
         :return: A dictionary source -> frequencies, where frequencies is
          another dictionary lemma -> count
+        :type: bool
     """
 
     def worker(batch):
@@ -45,15 +46,15 @@ def lu_count(sentences, processes=0, input_encoded=False):
 
 def extract_sentences(sentences, probabilities, processes=0, input_encoded=False, output_encoded=False):
     """ Extracts some sentences from the corpus following the given probabilities
-        :param sentences: Extracted sentences
-        :param probabilities: Conditional probabilities of extracting a sentence containing
+        :param iterable sentences: Extracted sentences
+        :param dict probabilities: Conditional probabilities of extracting a sentence containing
          a specific LU given the source of the sentence. It is therefore a mapping
          source -> probabilities, where probabilities is itself a mapping LU -> probability
-        :param processes: how many processes to use for parallel execution
-        :param input_encoded: whether the corpus is an iterable of dictionaries or an
+        :param int processes: how many processes to use for parallel execution
+        :param bool input_encoded: whether the corpus is an iterable of dictionaries or an
          iterable of JSON-encoded documents. JSON-encoded documents are preferable
          over large size dictionaries for performance reasons
-        :param output_encoded: whether to return a generator of dictionaries or a generator
+        :param bool output_encoded: whether to return a generator of dictionaries or a generator
          of JSON-encoded documents. Prefer encoded output for performance reasons
         :return: Generator of sentences
     """

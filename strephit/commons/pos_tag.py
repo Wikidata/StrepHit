@@ -66,7 +66,7 @@ class TTPosTagger(object):
         """ Clean tagged data from non-tags and unknown lemmas (optionally) """
         clean_tags = []
         for tag in tags:
-            if skip_unknown and tag.lemma == u'<unknown>':
+            if skip_unknown and isinstance(tag, NotTag) or tag.lemma == u'<unknown>':
                 logger.debug("Unknown lemma found: %s. Skipping ..." % repr(tag))
                 continue
             clean_tags.append(tag)
@@ -78,7 +78,20 @@ class TTPosTagger(object):
         return self.tokenizer.tokenize(text)
 
     def tag_one(self, text, skip_unknown=True, **kwargs):
-        """ POS-Tags the given text, optionally skipping unknown lemmas """
+        """ POS-Tags the given text, optionally skipping unknown lemmas
+            :param unicode text: Text to be tagged
+            :param bool skip_unknown: Automatically emove unrecognized tags from the result
+
+            Sample usage:
+            >>> from strephit.commons.pos_tag import TTPosTagger
+            >>> from pprint import pprint
+            >>> pprint(TTPosTagger('en').tag_one(u'sample sentence to be tagged fycgvkuhbj'))
+            [Tag(word=u'sample', pos=u'NN', lemma=u'sample'),
+             Tag(word=u'sentence', pos=u'NN', lemma=u'sentence'),
+             Tag(word=u'to', pos=u'TO', lemma=u'to'),
+             Tag(word=u'be', pos=u'VB', lemma=u'be'),
+             Tag(word=u'tagged', pos=u'VVN', lemma=u'tag')]
+        """
         return self._postprocess_tags(make_tags(self.tagger.tag_text(text, **kwargs)),
                                       skip_unknown)
 
@@ -86,8 +99,31 @@ class TTPosTagger(object):
         """ POS-Tags many text documents of the given items. Use this for massive text tagging
 
             :param items: Iterable of items to tag. Generator preferred
-            :param document_key: Where to find the text to tag inside each item
+            :param document_key: Where to find the text to tag inside each item. Text must be unicode
             :param pos_tag_key: Where to put pos tagged text
+
+            Sample usage:
+            >>> from strephit.commons.pos_tag import TTPosTagger
+            >>> from pprint import pprint
+            >>> pprint(list(TTPosTagger('en').tag_many(
+            ...     [{'text': u'Item one is in first position'}, {'text': u'In the second position is item two'}],
+            ...     'text', 'tagged'
+            ... )))
+            [{'tagged': [Tag(word=u'Item', pos=u'NN', lemma=u'item'),
+                         Tag(word=u'one', pos=u'CD', lemma=u'one'),
+                         Tag(word=u'is', pos=u'VBZ', lemma=u'be'),
+                         Tag(word=u'in', pos=u'IN', lemma=u'in'),
+                         Tag(word=u'first', pos=u'JJ', lemma=u'first'),
+                         Tag(word=u'position', pos=u'NN', lemma=u'position')],
+              'text': u'Item one is in first position'},
+             {'tagged': [Tag(word=u'In', pos=u'IN', lemma=u'in'),
+                         Tag(word=u'the', pos=u'DT', lemma=u'the'),
+                         Tag(word=u'second', pos=u'JJ', lemma=u'second'),
+                         Tag(word=u'position', pos=u'NN', lemma=u'position'),
+                         Tag(word=u'is', pos=u'VBZ', lemma=u'be'),
+                         Tag(word=u'item', pos=u'RB', lemma=u'item'),
+                         Tag(word=u'two', pos=u'CD', lemma=u'two')],
+              'text': u'In the second position is item two'}]
         """
         tt_pool = TaggerProcessPoll(
             TAGLANG=self.language,

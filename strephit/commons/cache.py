@@ -22,6 +22,23 @@ def _path_for(hashed_key):
 
 
 def get(key, default=None):
+    """ Retrieves an item from the cache
+        :param key: Key of the item
+        :param default: Default value to return if the
+         key is not in the cache
+        :return: The item associated with the given key or
+         the default value
+
+        Sample usage:
+        >>> from strephit.commons import cache
+        >>> cache.get('kk', 13)
+        13
+        >>> cache.get('kk', 0)
+        0
+        >>> cache.set('kk', 15)
+        >>> cache.get('kk', 0)
+        15
+    """
     if not ENABLED:
         return default
 
@@ -39,6 +56,24 @@ def get(key, default=None):
 
 
 def set(key, value, overwrite=True):
+    """ Stores an item in the cache under the given key
+        :param key: Unique key used to identify the idem.
+        :param value: Value to store in the cache. Must be
+         JSON-dumpable
+        :param overwrite: Whether to overwrite the previous
+         value associated with the key (if any)
+        :return: Nothing
+
+        Sample usage:
+        >>> from strephit.commons import cache
+        >>> cache.get('kk', 13)
+        13
+        >>> cache.get('kk', 0)
+        0
+        >>> cache.set('kk', 15)
+        >>> cache.get('kk', 0)
+        15
+    """
     if not ENABLED:
         return
 
@@ -63,7 +98,22 @@ def set(key, value, overwrite=True):
 
 
 def cached(function):
-    """ Decorator to cache function results based on its arguments """
+    """ Decorator to cache function results based on its arguments
+
+    Sample usage:
+    >>> from strephit.commons import cache
+    >>> @cache.cached
+    ... def f(x):
+    ...     print 'inside f'
+    ...     return 2 * x
+    ...
+    >>> f(10)
+    inside f
+    20
+    >>> f(10)
+    20
+
+    """
     def wrapper(*args, **kwargs):
         key = str([function.__module__]) + function.__name__ + str(args) + str(kwargs)
         res = get(key)

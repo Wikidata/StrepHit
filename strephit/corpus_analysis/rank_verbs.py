@@ -26,6 +26,8 @@ def get_similarity_scores(verb_token, vectorizer, tf_idf_matrix):
     """ Compute the cosine similarity score of a given verb token against the input corpus TF/IDF matrix.
 
         :param str verb_token: Surface form of a verb, e.g., *born*
+        :param sklearn.feature_extraction.text.TfidfVectorizer vectorizer: Vectorizer
+         used to transform verbs into vectors
         :return: cosine similarity score
         :rtype: ndarray
     """
@@ -41,8 +43,8 @@ def get_similarity_scores(verb_token, vectorizer, tf_idf_matrix):
 def produce_lemma_tokens(pos_tagged_path, pos_tag_key, language):
     """ Extracts a map from lemma to all its tokens
 
-        :param pos_tagged_path: path of the pos-tagged corpus
-        :param pos_tag_key: where the pos tag data is in each item
+        :param str pos_tagged_path: path of the pos-tagged corpus
+        :param str pos_tag_key: where the pos tag data is in each item
         :param language: language of the corpus
         :return: mapping from lemma to tokens
         :rtype: dict
@@ -61,8 +63,8 @@ def produce_lemma_tokens(pos_tagged_path, pos_tag_key, language):
 def compute_tf_idf_matrix(corpus_path, document_key):
     """ Computes the TF-IDF matrix of the corpus
 
-        :param corpus_path: path of the corpus
-        :param document_key: where the textual content is in the corpus
+        :param str corpus_path: path of the corpus
+        :param str document_key: where the textual content is in the corpus
         :return: a vectorizer and the computed matrix
         :rtype: tuple
     """
@@ -72,6 +74,11 @@ def compute_tf_idf_matrix(corpus_path, document_key):
 
 
 class TFIDFRanking:
+    """ Computes TF-IDF based rankings.
+        The first ranking is based on the average TF-IDF score of each lemma over all corpus
+        The second ranking is based on the average standard deviation of TF-IDF scores
+        of each lemma over all corpus
+    """
 
     def __init__(self, vectorizer, verbs, tfidf_matrix):
         self.vectorizer = vectorizer
@@ -79,6 +86,11 @@ class TFIDFRanking:
         self.tfidf_matrix = tfidf_matrix
 
     def score_lemma(self, lemma):
+        """ Computess TF-IDF based score of a single lemma
+            :param str lemma: The lemma to score
+            :return: tuple with lemma, average tf-idf, average of tf-idf standard deviations
+            :rtype: tuple of (str, float, float)
+        """
         tf_idfs, st_devs = [], []
         for token in self.verbs[lemma]:
             scores = get_similarity_scores(token, self.vectorizer, self.tfidf_matrix)
@@ -88,6 +100,11 @@ class TFIDFRanking:
         return lemma, average(tf_idfs), average(st_devs)
 
     def find_ranking(self, processes=0):
+        """ Ranks the verbs
+            :param int processes: How many processes to use for parallel ranking
+            :return: tuple with average tf-idf and average standard deviation ordered rankings
+            :rtype: tuple of (OrderedDict, OrderedDict)
+        """
         tfidf_ranking = {}
         stdev_ranking = {}
         for lemma, tfidf, stdev in parallel.map(self.score_lemma, self.verbs, processes):
@@ -98,6 +115,9 @@ class TFIDFRanking:
 
 
 class PopularityRanking:
+    """ Ranking based on the popularity of each verb. Simply counts the
+        frequency of each lemma over all corpus
+    """
 
     def __init__(self, corpus_path, pos_tag_key):
         self.tags = self._flatten(item.get(pos_tag_key) for item in load_scraped_items(corpus_path))
@@ -181,8 +201,11 @@ def harmonic_ranking(*rankings):
 @click.option('--dump-popularity', type=click.File('w'), default='dev/popularity_ranking.json')
 @click.option('--dump-final', type=click.File('w'), default='dev/verb_ranking.json')
 @click.option('--processes', '-p', default=0)
-def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_idf, dump_stdev, dump_popularity,
-         dump_final, processes):
+def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_idf,
+         dump_stdev, dump_popularity, dump_final, processes):
+    """ Computes the three verb rankings: average TF-IDF, average of TF-IDF
+        standard deviation and popularity.
+    """
 
     logger.info('Computing lemma to token map and TF-IDF matrix')
     lemma_tokens, (vectorizer, tf_idf_matrix) = parallel.execute(
@@ -206,7 +229,3 @@ def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_id
     json.dump(pop_ranking, dump_popularity, indent=2)
     json.dump(lemma_tokens, dump_verbs, default=lambda x: list(x), indent=2)
     json.dump(final_ranking, dump_final, indent=2)
-
-
-if __name__ == '__main__':
-    exit(main())

@@ -27,11 +27,11 @@ class SentenceExtractor:
     def __init__(self, corpus, document_key, sentences_key, language, lemma_to_token, match_base_form):
         """ Initializes the extractor.
 
-            :param corpus: The corpus, iterable of `dict`s. Generator preferred
-            :param document_key: The key from which to retrieve the textual document
-            :param sentences_key: The key to which the extracted sentences should be stored
-            :param language: The language the text is in
-            :param lemma_to_token: Mapping from lemma to list of tokens
+            :param iterable corpus: The corpus, iterable of `dict`s
+            :param str document_key: The key from which to retrieve the textual document
+            :param str sentences_key: The key to which the extracted sentences should be stored
+            :param str language: The language the text is in
+            :param dict lemma_to_token: Mapping from lemma to list of tokens
         """
         self.corpus = corpus
         self.sentences_key = sentences_key
@@ -65,6 +65,10 @@ class SentenceExtractor:
     def extract(self, processes=0):
         """ Processes the corpus extracting sentences from each item
             and storing them in the item itself.
+
+            :param int processes: how many processes to use for parallel tagging
+            :return: the extracted sentences
+            :type: generator of dicts
         """
         self.setup_extractor()
 

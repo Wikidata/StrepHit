@@ -42,10 +42,10 @@ Time:
   - (in|by) {early_late_mid}? {match_month}? {match_year}: >
       make_date(**match.groupdict())
 
-  - (?P<day>\d{{1,2}}){cardinal_suffix}? (of)? {match_month} {match_year}: >
+  - (?P<day>\d{{1,2}}){cardinal_suffix}? (of)? {match_month},? {match_year}?: >
       make_date(**match.groupdict())
 
-  - (?P<month>{month}) (?P<day>\d{{1,2}}){cardinal_suffix}?, {match_year}: >
+  - (?P<month>{month}) (?P<day>\d{{1,2}}){cardinal_suffix}?(,? {match_year})?: >
       make_date(**match.groupdict())
 
   - (c\.|on|about|the|of|circa|around|year) {match_year}: >
