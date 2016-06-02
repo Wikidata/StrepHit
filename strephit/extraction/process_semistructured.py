@@ -79,7 +79,7 @@ def serialize_item((i, item, language, sourced_only)):
         return
 
     # now that we are sure about the subject we can produce the actual statements
-    yield wid, 'P1559', '"%s"' % name.title(), url
+    yield wid, 'P1559', '%s:"%s"' % (language, name.title()), url
     for property, values in statements.iteritems():
         for val in values:
             yield wid, property, val, url

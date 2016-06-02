@@ -96,7 +96,7 @@ def resolve(property, value, language, **kwargs):
 @resolver('P509', 'P734', 'P742', 'P735', 'P1559')
 def identity_resolver(property, value, language, **kwargs):
     """ Default resolver, converts to unicode and surrounds with double quotes """
-    return '"%s"' % unicode(value).replace('"', '\\"') if value else None
+    return '%s:"%s"' % (language, unicode(value).replace('"', '\\"')) if value else None
 
 
 @cache.cached
