@@ -5,7 +5,9 @@ from dateutil import parser
 
 def parse(string):
     """ Try to parse a date expressed in natural language.
+        :param str string: Date in natural language
         :return: dictionary with year, month, day
+        :type: dict
     """
     class CustomDatetime:
         """ Hackish way to extract extract day, month and year only when

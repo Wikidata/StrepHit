@@ -14,12 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 class SentenceClassifier:
+    """ Supervised Sentence classifier
+    """
 
     def __init__(self, model, extractor):
         self.model = model
         self.extractor = extractor
 
     def classify_sentences(self, sentences):
+        """ Classify the given sentences
+            :param list sentences: sentences to be classified. Each one
+             should be a dict with a `text`, a source `url` and some `linked_entities`
+            :return: Classified sentences with the recognized `fes`
+            :rtype: generator of dicts
+        """
         self.extractor.start()
 
         sentences_data = []
@@ -69,7 +77,6 @@ class SentenceClassifier:
                     'text': data['text'],
                     'fes': fes,
                     'linked_entities': data.get('linked_entities', []),
-                    'type': 'Core',
                 }
 
                 yield classified

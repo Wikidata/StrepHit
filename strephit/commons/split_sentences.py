@@ -64,6 +64,15 @@ class PunktSentenceSplitter(object):
         :param str text: Text to be split
         :return: the sentences in the text
         :rtype: generator
+
+        Sample usage:
+
+        >>> from strephit.commons.split_sentences import PunktSentenceSplitter
+        >>> list(PunktSentenceSplitter('en').split(
+        ...     "This is the first sentence. Mr. period doesn't always delimit sentences"
+        ... ))
+        ['This is the first sentence.', "Mr. period doesn't always delimit sentences"]
+
         """
         logger.debug("Splitting text into sentences: %s" % text)
         sentences_by_newline = text.strip().split('\n')
@@ -81,6 +90,14 @@ class PunktSentenceSplitter(object):
         :param list tokens: the tokens of the text
         :return: the sentences i the text
         :rtype: generator
+
+        Sample usage:
+
+        >>> from strephit.commons.split_sentences import PunktSentenceSplitter
+        >>> list(PunktSentenceSplitter('en').split_tokens(
+        ...     "This is the first sentence. Mr. period doesn't always delimit sentences".split()
+        ... ))
+        [['This', 'is', 'the', 'first', 'sentence.'], ['Mr.', 'period', "doesn't", 'always', 'delimit', 'sentences']]
         """
         split = self.splitter.sentences_from_tokens(tokens)
         for each in split:

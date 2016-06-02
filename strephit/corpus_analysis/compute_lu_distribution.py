@@ -18,6 +18,13 @@ splitter = tagger = all_verbs = parser = None
 
 
 def worker_with_sub_sentences(bio):
+    """ Produces an histogram counting the number of verbs
+        for each phrase appearing in the biography
+
+        :param str bio: The biography to analyze
+        :return: histogram of frequenties
+        :type: dict
+    """
     def find_sub_sentences(tree):
         # sub-sentences are the lowest S nodes
         if not isinstance(tree, Tree):
@@ -53,6 +60,13 @@ def worker_with_sub_sentences(bio):
 
 
 def worker_with_sentences(bio):
+    """ Produces an histogram counting the number of verbs
+        for each sentence appearing in the biography
+
+        :param str bio: The biography to analyze
+        :return: histogram of frequenties
+        :type: dict
+    """
     counter = defaultdict(int)
     for sent in splitter.split(bio):
         sent = sent.strip().lower()

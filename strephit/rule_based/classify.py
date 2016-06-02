@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class RuleBasedClassifier:
+    """ A simple rule-based classifier
+
+        The frame is recognized solely based on the lexical unit
+        and frame elements are assigned to linked entities with
+        a suitable type
+    """
     def __init__(self, frame_data, language):
         self.tagger = pos_tag.TTPosTagger(language)
         self.language = language

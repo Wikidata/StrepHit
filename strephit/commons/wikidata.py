@@ -230,6 +230,8 @@ def place_resolver(property, value, language, **kwargs):
 
 @resolver('P1035')
 def honorifics_resolver(property, value, language, **kwargs):
+    """ Resolves honorifics such as "mr.", "dr." etc
+    """
     if language != 'en':
         raise ValueError('only english honorifics are supported, sorry')
 
