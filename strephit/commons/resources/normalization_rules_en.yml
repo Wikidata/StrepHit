@@ -1,7 +1,7 @@
 __meta_vars__:
   - month_full: (january|february|march|april|may|june|july|august|september|october|november|december)
   - month_abbr: (jan|feb|mar|apr|may|jun|jul|aug|sept|oct|nov|dec)
-  - month: ({month_full}|{month_abbr})
+  - month: ({month_full}|{month_abbr}\.?)
   - cardinal_suffix: (st|nd|rd|th)
   - early_late_mid: (the)? (early|late|mid -?)
   - match_year: (?P<year>\d{{4}})
@@ -19,6 +19,7 @@ __meta_funcs__:
         try:
           return int(month)
         except ValueError:
+          month = ''.join(c for c in month if c.isalnum())
           if month in meta_vars['month_abbr']:
             return index_in_or(meta_vars['month_abbr'], month) + 1
           elif month in meta_vars['month_full']:
@@ -39,13 +40,13 @@ __meta_funcs__:
       return res or None
 
 Time:
-  - (in|by) {early_late_mid}? {match_month}? {match_year}: >
+  - (in|by) {early_late_mid}? {match_month}?,? {match_year}: >
       make_date(**match.groupdict())
 
-  - (?P<day>\d{{1,2}}){cardinal_suffix}? (of)? {match_month},? {match_year}?: >
+  - (?P<day>\d{{1,2}}){cardinal_suffix}? ,? (of)? {match_month},? {match_year}?: >
       make_date(**match.groupdict())
 
-  - (?P<month>{month}) (?P<day>\d{{1,2}}){cardinal_suffix}?(,? {match_year})?: >
+  - (?P<month>{month}),? (?P<day>\d{{1,2}}){cardinal_suffix}?(,? {match_year})?: >
       make_date(**match.groupdict())
 
   - (c\.|on|about|the|of|circa|around|year) {match_year}: >
