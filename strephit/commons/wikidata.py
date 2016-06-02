@@ -259,28 +259,30 @@ def call_api(action, cache=True, **kwargs):
     return json.loads(resp)
 
 
-def search(term, language, type_=None, label_exact=True):
+def search(term, language, type_=None, label_exact=True, limit='15'):
     """ Uses the wikidata APIs to search for a term. Can optionally specify a type
         (corresponding to the 'instance of' P31 wikidata property. If no type is
         specified simply returns all the items containing `term` in `label`
 
-        :param term: The term to look for
-        :param language: Search in this language
-        :param type_: Type of the entity to look for, wikidata numeric id (i.e. without starting Q)
-                      Can be int or anything iterable
-        :param label_exact: Filter entities whose labels matches exactly the search term
+        :param str term: The term to look for
+        :param str language: Search in this language
+        :param iterable type_: Type of the entity to look for, wikidata numeric id (i.e. without starting Q)
+         Can be int or anything iterable
+        :param bool label_exact: Filter entities whose labels matches exactly the search term
+        :param str lmit: How many results to return at most
         :returns: List of dicts with details (which details depend on `type_`)
+        :rtype: list of dicts
     """
     term = term.strip().lower()
-    results = call_api('wbsearchentities', search=term, language=language, limit='max').get('search', [])
+    results = call_api('wbsearchentities', search=term, language=language, limit=limit).get('search', [])
     logger.debug('found %d entities with term "%s"', len(results), term)
 
-    titles = call_api('query', list='search', srsearch=term, srlimit='50').get('query', {}).get('search', [])
+    titles = call_api('query', list='search', srsearch=term, srlimit=limit).get('query', {}).get('search', [])
     logger.debug('found %d pages with term "%s"', len(titles), term)
 
     for each in titles:
         title = each['title']
-        entities = call_api('wbsearchentities', search=title, language=language, limit='max').get('search', [])
+        entities = call_api('wbsearchentities', search=title, language=language, limit=limit).get('search', [])
         results.extend(entities)
 
     logger.debug('obtained %d entities for "%s"', len(results), term)

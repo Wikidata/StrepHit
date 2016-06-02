@@ -106,7 +106,7 @@ class RuleBasedClassifier:
             logger.warn('a sentence is missing the url, skipping it')
             return None
 
-        tagged = self.tagger.tag_one(sentence['text'])
+        tagged = sentence['tagged'] if 'tagged' in sentence else self.tagger.tag_one(sentence['text'])
 
         # Normalize + annotate numerical FEs
         numerical_fes = []

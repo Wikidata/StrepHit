@@ -8,16 +8,17 @@ import json
 import click
 
 from strephit.commons import wikidata, parallel
+from strephit.commons.date_normalizer import normalize_numerical_fes
 
 logger = logging.getLogger(__name__)
 
 
 class ClassificationSerializer:
-    def __init__(self, fe_to_wid, url_to_wid, language):
+    def __init__(self, fe_to_wid, url_to_wid, language, subject_fes):
         self.fe_to_wid = fe_to_wid
         self.url_to_wid = url_to_wid
         self.language = language
-        self.subject_fes = {'Participant'}  # TODO add other FE that denote the subject of statements
+        self.subject_fes = subject_fes
 
     def get_subject(self, data):
         """ Returns the wikidata id of the subject of the statements
@@ -27,30 +28,30 @@ class ClassificationSerializer:
         # types that can be subjects
         candidates = [fe for fe in data['fes'] if fe['fe'] in self.subject_fes]
         if len(candidates) == 1:
-            return wikidata.resolver_with_hints(
-                'P1559', candidates[0]['chunk'], self.language
-            ) or None
-
+            name = candidates[0]['chunk']
+            wid = wikidata.resolver_with_hints(
+                'P1559', name, self.language
+            )
         # if this fails, assume the subject is the main subject of the article
         # from which this sentence was extracted
         elif data['url'] in self.url_to_wid:
-            return self.url_to_wid[data['url']]
+            name = None
+            wid = self.url_to_wid[data['url']]
         else:
             name = data.get('name')
-            if not name:
-                return None
+            wid = wikidata.resolver_with_hints('P1559', name, self.language) or None if name else None
 
-            return wikidata.resolver_with_hints('P1559', name, self.language) or None
+        return name, wid
 
     def serialize_numerical(self, subj, fe, url):
         """ Serializes a numerical FE found by the normalizer
         """
         literal = fe['literal']
-        if 'year' in literal or 'month' in literal or 'day' in literal:
+        if fe['fe'] == 'Time':
             value = wikidata.format_date(**literal)
             yield wikidata.finalize_statement(subj, 'P585', value, self.language, url,
                                               resolve_property=False, resolve_value=False)
-        else:
+        elif fe['fe'] == 'Duration':
             if 'start' in literal:
                 value = wikidata.format_date(**literal['start'])
                 yield wikidata.finalize_statement(subj, 'P580', value, self.language, url,
@@ -71,25 +72,27 @@ class ClassificationSerializer:
             logger.warn('skipping item without url')
             return
 
-        subj = self.get_subject(data)
+        name, subj = self.get_subject(data)
         if not subj:
-            logger.warn('could not resolve subject, skipping sentence')
+            logger.warn('could not resolve wikidata id of subject "%s", skipping sentence', name)
             return
 
+        # if not already done, normalize numerica FEs
+        if not any(fe['fe'] in ['Time', 'Duration'] for fe in data['fes']):
+            data['fes'].extend(normalize_numerical_fes(self.language, data['sentence']))
+
         for fe in data['fes']:
-            if fe['fe'] == 'Time':
+            if fe['fe'] in ['Time', 'Duration']:
                 for each in self.serialize_numerical(subj, fe, url):
                     yield each
             else:
                 prop = self.fe_to_wid.get(fe['fe'])
-
-                if not prop and fe['fe'] != 'Duration':
-                    logger.warn('unknown fe type %s, skipping', fe['fe'])
+                if prop:
+                    yield wikidata.finalize_statement(subj, prop, fe['chunk'], self.language, url,
+                                                      resolve_property=False, resolve_value=True)
+                else:
+                    logger.debug('unknown fe type %s, skipping', fe['fe'])
                     continue
-
-                # TODO augment the resolver so as to take advantage of the dbpedia data available for linked entities
-                yield wikidata.finalize_statement(subj, prop, fe['chunk'], self.language, url,
-                                                  resolve_property=False, resolve_value=True)
 
 
 def map_url_to_wid(semistructured):
@@ -139,16 +142,35 @@ def main(classified, frame_data, output, language, semistructured, processes):
         for fe in data.get('core_fes', []) + data.get('extra_fes', []):
             if 'id' in fe:
                 fe_to_wid[fe['fe']] = fe['id']
+            else:
+                logger.warn('dropping FE %s because no wikidata property is specified',
+                            fe['fe'])
+
+    # these FEs can act as subject of the statements produced from a frame
+    # if none of these  (or more than one) is found, then the subject is
+    # taken to be the subject of the article from which the sentence was extracted
+    subject_fes = {u'Agent',
+                   u'Author',
+                   u'Elected_person',
+                   u'Entity',
+                   u'Exhibitor',
+                   u'Individual',
+                   u'New_member',
+                   u'Participant',
+                   u'Player',
+                   u'Producer',
+                   u'Visitor'}
 
     count = 0
-    serializer = ClassificationSerializer(fe_to_wid, url_to_wid, language)
+    serializer = ClassificationSerializer(fe_to_wid, url_to_wid, language, subject_fes)
     for statement in parallel.map(serializer.to_statements, classified,
                                   processes=processes, flatten=True):
-        output.write(statement)
-        output.write('\n')
+        if statement:
+            output.write(statement)
+            output.write('\n')
 
-        count += 1
-        if count % 1000 == 0:
-            logger.info('produced %d statements', count)
+            count += 1
+            if count % 1000 == 0:
+                logger.info('produced %d statements', count)
 
     logger.info('Done, produced %d statements', count)
