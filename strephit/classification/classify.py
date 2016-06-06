@@ -3,12 +3,11 @@ import json
 import logging
 
 import click
-from tempfile import TemporaryFile
+
 from sklearn.externals import joblib
-from sklearn.svm import LinearSVC
-from strephit.classification.feature_extractors import FactExtractorFeatureExtractor
+
+from strephit.commons.classification import apply_custom_classification_rules
 from strephit.commons import parallel
-from contextlib import closing
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +16,9 @@ class SentenceClassifier:
     """ Supervised Sentence classifier
     """
 
-    def __init__(self, model, extractor):
+    def __init__(self, model, extractor, language):
         self.model = model
+        self.language = language
         self.extractor = extractor
 
     def classify_sentences(self, sentences):
@@ -79,20 +79,22 @@ class SentenceClassifier:
                     'linked_entities': data.get('linked_entities', []),
                 }
 
-                yield classified
+                final = apply_custom_classification_rules(classified, self.language)
+                yield final
 
 
 @click.command()
 @click.argument('sentences', type=click.File('r'))
 @click.argument('output', type=click.File('w'))
+@click.argument('language')
 @click.option('--processes', '-p', default=0)
 @click.option('--model', type=click.Path(dir_okay=False, writable=True),
               default='dev/classifier.pkl')
-def main(sentences, output, model, processes):
+def main(sentences, output, language, model, processes):
     logger.info('Loading model from %s', model)
     model, extractor = joblib.load(model)
 
-    classifier = SentenceClassifier(model, extractor)
+    classifier = SentenceClassifier(model, extractor, language)
 
     def worker(batch):
         data = (json.loads(s) for s in batch)

@@ -90,6 +90,8 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
                 continue
 
             fe_tokens = self.tagger.tokenize(chunk)
+            if not fe_tokens:
+                continue
 
             # find fe_tokens into tagged
             found = False
@@ -109,8 +111,8 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
                 pos = 'ENT' if len(fe_tokens) > 1 else tagged[position][1]
                 tagged = tagged[:position] + [[chunk, pos, chunk, fe]] + tagged[position + len(fe_tokens):]
             else:
-                logger.warn('cunk "%s" of fe "%s" not found in sentence "%s". Overlapping chunks?',
-                            chunk, fe, sentence)
+                logger.debug('cunk "%s" of fe "%s" not found in sentence "%s". Overlapping chunks?',
+                             chunk, fe, sentence)
 
         return tagged
 

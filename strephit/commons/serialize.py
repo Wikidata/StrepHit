@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 
@@ -77,10 +76,6 @@ class ClassificationSerializer:
             logger.warn('could not resolve wikidata id of subject "%s", skipping sentence', name)
             return
 
-        # if not already done, normalize numerica FEs
-        if not any(fe['fe'] in ['Time', 'Duration'] for fe in data['fes']):
-            data['fes'].extend(normalize_numerical_fes(self.language, data['sentence']))
-
         for fe in data['fes']:
             if fe['fe'] in ['Time', 'Duration']:
                 for each in self.serialize_numerical(subj, fe, url):
@@ -141,7 +136,13 @@ def main(classified, frame_data, output, language, semistructured, processes):
     for data in frame_data.values():
         for fe in data.get('core_fes', []) + data.get('extra_fes', []):
             if 'id' in fe:
-                fe_to_wid[fe['fe']] = fe['id']
+                if fe['fe'] not in fe_to_wid:
+                    fe_to_wid[fe['fe']] = fe['id']
+                else:
+                    # FIXME the check fails for an odd number of occurrences, but it shouldn't happen right?
+                    logger.warn('the FE %s has been assigned two different wikidata properties: %s and %s, '
+                                'it will be skipped altogether', fe['fe'], fe_to_wid['fe'], fe['id'])
+                    fe_to_wid.pop(fe['fe'])
             else:
                 logger.warn('dropping FE %s because no wikidata property is specified',
                             fe['fe'])

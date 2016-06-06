@@ -11,6 +11,7 @@ import click
 from strephit.commons.date_normalizer import normalize_numerical_fes
 from strephit.commons import scoring, pos_tag, parallel
 from strephit.commons.stopwords import StopWords
+from strephit.commons.classification import apply_custom_classification_rules
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,8 @@ class RuleBasedClassifier:
                 labeled = {
                     'name': sentence['name'],
                     'url': sentence['url'],
-                    'sentence': sentence['text'],
+                    'text': sentence['text'],
+                    'linked_entities': sentence['linked_entities'],
                     'frame': frame['frame'],
                     'fes': all_fes,
                     'lu': lemma,
@@ -157,7 +159,9 @@ class RuleBasedClassifier:
                                                      core_weight)
 
         assert 'lu' in labeled and labeled['fes']
-        return labeled
+
+        final = apply_custom_classification_rules(labeled, self.language)
+        return final
 
     def label_sentences(self, sentences, normalize_numerical, score_type, core_weight,
                         processes=0, input_encoded=False, output_encoded=False):
