@@ -7,7 +7,6 @@ import json
 import click
 
 from strephit.commons import wikidata, parallel
-from strephit.commons.date_normalizer import normalize_numerical_fes
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +62,11 @@ class ClassificationSerializer:
 
     def to_statements(self, data, input_encoded=True):
         """ Converts the classification results into quick statements
+            :param data: Data from the classifier. Can be either str or dict
+            :param bool input_encoded: Whether data is a str or a dict
+            :returns: Tuples <success, item> where item is a statement if success
+             is true else it is a named entity which could not be resolved
+            :type: generator
         """
         data = json.loads(data) if input_encoded else data
 
@@ -74,20 +78,29 @@ class ClassificationSerializer:
         name, subj = self.get_subject(data)
         if not subj:
             logger.warn('could not resolve wikidata id of subject "%s", skipping sentence', name)
+            yield False, name
             return
 
         for fe in data['fes']:
             if fe['fe'] in ['Time', 'Duration']:
                 for each in self.serialize_numerical(subj, fe, url):
-                    yield each
+                    yield True, each
             else:
                 prop = self.fe_to_wid.get(fe['fe'])
-                if prop:
-                    yield wikidata.finalize_statement(subj, prop, fe['chunk'], self.language, url,
-                                                      resolve_property=False, resolve_value=True)
-                else:
+                if not prop:
                     logger.debug('unknown fe type %s, skipping', fe['fe'])
                     continue
+
+                val = wikidata.resolve(prop, fe['chunk'], self.language)
+                if val:
+                    yield True, wikidata.finalize_statement(
+                        subj, prop, val, self.language, url,
+                        resolve_property=False, resolve_value=False
+                    )
+                else:
+                    logger.debug('could not resolve chunk "%s" of fe %s (property is %s)',
+                                 fe['chunk'], fe['fe'], prop)
+                    yield False, fe['chunk']
 
 
 def map_url_to_wid(semistructured):
@@ -118,7 +131,9 @@ def map_url_to_wid(semistructured):
 @click.argument('language')
 @click.option('--semistructured', type=click.File('r'))
 @click.option('--processes', '-p', default=0)
-def main(classified, frame_data, output, language, semistructured, processes):
+@click.option('--dump-unresolved', type=click.File('w'))
+def main(classified, frame_data, output, language,
+         semistructured, processes, dump_unresolved):
     """ Serialize classification results into quickstatements
     """
 
@@ -162,16 +177,22 @@ def main(classified, frame_data, output, language, semistructured, processes):
                    u'Producer',
                    u'Visitor'}
 
-    count = 0
+    count = skipped = 0
     serializer = ClassificationSerializer(fe_to_wid, url_to_wid, language, subject_fes)
-    for statement in parallel.map(serializer.to_statements, classified,
-                                  processes=processes, flatten=True):
-        if statement:
-            output.write(statement)
+    for successs, item in parallel.map(serializer.to_statements, classified,
+                                       processes=processes, flatten=True):
+        if successs:
+            output.write(item)
             output.write('\n')
 
             count += 1
-            if count % 1000 == 0:
-                logger.info('produced %d statements', count)
+        else:
+            skipped += 1
+            if dump_unresolved:
+                dump_unresolved.write(json.dumps(item))
+                dump_unresolved.write('\n')
 
-    logger.info('Done, produced %d statements', count)
+        if count % 1000 == 0:
+            logger.info('produced %d statements, skipped %d names', count, skipped)
+
+    logger.info('Done, produced %d statements, skipped %d names', count, skipped)
