@@ -83,7 +83,10 @@ def set(key, value, overwrite=True):
     loc, path, fname = _path_for(hashed)
     if not os.path.exists(loc):
         if not os.path.exists(path):
-            os.makedirs(path)
+            try:
+                os.makedirs(path)
+            except OSError:
+                pass
 
         with open(loc, 'w') as f:
             f.write(key.encode('utf8') + '\n')

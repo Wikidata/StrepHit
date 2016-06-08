@@ -95,4 +95,4 @@ def main(sentences, language, output, confidence, processes):
         count += 1
         if count % 1000 == 0:
             logger.info('linked %d sentences', count)
-    logger.info('done, linked %d sentences')
+    logger.info('done, linked %d sentences', count)

@@ -137,14 +137,13 @@ class SemistructuredSerializer:
                     genealogics_url_to_id[url] = subj
 
                 count += 1
+                if count % 10000 == 0:
+                    logger.info('Produced %d statements so far, skipped %d names', count, skipped)
             else:
                 skipped += 1
                 if dump_unresolved_file:
                     dump_unresolved_file.write(json.dumps(item))
                     dump_unresolved_file.write('\n')
-
-            if count % 10000 == 0 and count > 0:
-                logger.info('Produced %d statements so far, skipped %d names', count, skipped)
 
         logger.info('Done, roduced %d statements so far, skipped %d names', count, skipped)
         return genealogics_url_to_id, count, skipped
@@ -216,8 +215,8 @@ def process_semistructured(corpus_dir, out_file, language, processes,
         io.load_scraped_items(corpus_dir), out_file, dump_unresolved, genealogics, processes
     )
 
+    logger.info('Done, produced %d statements, skipped %d names', count, skipped)
     if not genealogics:
-        logger.info('skipping genealogics pass')
         return
 
     logger.info('Starting second pass on genealogics')
@@ -228,13 +227,12 @@ def process_semistructured(corpus_dir, out_file, language, processes,
             out_file.write('\n')
 
             count += 1
+            if count % 10000 == 0:
+                logger.info('Produced %d statements so far, skipped %d names', count, skipped)
         else:
             skipped += 1
             if dump_unresolved:
                 dump_unresolved.write(json.dumps(item))
                 dump_unresolved.write('\n')
 
-        if count % 10000 == 0 and count > 0:
-            logger.info('Produced %d statements so far, skipped %d names', count, skipped)
-
-    logger.info('Done, produced %d statements so far, skipped %d names', count, skipped)
+    logger.info('Done, produced %d statements, skipped %d names', count, skipped)
