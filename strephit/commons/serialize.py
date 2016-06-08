@@ -165,17 +165,7 @@ def main(classified, frame_data, output, language,
     # these FEs can act as subject of the statements produced from a frame
     # if none of these  (or more than one) is found, then the subject is
     # taken to be the subject of the article from which the sentence was extracted
-    subject_fes = {u'Agent',
-                   u'Author',
-                   u'Elected_person',
-                   u'Entity',
-                   u'Exhibitor',
-                   u'Individual',
-                   u'New_member',
-                   u'Participant',
-                   u'Player',
-                   u'Producer',
-                   u'Visitor'}
+    subject_fes = {fe['fe'] for fe in frame_data if fe.get('is_subject')}
 
     count = skipped = 0
     serializer = ClassificationSerializer(fe_to_wid, url_to_wid, language, subject_fes)
