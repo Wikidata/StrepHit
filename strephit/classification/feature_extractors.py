@@ -36,14 +36,17 @@ class BaseFeatureExtractor:
         frame element name, e.g. `fes = dict(enumerate(entities))`
     """
 
-    def process_sentence(self, sentence, fes, add_unknown):
+    def process_sentence(self, sentence, fes, add_unknown, gazetteer):
         """ Extracts and accumulates features for the given sentence
-            :param sentence: Text of the sentence
-            :param fes: Dictionary with FEs and corresponding chunks
-            :param add_unknown: Whether unknown tokens should be added
+            :param unicode sentence: Text of the sentence
+            :param dict fes: Dictionary with FEs and corresponding chunks
+            :param bol add_unknown: Whether unknown tokens should be added
              to the index of treaded as a special, unknown token.
              Set to True when building the training set and to False
              when building the features used to classify new sentences
+            :param dict gazetteer: Additional features to add when a given
+             chunk is found in the sentence. Keys should be chunks and
+             values should be list of features
             :return: Nothing
         """
         raise NotImplemented
@@ -77,14 +80,14 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
 
     def sentence_to_tokens(self, sentence, fes):
         """ Transforms a sentence into a list of tokens
-            :param sentence: Text of the sentence
-            :param fes: mapping FE -> chunk
+            :param unicode sentence: Text of the sentence
+            :param dict fes: mapping FE -> chunk
             :return: List of tokens
         """
 
         tagged = self.tagger.tag_one(sentence, skip_unknown=False)
 
-        # find entities and group them into single tokens,
+        # find entities and group them into single tokens
         for fe, chunk in fes.iteritems():
             if chunk is None:
                 continue
@@ -118,9 +121,9 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
 
     def feature_for(self, term, type_, position, add_unknown):
         """ Returns the feature for the given token, i.e. the column of the feature in a sparse matrix
-            :param term: Actual term
-            :param type_: Type of the term, for example token, pos or lemma
-            :param position: Relative position (used for context windows)
+            :param str term: Actual term
+            :param str type_: Type of the term, for example token, pos or lemma
+            :param int position: Relative position (used for context windows)
             :param
             :return: Column of the corresponding feature
         """
@@ -133,10 +136,11 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
                 index = self.unk_index
         return index
 
-    def token_to_features(self, tokens, position, add_unknown):
+    def token_to_features(self, tokens, position, add_unknown, gazetteer):
         """ Extracts the features for the token in the given position
-            :param tokens: POS-tagged tokens of the sentence
-            :param position: position of the token for which features are requestsd
+            :param list tokens: POS-tagged tokens of the sentence
+            :param int position: position of the token for which features are requestsd
+            :param dict gazetteer: mapping chunk -> additional features
             :return: sparse set of features (i.e. numbers are indexes in a row of a sparse matrix)
         """
         features = set()
@@ -146,13 +150,16 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
             features.add(self.feature_for(tokens[i][0], 'TERM', rel, add_unknown))
             features.add(self.feature_for(tokens[i][1], 'POS', rel, add_unknown))
             features.add(self.feature_for(tokens[i][2], 'LEMMA', rel, add_unknown))
+            for feat in gazetteer.get(tokens[i][0], []):
+                features.add(self.feature_for(feat, 'GAZ', rel, add_unknown))
 
         return features
 
-    def extract_features(self, sentence, fes, add_unknown):
+    def extract_features(self, sentence, fes, add_unknown, gazetteer):
         """ Extracts the features for each token of the sentence
-            :param sentence: Text of the sentence
-            :param fes: mapping FE -> chunk
+            :param unicode sentence: Text of the sentence
+            :param dicr fes: mapping FE -> chunk
+            :param dict gazetteer: mapping chunk -> additional features
             :return: List of features, each one as a sparse row
              (i.e. with the indexes of the relevant columns)
         """
@@ -160,14 +167,14 @@ class FactExtractorFeatureExtractor(BaseFeatureExtractor):
         features = []
 
         for i in xrange(len(tagged)):
-            feat = self.token_to_features(tagged, i, add_unknown)
+            feat = self.token_to_features(tagged, i, add_unknown, gazetteer)
             label = 'O' if len(tagged[i]) == 3 else tagged[i][3]
             features.append((feat, self.role_index.put(label)))
 
         return tagged, features
 
-    def process_sentence(self, sentence, fes, add_unknown):
-        tagged, features = self.extract_features(sentence, fes, add_unknown)
+    def process_sentence(self, sentence, fes, add_unknown, gazetteer):
+        tagged, features = self.extract_features(sentence, fes, add_unknown, gazetteer)
         self.features.extend(features)
         return tagged
 

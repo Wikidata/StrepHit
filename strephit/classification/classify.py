@@ -6,7 +6,7 @@ import click
 
 from sklearn.externals import joblib
 
-from strephit.commons.classification import apply_custom_classification_rules
+from strephit.commons.classification import apply_custom_classification_rules, reverse_gazetteer
 from strephit.commons import parallel
 
 logger = logging.getLogger(__name__)
@@ -16,10 +16,11 @@ class SentenceClassifier:
     """ Supervised Sentence classifier
     """
 
-    def __init__(self, model, extractor, language):
+    def __init__(self, model, extractor, language, gazetteer):
         self.model = model
         self.language = language
         self.extractor = extractor
+        self.gazetteer = gazetteer
 
     def classify_sentences(self, sentences):
         """ Classify the given sentences
@@ -37,7 +38,9 @@ class SentenceClassifier:
                 continue
 
             entities = dict(enumerate(e['chunk'] for e in data.get('linked_entities', [])))
-            tagged = self.extractor.process_sentence(data['text'], entities, add_unknown=False)
+            tagged = self.extractor.process_sentence(
+                data['text'], entities, add_unknown=False, gazetteer=self.gazetteer
+            )
 
             data['tagged'] = tagged
             sentences_data.append(data)
@@ -90,11 +93,14 @@ class SentenceClassifier:
 @click.option('--processes', '-p', default=0)
 @click.option('--model', type=click.Path(dir_okay=False, writable=True),
               default='dev/classifier.pkl')
-def main(sentences, output, language, model, processes):
+@click.option('--gazetteer', type=click.File('r'))
+def main(sentences, output, language, model, processes, gazetteer):
+    gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
+
     logger.info('Loading model from %s', model)
     model, extractor = joblib.load(model)
 
-    classifier = SentenceClassifier(model, extractor, language)
+    classifier = SentenceClassifier(model, extractor, language, gazetteer)
 
     def worker(batch):
         data = (json.loads(s) for s in batch)

@@ -4,6 +4,8 @@ import logging
 
 import click
 
+
+from strephit.commons.classification import reverse_gazetteer
 from sklearn.externals import joblib
 from sklearn.svm import LinearSVC
 from strephit.classification.feature_extractors import FactExtractorFeatureExtractor
@@ -30,15 +32,18 @@ logger = logging.getLogger(__name__)
 @click.option('--random-state', default=None, type=click.INT,
               help='The seed of the pseudo random number generator to use when shuffling the data.')
 @click.option('--max-iter', default=1000, help='The maximum number of iterations to be run.')
-def main(training_set, language, output, **kwargs):
+@click.option('--gazetteer', type=click.File('r'))
+def main(training_set, language, output, gazetteer, **kwargs):
     """ Trains the classifier """
 
+    gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
     extractor = FactExtractorFeatureExtractor(language)
 
     logger.info('Building training set')
     for row in training_set:
         data = json.loads(row)
-        extractor.process_sentence(data['sentence'], data['fes'], add_unknown=True)
+        extractor.process_sentence(data['sentence'], data['fes'],
+                                   add_unknown=True, gazetteer=gazetteer)
 
     logger.info('Finalizing training set')
     x, y = extractor.get_features()

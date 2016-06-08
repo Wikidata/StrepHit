@@ -1,10 +1,11 @@
 # -*- encoding: utf-8 -*-
 
 from __future__ import absolute_import
-
+import json
 import logging
 
 from strephit.commons.date_normalizer import normalize_numerical_fes
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,3 +58,20 @@ def apply_custom_classification_rules(classified, language, overwrite=False):
     assert len(set(fe['chunk'] for fe in classified['fes'])) == len(classified['fes'])
 
     return classified
+
+
+def reverse_gazetteer(gazetteer):
+    """ Reverses the gazetteer from feature -> chunks to
+        chunk -> features
+        :param dict gazetteer: Gazetteer associating chunks to features
+        :return: An equivalent gazetteer associating features to chunks
+        :rtype: dict
+    """
+    reversed = {}
+    if gazetteer:
+        for feature, chunks in gazetteer.iteritems():
+            for each in chunks:
+                if each not in reversed:
+                    reversed[each] = []
+                reversed[each].append(feature)
+    return reversed

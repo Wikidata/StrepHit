@@ -3,12 +3,13 @@ import json
 import logging
 
 import click
-from sklearn.externals import joblib
 from sklearn.svm import LinearSVC
 from sklearn.grid_search import GridSearchCV
 from sklearn import metrics
+
 from sklearn.dummy import DummyClassifier
 
+from strephit.commons.classification import reverse_gazetteer
 from strephit.classification.feature_extractors import FactExtractorFeatureExtractor
 
 logger = logging.getLogger(__name__)
@@ -18,14 +19,18 @@ logger = logging.getLogger(__name__)
 @click.argument('training-set', type=click.File('r'))
 @click.argument('language')
 @click.option('--gold-standard', type=click.File('r'))
-def main(training_set, language, gold_standard):
+@click.option('--gazetteer', type=click.File('r'))
+def main(training_set, language, gold_standard, gazetteer):
     """ Searches for the best hyperparameters """
+
+    gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
 
     logger.info('Building training set')
     extractor = FactExtractorFeatureExtractor(language)
     for row in training_set:
         data = json.loads(row)
-        extractor.process_sentence(data['sentence'], data['fes'], add_unknown=True)
+        extractor.process_sentence(data['sentence'], data['fes'],
+                                   add_unknown=True, gazetteer=gazetteer)
 
     logger.info('Finalizing training set')
     x, y = extractor.get_features()
