@@ -13,15 +13,17 @@ class TestSemistructured(unittest.TestCase):
         cache.ENABLED = True
 
     def get_statements(self, sourced_only=False, language='en', **kwargs):
-        return [
-            s for s in process_semistructured.serialize_item(
-                (10, kwargs, language, sourced_only))
-        ]
+        ser = process_semistructured.SemistructuredSerializer(language, sourced_only)
+        return list(ser.serialize_item(kwargs))
 
     def test_complete_statements(self):
         self.assertEqual(set(self.get_statements(name='Fraser, Sir Colin', url='here')),
-                         {('Q5145111', 'P1559', '"Colin Fraser"', 'here'),
-                          ('Q5145111', 'P1035', 'Q209690', 'here')})
+                         {(True, ('Q5145111', 'P1559', 'en:"Colin Fraser"', 'here')),
+                          (True, ('Q5145111', 'P1035', 'Q209690', 'here'))})
+
+    def test_unresolved(self):
+        self.assertEqual(self.get_statements(name='asd', url='here', sourced_only=True),
+                         [(False, 'asd')])
 
     def test_unsourced(self):
         self.assertEqual(self.get_statements(name='no-url', sourced_only=True), [])

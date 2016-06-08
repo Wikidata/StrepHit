@@ -86,9 +86,14 @@ class TestClassify(unittest.TestCase):
         assigned = cl.assign_frame_elements(self.sentences[0]['linked_entities'],
                                             self.frame_data['play'])
 
-        self.assertEqual(assigned['Competition']['chunk'], 'tennis')
-        self.assertEqual(assigned['Competition']['score'], 1.0)
-        self.assertEqual(assigned['Competition']['type'], 'Core')
-        self.assertEqual(assigned['Competition']['fe'], 'Competition')
-        self.assertEqual(assigned['Competition']['uri'], 'http://tennis')
-        self.assertTrue(assigned['Participant_1']['chunk'] in {'Leslie', 'Jo'})
+        competition = [fe for fe in assigned if fe['fe'] == 'Competition']
+        self.assertEqual(len(competition), 1)
+        self.assertEqual(competition[0]['chunk'], 'tennis')
+        self.assertEqual(competition[0]['score'], 1.0)
+        self.assertEqual(competition[0]['fe_type'], 'Core')
+        self.assertEqual(competition[0]['fe'], 'Competition')
+        self.assertEqual(competition[0]['uri'], 'http://tennis')
+
+        participant1 = [fe for fe in assigned if fe['fe'] == 'Participant_1']
+        self.assertEqual(len(participant1), 1)
+        self.assertTrue(participant1[0]['chunk'] in {'Leslie', 'Jo'})

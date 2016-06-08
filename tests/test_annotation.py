@@ -14,8 +14,8 @@ class TestParseResults(unittest.TestCase):
             {
                 '_unit_id': self.unit_id,
                 'id': self.sentence_id,
-                'chunk_00': 'Entity',
-                'orig_chunk_00': 'table',
+                'answer_chunk_00': 'Entity',
+                'chunk_00': 'table',
                 'sentence': 'sentence 1000',
                 'frame': 'something',
                 'fe_00': 'Entity',
@@ -23,8 +23,8 @@ class TestParseResults(unittest.TestCase):
             }, {
                 '_unit_id': self.unit_id,
                 'id': self.sentence_id,
-                'chunk_00': 'Entity',
-                'orig_chunk_00': 'table',
+                'answer_chunk_00': 'Entity',
+                'chunk_00': 'table',
                 'sentence': 'sentence 1000',
                 'frame': 'something',
                 'fe_00': 'Entity',
@@ -32,8 +32,8 @@ class TestParseResults(unittest.TestCase):
             }, {
                 '_unit_id': self.unit_id,
                 'id': self.sentence_id,
-                'chunk_00': 'Agent',
-                'orig_chunk_00': 'table',
+                'answer_chunk_00': 'Agent',
+                'chunk_00': 'table',
                 'sentence': 'sentence 1000',
                 'frame': 'something',
                 'fe_00': 'Entity',

@@ -103,7 +103,7 @@ class SemistructuredSerializer:
             return
 
         # now that we are sure about the subject we can produce the actual statements
-        yield wid, 'P1559', '%s:"%s"' % (self.language, name.title()), url
+        yield True, (wid, 'P1559', '%s:"%s"' % (self.language, name.title()), url)
         for property, values in statements.iteritems():
             for val in values:
                 yield True, (wid, property, val, url)
