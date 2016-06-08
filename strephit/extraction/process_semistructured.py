@@ -143,7 +143,7 @@ class SemistructuredSerializer:
                     dump_unresolved_file.write(json.dumps(item))
                     dump_unresolved_file.write('\n')
 
-            if (count % 10000 == 0 and count > 0) or (skipped % 10000 == 0 and skipped > 0):
+            if count % 10000 == 0 and count > 0:
                 logger.info('Produced %d statements so far, skipped %d names', count, skipped)
 
         logger.info('Done, roduced %d statements so far, skipped %d names', count, skipped)
@@ -234,7 +234,7 @@ def process_semistructured(corpus_dir, out_file, language, processes,
                 dump_unresolved.write(json.dumps(item))
                 dump_unresolved.write('\n')
 
-        if (count % 10000 == 0 and count > 0) or (skipped % 10000 == 0 and skipped > 0):
+        if count % 10000 == 0 and count > 0:
             logger.info('Produced %d statements so far, skipped %d names', count, skipped)
 
     logger.info('Done, produced %d statements so far, skipped %d names', count, skipped)

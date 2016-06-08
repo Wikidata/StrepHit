@@ -5,8 +5,9 @@ from __future__ import absolute_import
 import json
 import logging
 from itertools import product
+import os
 
-from strephit.commons import cache, io, datetime, text
+from strephit.commons import cache, io, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ PROPERTY_TO_WIKIDATA = {
     # 'Worked for': 'P108',
     # 'title': 'P97',
     # 'lblProfession': 'P106',
-    # 'lblNationality': 'P27',
+    'lblNationality': 'P27',
     'gender': 'P21',
     'lblIdentifier': 'P742',
     # 'Place of origin:': 'P19',
@@ -39,9 +40,9 @@ PROPERTY_TO_WIKIDATA = {
     'Born': 'P569',
     'Buried': 'P570',
     u'Children\xa0': 'P40',
-    #'Christened',
+    # 'Christened',
     'Died': 'P570',
-    #'Divorced': ,
+    # 'Divorced': ,
     'Family': 'P1038',
     'Father': 'P22',
     'First name(s)': 'P735',
@@ -54,11 +55,12 @@ PROPERTY_TO_WIKIDATA = {
     'Mother': 'P25',
     'Occupation': 'P106',
     'Other Titles': 'P1449'
-    #u'Same\xa0Person\xa0Link'
+    # u'Same\xa0Person\xa0Link'
 }
 PROPERTY_TO_WIKIDATA.update({'Family %d' % i: 'P1038' for i in xrange(1, 21)})
 
 PROPERTY_RESOLVERS = {}
+NATIONALITY_TO_COUNTRY = {}
 
 
 def resolver(*properties):
@@ -126,7 +128,7 @@ def date_resolver(property, value, language, **kwargs):
         return ''
 
 
-#@resolver('P26', 'P40', 'P1038')
+# @resolver('P26', 'P40', 'P1038')
 def resolver_with_hints(property, value, language, **kwargs):
     """ Resolves people names. Works better if generic biographic
         information, such as birth/death dates, is provided.
@@ -209,13 +211,48 @@ def resolver_with_hints(property, value, language, **kwargs):
 
 
 @cache.cached
-# @resolver('P108', 'P97', 'P106', 'P27', 'P166')
+# @resolver('P108', 'P97', 'P106', 'P166')
 def generic_search_resolver(property, value, language, **kwargs):
     """ Last-hope resolver, searches wikidata hoping to find something
         which exactly matches the given value
     """
     results = search(value, language, type_=None)
     return results[0]['id'] if results else ''
+
+
+@cache.cached
+@resolver('P27')
+def nationality_resolver(property, value, language, **kwargs):
+    """ Resolves nationalities (French --> France)
+    """
+    value = value.lower().strip()
+
+    if value in NATIONALITY_TO_COUNTRY:
+        return NATIONALITY_TO_COUNTRY[value]
+
+    path = os.path.join(os.path.dirname(__file__), 'resources',
+                        'nationality_to_country_%s.json' % language)
+
+    with open(path) as f:
+        nat_to_c = json.load(f)
+
+    country = nat_to_c.get(value, '')
+    if country:
+        logger.debug('nationality "%s" mapped to country "%s"', value, country)
+        results = search(country, language, type_=[6256, 3624078, 3024240], label_exact=False)
+
+        if results:
+            logger.debug('country "%s" resolved to %s', country, results[0]['id'])
+            country = results[0]['id']
+        else:
+            logger.debug('could not resolve country "%s"', country)
+            country = ''
+    else:
+        logger.debug('nationality "%s" not found in the mapping, you might want to update it',
+                     value)
+
+    NATIONALITY_TO_COUNTRY[value] = country
+    return country
 
 
 @cache.cached
@@ -271,7 +308,7 @@ def search(term, language, type_=None, label_exact=True, limit='15'):
         :param iterable type_: Type of the entity to look for, wikidata numeric id (i.e. without starting Q)
          Can be int or anything iterable
         :param bool label_exact: Filter entities whose labels matches exactly the search term
-        :param str lmit: How many results to return at most
+        :param str limit: How many results to return at most
         :returns: List of dicts with details (which details depend on `type_`)
         :rtype: list of dicts
     """
