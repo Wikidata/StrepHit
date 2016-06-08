@@ -182,7 +182,7 @@ def main(classified, frame_data, output, language,
     for successs, item in parallel.map(serializer.to_statements, classified,
                                        processes=processes, flatten=True):
         if successs:
-            output.write(item)
+            output.write(item.encode('utf8'))
             output.write('\n')
 
             count += 1

@@ -12,15 +12,17 @@ logger = logging.getLogger(__name__)
 
 
 class SemistructuredSerializer:
-    def __init__(self, language, sourced_only, dump_unresolved_file=None):
+    def __init__(self, language, sourced_only):
         self.language = language
         self.sourced_only = sourced_only
-        self.dump_unresolved_file = dump_unresolved_file
 
     def serialize_item(self, item):
-        """ Converts an item to quick statements. Takes a single tuple as parameter
-            and returns generator of tuples <subject, property, object, source>
-            with already resolved items
+        """ Converts an item to quick statements.
+            :param item: Scraped item, either str (json) or dict
+            :returns: tuples <success, item> where item is an entity which
+             could not be resolved if success is false, otherwise it is a
+             <subject, property, object, source> tuple
+            :rtype: generator
         """
 
         if isinstance(item, basestring):
@@ -85,7 +87,7 @@ class SemistructuredSerializer:
                 resolved = wikidata.resolve(property, val, self.language, **info)
                 if not resolved:
                     logger.debug('cannot resolve value %s of property %s, skipping', val, property)
-                    self.unresolved_callback(val)
+                    yield False, val
                     continue
 
                 statements[property].append(resolved)
@@ -97,49 +99,55 @@ class SemistructuredSerializer:
         if not wid:
             logger.debug('cannot find wikidata id of "%s" with properties %s, skipping',
                          name, repr(info))
-            self.unresolved_callback(name)
+            yield False, name
             return
 
         # now that we are sure about the subject we can produce the actual statements
         yield wid, 'P1559', '%s:"%s"' % (self.language, name.title()), url
         for property, values in statements.iteritems():
             for val in values:
-                yield wid, property, val, url
+                yield True, (wid, property, val, url)
 
         for each in honorifics:
             hon = wikidata.resolve('P1035', each, self.language)
             if hon:
-                yield wid, 'P1035', hon, url
+                yield True, (wid, 'P1035', hon, url)
             else:
-                self.unresolved_callback(each)
+                yield False, each
 
-    def process_corpus(self, items, output_file, genealogics=None, processes=0):
-        count = 0
+    def process_corpus(self, items, output_file, dump_unresolved_file=None, genealogics=None, processes=0):
+        count = skipped = 0
 
         genealogics_url_to_id = {}
-        for subj, prop, val, url in parallel.map(
-                self.serialize_item, items, processes, flatten=True
-        ):
-            statement = wikidata.finalize_statement(
-                subj, prop, val, self.language, url,
-                resolve_property=False, resolve_value=False
-            )
+        for success, item in parallel.map(self.serialize_item, items, processes, flatten=True):
+            if success:
+                subj, prop, val, url = item
+                statement = wikidata.finalize_statement(
+                    subj, prop, val, self.language, url,
+                    resolve_property=False, resolve_value=False
+                )
 
-            if not statement:
-                continue
+                if not statement:
+                    continue
 
-            output_file.write(statement.encode('utf8'))
-            output_file.write('\n')
+                output_file.write(statement.encode('utf8'))
+                output_file.write('\n')
 
-            if genealogics and url.startswith('http://www.genealogics.org/'):
-                genealogics_url_to_id[url] = subj
+                if genealogics and url.startswith('http://www.genealogics.org/'):
+                    genealogics_url_to_id[url] = subj
 
-            count += 1
-            if count % 10000 == 0:
-                logger.info('Produced %d statements so far' % count)
+                count += 1
+            else:
+                skipped += 1
+                if dump_unresolved_file:
+                    dump_unresolved_file.write(json.dumps(item))
+                    dump_unresolved_file.write('\n')
 
-        logger.info('Produced %d statements' % count)
-        return genealogics_url_to_id, count
+            if (count % 10000 == 0 and count > 0) or (skipped % 10000 == 0 and skipped > 0):
+                logger.info('Produced %d statements so far, skipped %d names', count, skipped)
+
+        logger.info('Done, roduced %d statements so far, skipped %d names', count, skipped)
+        return genealogics_url_to_id, count, skipped
 
     def resolve_genealogics_family(self, input_file, url_to_id):
         """ Performs a second pass on genealogics to resolve additional family members
@@ -181,16 +189,11 @@ class SemistructuredSerializer:
                                     resolve_property=False, resolve_value=False
                                 )
 
-                                yield statement
+                                yield True, statement
                             else:
                                 logger.debug('skipping "%s" (%s), %s of/with %s',
                                              name.strip(), url, key, subj)
-                                self.unresolved_callback(name)
-
-    def unresolved_callback(self, value):
-        if self.dump_unresolved_file:
-            self.dump_unresolved_file.write(json.dumps(value))
-            self.dump_unresolved_file.write('\n')
+                                yield False, name
 
 
 @click.command()
@@ -207,10 +210,10 @@ def process_semistructured(corpus_dir, out_file, language, processes,
         Needs a second pass on genealogics to correctly resolve family members
     """
 
-    resolver = SemistructuredSerializer(language, sourced_only, dump_unresolved)
+    resolver = SemistructuredSerializer(language, sourced_only, )
 
-    genealogics_url_to_id, count = resolver.process_corpus(
-        io.load_scraped_items(corpus_dir), out_file, genealogics, processes
+    genealogics_url_to_id, count, skipped = resolver.process_corpus(
+        io.load_scraped_items(corpus_dir), out_file, dump_unresolved, genealogics, processes
     )
 
     if not genealogics:
@@ -219,12 +222,19 @@ def process_semistructured(corpus_dir, out_file, language, processes,
 
     logger.info('Starting second pass on genealogics')
     genealogics_data = resolver.resolve_genealogics_family(genealogics, genealogics_url_to_id)
-    for statement in genealogics_data:
-        out_file.write(statement.encode('utf8'))
-        out_file.write('\n')
+    for success, item in genealogics_data:
+        if success:
+            out_file.write(item.encode('utf8'))
+            out_file.write('\n')
 
-        count += 1
-        if count % 10000 == 0:
-            logger.info('Produced %d statements so far' % count)
+            count += 1
+        else:
+            skipped += 1
+            if dump_unresolved:
+                dump_unresolved.write(json.dumps(item))
+                dump_unresolved.write('\n')
 
-    logger.info('Done, produced %d statements' % count)
+        if (count % 10000 == 0 and count > 0) or (skipped % 10000 == 0 and skipped > 0):
+            logger.info('Produced %d statements so far, skipped %d names', count, skipped)
+
+    logger.info('Done, produced %d statements so far, skipped %d names', count, skipped)
