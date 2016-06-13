@@ -87,7 +87,7 @@ class SemistructuredSerializer:
                 resolved = wikidata.resolve(property, val, self.language, **info)
                 if not resolved:
                     logger.debug('cannot resolve value %s of property %s, skipping', val, property)
-                    yield False, val
+                    yield False, {'chunk': val, 'additional': {'property': property, 'url': url}}
                     continue
 
                 statements[property].append(resolved)
@@ -99,7 +99,7 @@ class SemistructuredSerializer:
         if not wid:
             logger.debug('cannot find wikidata id of "%s" with properties %s, skipping',
                          name, repr(info))
-            yield False, name
+            yield False, {'chunk': name, 'additional': {'property': 'P1559', 'url': url}}
             return
 
         # now that we are sure about the subject we can produce the actual statements
@@ -113,7 +113,7 @@ class SemistructuredSerializer:
             if hon:
                 yield True, (wid, 'P1035', hon, url)
             else:
-                yield False, each
+                yield False, {'chunk': each, 'additional': {'property': 'P1035', 'url': url}}
 
     def process_corpus(self, items, output_file, dump_unresolved_file=None, genealogics=None, processes=0):
         count = skipped = 0
