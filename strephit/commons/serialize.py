@@ -12,34 +12,67 @@ logger = logging.getLogger(__name__)
 
 
 class ClassificationSerializer:
-    def __init__(self, fe_to_wid, url_to_wid, language, subject_fes):
-        self.fe_to_wid = fe_to_wid
-        self.url_to_wid = url_to_wid
+    def __init__(self, language, frame_data, url_to_wid=None):
+        self.url_to_wid = url_to_wid or {}
         self.language = language
-        self.subject_fes = subject_fes
+        self.frame_data = frame_data
+        self.fe_to_wid = self.map_fe_to_wid(self.frame_data)
 
-    def get_subject(self, data):
-        """ Returns the wikidata id of the subject of the statements
+    @staticmethod
+    def map_fe_to_wid(frame_data):
+        fe_to_wid = {
+            'Place': 'P276',
+        }
+
+        for data in frame_data.values():
+            for fe in data.get('core_fes', []) + data.get('extra_fes', []):
+                if 'id' in fe:
+                    if fe['fe'] not in fe_to_wid:
+                        fe_to_wid[fe['fe']] = fe['id']
+                    else:
+                        # FIXME the check fails for an odd number of occurrences, but it shouldn't happen right?
+                        logger.warn('the FE %s has been assigned two different wikidata properties: %s and %s, '
+                                    'it will be skipped altogether', fe['fe'], fe_to_wid['fe'], fe['id'])
+                        fe_to_wid.pop(fe['fe'])
+                else:
+                    logger.warn('dropping FE %s because no wikidata property is specified',
+                                fe['fe'])
+
+        return fe_to_wid
+
+    def get_subjects(self, data):
+        """ Finds all subjects of the frame assigned to the sentence
+            :param dict data: classification results
+            :return: all subjects as tuples (chunk, wikidata id)
+            :rtype: generator of tuples
         """
 
-        # first, try to see if there is one (and exactly one) FE of one of the
-        # types that can be subjects
-        candidates = [fe for fe in data['fes'] if fe['fe'] in self.subject_fes]
-        if len(candidates) == 1:
-            name = candidates[0]['chunk']
-            wid = wikidata.resolver_with_hints(
-                'P1559', name, self.language
-            )
-        # if this fails, assume the subject is the main subject of the article
-        # from which this sentence was extracted
-        elif data['url'] in self.url_to_wid:
-            name = None
-            wid = self.url_to_wid[data['url']]
+        if data['lu'] not in self.frame_data:
+            logger.warn('sentence with a LU not contained in the lexical database')
+            logger.debug(data)
+            subjects = []
         else:
-            name = data.get('name')
-            wid = wikidata.resolver_with_hints('P1559', name, self.language) or None if name else None
+            frame = self.frame_data[data['lu']]
+            subjects = [fe for fe in data['fes'] if fe['fe'] in frame['core_fes']]
 
-        return name, wid
+        if subjects:
+            for each in subjects:
+                name = each['chunk']
+                wid = wikidata.resolver_with_hints(
+                    'P1559', name, self.language
+                )
+                yield name, wid
+        else:
+            # if this fails, assume the subject is the main subject of the article
+            # from which this sentence was extracted
+            if data['url'] in self.url_to_wid:
+                name = None
+                wid = self.url_to_wid[data['url']]
+            else:
+                name = data.get('name')
+                wid = wikidata.resolver_with_hints('P1559', name, self.language) or None if name else None
+
+            yield name, wid
 
     def serialize_numerical(self, subj, fe, url):
         """ Serializes a numerical FE found by the normalizer
@@ -75,32 +108,38 @@ class ClassificationSerializer:
             logger.warn('skipping item without url')
             return
 
-        name, subj = self.get_subject(data)
-        if not subj:
-            logger.warn('could not resolve wikidata id of subject "%s", skipping sentence', name)
-            yield False, {'chunk': name, 'additional': {'sentence': data['text'], 'url': url}}
-            return
+        for name, subj in self.get_subjects(data):
+            if not subj:
+                logger.warn('could not resolve wikidata id of subject "%s"', name)
+                yield False, {'chunk': name, 'additional': {'sentence': data['text'], 'url': url}}
+                continue
 
-        for fe in data['fes']:
-            if fe['fe'] in ['Time', 'Duration']:
-                for each in self.serialize_numerical(subj, fe, url):
-                    yield True, each
-            else:
-                prop = self.fe_to_wid.get(fe['fe'])
-                if not prop:
-                    logger.debug('unknown fe type %s, skipping', fe['fe'])
+            for fe in data['fes']:
+                if fe['chunk'] == name:  # do not add a statement for the current subject
                     continue
 
-                val = wikidata.resolve(prop, fe['chunk'], self.language)
-                if val:
-                    yield True, wikidata.finalize_statement(
-                        subj, prop, val, self.language, url,
-                        resolve_property=False, resolve_value=False
-                    )
+                if fe['fe'] in ['Time', 'Duration']:
+                    for each in self.serialize_numerical(subj, fe, url):
+                        yield True, each
                 else:
-                    logger.debug('could not resolve chunk "%s" of fe %s (property is %s)',
-                                 fe['chunk'], fe['fe'], prop)
-                    yield False, {'chunk': fe['chunk'], 'additional': {'fe': fe, 'sentence': data['text'], 'url': url}}
+                    prop = self.fe_to_wid.get(fe['fe'])
+                    if not prop:
+                        logger.debug('unknown fe type %s, skipping', fe['fe'])
+                        continue
+
+                    val = wikidata.resolve(prop, fe['chunk'], self.language)
+                    if val:
+                        yield True, wikidata.finalize_statement(
+                            subj, prop, val, self.language, url,
+                            resolve_property=False, resolve_value=False
+                        )
+                    else:
+                        logger.debug('could not resolve chunk "%s" of fe %s (property is %s)',
+                                     fe['chunk'], fe['fe'], prop)
+                        yield False, {
+                            'chunk': fe['chunk'],
+                            'additional': {'fe': fe, 'sentence': data['text'], 'url': url}
+                        }
 
 
 def map_url_to_wid(semistructured):
@@ -147,31 +186,9 @@ def main(classified, frame_data, output, language,
                     'resolving the wikidata id of more subjects')
 
     frame_data = json.load(frame_data)
-    fe_to_wid = {
-        'Place': 'P276',
-    }
-
-    for data in frame_data.values():
-        for fe in data.get('core_fes', []) + data.get('extra_fes', []):
-            if 'id' in fe:
-                if fe['fe'] not in fe_to_wid:
-                    fe_to_wid[fe['fe']] = fe['id']
-                else:
-                    # FIXME the check fails for an odd number of occurrences, but it shouldn't happen right?
-                    logger.warn('the FE %s has been assigned two different wikidata properties: %s and %s, '
-                                'it will be skipped altogether', fe['fe'], fe_to_wid['fe'], fe['id'])
-                    fe_to_wid.pop(fe['fe'])
-            else:
-                logger.warn('dropping FE %s because no wikidata property is specified',
-                            fe['fe'])
-
-    # these FEs can act as subject of the statements produced from a frame
-    # if none of these  (or more than one) is found, then the subject is
-    # taken to be the subject of the article from which the sentence was extracted
-    subject_fes = {fe['fe'] for fe in frame_data.values() if fe.get('is_subject')}
 
     count = skipped = 0
-    serializer = ClassificationSerializer(fe_to_wid, url_to_wid, language, subject_fes)
+    serializer = ClassificationSerializer(language, frame_data, url_to_wid)
     for successs, item in parallel.map(serializer.to_statements, classified,
                                        processes=processes, flatten=True):
         if successs:

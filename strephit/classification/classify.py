@@ -75,6 +75,7 @@ class SentenceClassifier:
             logger.debug('found %d FEs in sentence "%s"', len(fes), data['text'])
             if fes:
                 classified = {
+                    'lu': data['lu'],
                     'name': data['name'],
                     'url': data['url'],
                     'text': data['text'],
