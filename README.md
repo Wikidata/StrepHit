@@ -11,6 +11,23 @@ https://meta.wikimedia.org/wiki/Grants:IEG/StrepHit:_Wikidata_Statements_Validat
 ## Documentation
 https://www.mediawiki.org/wiki/StrepHit
 
+## Features
+- **[Web spiders](strephit/web_sources_corpus)** to collect a biographical corpus from a [list of reliable sources](https://meta.wikimedia.org/wiki/Grants:IEG/StrepHit:_Wikidata_Statements_Validation_via_References/Timeline#Biographies)
+- **[Corpus analysis](strephit/corpus_analysis)** to understand the most meaningful verbs 
+- **[Extraction](strephit/extraction)** of sentences and semi-structured data from a corpus
+- Train an automatic classifier through **[crowdsourcing](strephit/annotation)**
+- **Extract facts** from text in 2 ways:
+    - [Supervised](strephit/classification)
+    - [Rule-based](strephit/rule_based)
+- Several **[utilities](strephit/commons)**, ranging from NLP tasks like *[tokenization](https://en.wikipedia.org/wiki/Tokenization_(lexical_analysis))* and *[part-of-speech tagging](https://en.wikipedia.org/wiki/Part-of-speech_tagging)*, to facilities for parallel processing, caching and logging
+
+## Pipeline
+1. Corpus Harvesting
+2. Corpus Analysis
+3. Sentence Extraction
+4. N-ary Relation Extraction
+5. Dataset Serialization
+
 ## Get Ready
 - Install **[Python 2.7](https://www.python.org/downloads/)** and **[pip](https://pip.pypa.io/en/stable/installing/)**
 - Clone the repository and create the workspace:
@@ -33,46 +50,17 @@ NEX_APPKEY = 'your app key'
 ```
 
 ### Optional dependency
-If you want to [extract sentences](../blob/master/strephit/extraction/extract_sentences.py) via **[syntactic parsing](https://en.wikipedia.org/wiki/Parsing)**, you will need to install:
+If you want to **[extract sentences](../blob/master/strephit/extraction/extract_sentences.py)** via __[syntactic parsing](https://en.wikipedia.org/wiki/Parsing)__, you will need to install:
 - [Java 8](http://www.java.com/en/download/)
 - [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP/), through our utility:
 ```
 $ python -m strephit commons download stanford_corenlp
 ```
 
-## Get Started
-
- - Produce quick statements from semi-structured data in the corpus (takes time, and a good internet connection):
-```
-python -m strephit extraction process_semistructured samples/corpus.jsonlines semistructured.qs
-```
-
- - Extract sentences and perform entity linking:
-```
-$ python -m strephit commons pos_tag samples/corpus.jsonlines bio en -o dev/corpus-sample-tagged.jsonlines
-$ python -m strephit corpus_analysis rank_verbs dev/corpus-sample-tagged.jsonlines bio en --dump-verbs dev/verbs.json
-$ python -m strephit extraction extract_sentences samples/corpus.jsonlines en dev/verbs.json -o dev/sample-sentences.jsonlines
-$ python -m strephit commons entity_linking dev/sample-sentences.jsonlines en -o dev/sample-sentences-linked.jsonlines
-```
-
- - Extract data with the rule-based classifier:
-```
-$ python -m strephit rule_based classify dev/sample-sentences-linked.jsonlines en samples/lexical-db.json -o dev/classified.jsonlines
-```
-
- - Train the supervised classifier and extract data:
-```
-$ python -m strephit annotation parse_results samples/crowdflower-results.csv dev/sample-training-set.jsonlines
-$ python -m strephit classification train dev/sample-training-set.jsonlines en -o dev/sample-classifier.pkl
-$ python -m strephit classification classify dev/sample-sentences-linked.jsonlines dev/classified.jsonlines en --model dev/sample-classifier.pkl
-```
-
- - Serialize the classification results in quick statements:
-```
-$ python -m strephit commons serialize dev/classified.jsonlines samples/lexical-db.json classified.qs en
-```
-
-As you saw, you can compose strephit commands and receive help. Do not specify any argument, or use `--help` to see the available options:
+## Command Line
+You can run all the NLP pipeline components through a command line.
+Do not specify any argument, or use `--help` to see the available options.
+Each command can have a set of sub-commands, depending on its granularity.
 ```
 $ python -m strephit                                                                             
 Usage: __main__.py [OPTIONS] COMMAND [ARGS]...
@@ -93,6 +81,40 @@ Commands:
   web_sources_corpus  Corpus retrieval from the web
 ```
 
+## Get Started
+- Generate a dataset of Wikidata assertions (*[QuickStatements](https://tools.wmflabs.org/wikidata-todo/quick_statements.php)* syntax) from semi-structured data in the corpus (takes time, and a good internet connection):
+```
+$ python -m strephit extraction process_semistructured samples/corpus.jsonlines semistructured.qs
+```
+
+- Produce a ranking of meaningful verbs:
+```
+$ python -m strephit commons pos_tag samples/corpus.jsonlines bio en -o dev/corpus-sample-tagged.jsonlines
+$ python -m strephit corpus_analysis rank_verbs dev/corpus-sample-tagged.jsonlines bio en --dump-verbs dev/verbs.json
+```
+
+- Extract sentences using the ranking and perform [Entity Linking](https://en.wikipedia.org/wiki/Entity_linking):
+```
+$ python -m strephit extraction extract_sentences samples/corpus.jsonlines en dev/verbs.json -o dev/sample-sentences.jsonlines
+$ python -m strephit commons entity_linking dev/sample-sentences.jsonlines en -o dev/sample-sentences-linked.jsonlines
+```
+
+- Extract facts with the rule-based classifier:
+```
+$ python -m strephit rule_based classify dev/sample-sentences-linked.jsonlines en samples/lexical-db.json -o dev/classified.jsonlines
+```
+
+- Train the supervised classifier and extract facts:
+```
+$ python -m strephit annotation parse_results samples/crowdflower-results.csv dev/sample-training-set.jsonlines
+$ python -m strephit classification train dev/sample-training-set.jsonlines en -o dev/sample-classifier.pkl
+$ python -m strephit classification classify dev/sample-sentences-linked.jsonlines dev/classified.jsonlines en --model dev/sample-classifier.pkl
+```
+
+- Serialize the classification results into a dataset of Wikidata assertions:
+```
+$ python -m strephit commons serialize dev/classified.jsonlines samples/lexical-db.json classified.qs en
+```
 
 ## License
 The source code is under the terms of the [GNU General Public License, version 3](http://www.gnu.org/licenses/gpl.html).
