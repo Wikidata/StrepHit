@@ -12,7 +12,7 @@ https://meta.wikimedia.org/wiki/Grants:IEG/StrepHit:_Wikidata_Statements_Validat
 https://www.mediawiki.org/wiki/StrepHit
 
 ## Get Ready
-- Install **Python 2.7**, **pip** and **Java 8** (it is needed only in an optional step which uses the Stanford CoreNLP library, you can skip it for now. Look out for `java.lang.UnsupportedClassVersionError: ...: Unsupported major.minor version xx.x`, that means you need it) 
+- Install **[Python 2.7](https://www.python.org/downloads/)** and **[pip](https://pip.pypa.io/en/stable/installing/)**
 - Clone the repository and create the workspace:
 ```
 $ git clone https://github.com/Wikidata/StrepHit.git
@@ -23,20 +23,21 @@ $ mkdir StrepHit/dev
 $ cd StrepHit
 $ pip install -r requirements.txt
 ```
-- Install the third party dependencies:
-    - [TreeTagger](http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/)
-    - [Stanford CoreNLP](http://nlp.stanford.edu/software/stanford-corenlp-full-2015-12-09.zip):
-     This is an optional dependency, you can skip this for now.
-     Unzip and place JARs inside the `dev` dir, or use our utility:
-```
-$ python -m strephit commons download stanford_corenlp
-```
+- Install [TreeTagger](http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/)
 - Register for a free account on the [Dandelion APIs](https://dandelion.eu/accounts/register/?next=/docs/api/datatxt/nex/getting-started/)
 - Create the file `strephit/commons/secret_keys.py` with your Dandelion credentials. They can be seen in [your dashboard](https://dandelion.eu/profile/dashboard/)
 ```
 NEX_URL = 'https://api.dandelion.eu/datatxt/nex/v1/'
 NEX_APPID = 'your app ID'
 NEX_APPKEY = 'your app key'
+```
+
+### Optional dependency
+If you want to [extract sentences](../blob/master/strephit/extraction/extract_sentences.py) via **[syntactic parsing](https://en.wikipedia.org/wiki/Parsing)**, you will need to install:
+- [Java 8](http://www.java.com/en/download/)
+- [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP/), through our utility:
+```
+$ python -m strephit commons download stanford_corenlp
 ```
 
 ## Get Started
