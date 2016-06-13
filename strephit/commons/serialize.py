@@ -78,7 +78,7 @@ class ClassificationSerializer:
         name, subj = self.get_subject(data)
         if not subj:
             logger.warn('could not resolve wikidata id of subject "%s", skipping sentence', name)
-            yield False, name
+            yield False, {'chunk': name, 'additional': {'sentence': data['text']}}
             return
 
         for fe in data['fes']:
@@ -100,7 +100,7 @@ class ClassificationSerializer:
                 else:
                     logger.debug('could not resolve chunk "%s" of fe %s (property is %s)',
                                  fe['chunk'], fe['fe'], prop)
-                    yield False, fe['chunk']
+                    yield False, {'chunk': fe['chunk'], 'additional': {'fe': fe, 'sentence': data['text']}}
 
 
 def map_url_to_wid(semistructured):
@@ -147,7 +147,10 @@ def main(classified, frame_data, output, language,
                     'resolving the wikidata id of more subjects')
 
     frame_data = json.load(frame_data)
-    fe_to_wid = {}
+    fe_to_wid = {
+        'Place': 'P276',
+    }
+
     for data in frame_data.values():
         for fe in data.get('core_fes', []) + data.get('extra_fes', []):
             if 'id' in fe:
