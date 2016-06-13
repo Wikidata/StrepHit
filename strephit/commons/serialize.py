@@ -78,7 +78,7 @@ class ClassificationSerializer:
         name, subj = self.get_subject(data)
         if not subj:
             logger.warn('could not resolve wikidata id of subject "%s", skipping sentence', name)
-            yield False, {'chunk': name, 'additional': {'sentence': data['text']}}
+            yield False, {'chunk': name, 'additional': {'sentence': data['text'], 'url': url}}
             return
 
         for fe in data['fes']:
@@ -100,7 +100,7 @@ class ClassificationSerializer:
                 else:
                     logger.debug('could not resolve chunk "%s" of fe %s (property is %s)',
                                  fe['chunk'], fe['fe'], prop)
-                    yield False, {'chunk': fe['chunk'], 'additional': {'fe': fe, 'sentence': data['text']}}
+                    yield False, {'chunk': fe['chunk'], 'additional': {'fe': fe, 'sentence': data['text'], 'url': url}}
 
 
 def map_url_to_wid(semistructured):
