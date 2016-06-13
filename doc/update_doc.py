@@ -52,45 +52,44 @@ def main(username, password, page, upload):
     print 'Current revision is', revision
 
     print 'Building the documentation ...'
-    subprocess.check_output(['make', 'clean', 'apidoc', 'wikisyntax'],
+    subprocess.check_output(['make', 'clean', 'apidoc', 'wikisyntax', 'APIDOCOPTS=-f -M -T'],
                             stderr=subprocess.STDOUT)
 
-    page_titles = set([x for x in os.listdir(base_dir)])
-    pages = []
-    for each in 'index.wiki', 'modules.wiki', 'strephit.wiki':
-        if each in page_titles:
-            pages.append(each)
-            page_titles.remove(each)
-    pages.extend(sorted(page_titles))
+    page_titles = set([x for x in os.listdir(base_dir) if x not in {'modules.wiki', 'strephit.wiki', 'index.wiki'}])
+    pages = ['index.wiki'] + sorted(page_titles)
 
     content = ''
     for each in pages:
         with open(os.path.join(base_dir, each)) as f:
-            content += f.read()
-            content += '\n'
+            content += f.read() + '\n'
 
     print 'Uploading ...'
-    wiki = WikimediaApi()
-    wiki.login(username, password)
 
-    try:
-        token = wiki.get_token('csrf')
-        if upload:
+    if upload:
+        wiki = WikimediaApi()
+
+        try:
+            wiki.login(username, password)
+            token = wiki.get_token('csrf')
             resp = wiki.call_api('edit',
                                  title=page,
                                  text=content,
                                  contentformat='text/x-wiki',
                                  bot=True, token=token,
                                  summary=summary)
-
             assert resp.get('edit', {}).get('result') == 'Success', \
                 'could not edit: ' + repr(resp)
+            print summary
+        finally:
+            wiki.logout()
+    else:
+        try:
+            with open(page, 'w') as f:
+                f.write(content)
+        except (OSError, IOError):
+            pass
 
         print summary
-    finally:
-        wiki.logout()
-
-    if not upload:
         print 'Test run - documentation was NOT updated'
 
 

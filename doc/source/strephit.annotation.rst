@@ -1,6 +1,11 @@
 strephit.annotation package
 ===========================
 
+.. automodule:: strephit.annotation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -28,6 +33,14 @@ strephit.annotation.generate_cml module
     :undoc-members:
     :show-inheritance:
 
+strephit.annotation.parse_results module
+----------------------------------------
+
+.. automodule:: strephit.annotation.parse_results
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 strephit.annotation.post_job module
 -----------------------------------
 
@@ -45,10 +58,3 @@ strephit.annotation.pull_results module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: strephit.annotation
-    :members:
-    :undoc-members:
-    :show-inheritance:

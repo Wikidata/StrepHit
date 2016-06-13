@@ -1,6 +1,11 @@
 strephit.commons package
 ========================
 
+.. automodule:: strephit.commons
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -12,10 +17,26 @@ strephit.commons.cache module
     :undoc-members:
     :show-inheritance:
 
+strephit.commons.classification module
+--------------------------------------
+
+.. automodule:: strephit.commons.classification
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 strephit.commons.cli module
 ---------------------------
 
 .. automodule:: strephit.commons.cli
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+strephit.commons.date_normalizer module
+---------------------------------------
+
+.. automodule:: strephit.commons.date_normalizer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -76,6 +97,14 @@ strephit.commons.pos_tag module
     :undoc-members:
     :show-inheritance:
 
+strephit.commons.scoring module
+-------------------------------
+
+.. automodule:: strephit.commons.scoring
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 strephit.commons.secret_keys module
 -----------------------------------
 
@@ -92,10 +121,26 @@ strephit.commons.secrets module
     :undoc-members:
     :show-inheritance:
 
+strephit.commons.serialize module
+---------------------------------
+
+.. automodule:: strephit.commons.serialize
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 strephit.commons.split_sentences module
 ---------------------------------------
 
 .. automodule:: strephit.commons.split_sentences
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+strephit.commons.stopwords module
+---------------------------------
+
+.. automodule:: strephit.commons.stopwords
     :members:
     :undoc-members:
     :show-inheritance:
@@ -125,10 +170,3 @@ strephit.commons.wikidata module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: strephit.commons
-    :members:
-    :undoc-members:
-    :show-inheritance:

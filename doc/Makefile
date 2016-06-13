@@ -2,6 +2,7 @@
 #
 
 # You can set these variables from the command line.
+APIDOCOPTS    =
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
@@ -56,7 +57,7 @@ clean:
 
 .PHONY: apidoc
 apidoc:
-	sphinx-apidoc -o $(SOURCEDIR) $(MAIN_MODULE)
+	sphinx-apidoc $(APIDOCOPTS) -o $(SOURCEDIR) $(MAIN_MODULE)
 	@echo
 	@echo "Doc sources updated. They are in $(SOURCEDIR)"
 

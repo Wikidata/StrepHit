@@ -1,6 +1,11 @@
 strephit.web_sources_corpus.spiders package
 ===========================================
 
+.. automodule:: strephit.web_sources_corpus.spiders
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -389,10 +394,3 @@ strephit.web_sources_corpus.spiders.yba_llgc_org_uk module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: strephit.web_sources_corpus.spiders
-    :members:
-    :undoc-members:
-    :show-inheritance:

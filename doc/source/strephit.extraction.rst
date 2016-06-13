@@ -1,8 +1,21 @@
 strephit.extraction package
 ===========================
 
+.. automodule:: strephit.extraction
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
+
+strephit.extraction.balanced_extract module
+-------------------------------------------
+
+.. automodule:: strephit.extraction.balanced_extract
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 strephit.extraction.cli module
 ------------------------------
@@ -28,11 +41,12 @@ strephit.extraction.process_semistructured module
     :undoc-members:
     :show-inheritance:
 
+strephit.extraction.source_id_mappings module
+---------------------------------------------
 
-Module contents
----------------
-
-.. automodule:: strephit.extraction
+.. automodule:: strephit.extraction.source_id_mappings
     :members:
     :undoc-members:
     :show-inheritance:
+
+

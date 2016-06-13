@@ -1,6 +1,11 @@
 strephit.corpus_analysis package
 ================================
 
+.. automodule:: strephit.corpus_analysis
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -53,10 +58,3 @@ strephit.corpus_analysis.test_pos_taggers module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: strephit.corpus_analysis
-    :members:
-    :undoc-members:
-    :show-inheritance:

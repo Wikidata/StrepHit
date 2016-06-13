@@ -1,6 +1,11 @@
 strephit.web_sources_corpus package
 ===================================
 
+.. automodule:: strephit.web_sources_corpus
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Subpackages
 -----------
 
@@ -76,10 +81,3 @@ strephit.web_sources_corpus.settings module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: strephit.web_sources_corpus
-    :members:
-    :undoc-members:
-    :show-inheritance:

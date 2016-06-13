@@ -27,6 +27,7 @@ class WikisyntaxWriter(writers.Writer):
         self.output = visitor.body
 
 
+
 class WikisyntaxTranslator(TextTranslator):
 
     MAXWIDTH = 200
@@ -39,18 +40,33 @@ class WikisyntaxTranslator(TextTranslator):
                                  for line in lines)
 
     def depart_title(self, node):
+        """ Called when the end of a section's title is encountered
+        """
         text = ''.join(x[1] for x in self.states.pop() if x[0] == -1)
         delimiter = '=' * self.sectionlevel
-
         self.stateindent.pop()
-        self.states[-1].append((0, ['%s %s %s' % (delimiter, text, delimiter)]))
+
+        # remove empty sections by looking at the last item inserted
+        # iif it is a title with the same or deeper level of this one then it's empty
+        # it's okay to show titles when they are immediately followed by a sub-title
+        if len(self.states[-1]) > 0:
+            last = self.states[-1][-1]
+            if last[0] == 0 and last[1][0].startswith(delimiter):
+                self.states[-1].pop()
+
+        back_to_top = '\n[[#toctitle|back to top]]'
+        self.states[-1].append((0, [' '.join([delimiter, text, delimiter, back_to_top])]))
 
     def visit_desc_signature(self, node):
+        """ Called when the full name (incl. module) of a function is encountered
+        """
         self.new_state(0)
         self.add_text('<br />')
         self.add_text("'''")
 
     def visit_desc_parameterlist(self, node):
+        """ Called when the parameter list of a function is encountered
+        """
         self.add_text("'''")
         self.add_text('(')
         self.first_param = 1
