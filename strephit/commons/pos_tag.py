@@ -178,15 +178,22 @@ def main(corpus, document_key, pos_tag_key, language_code, tagger, output_file, 
     """
     if tagger == 'tt':
         pos_tagger = TTPosTagger(language_code, tt_home)
+        logger.info("About to perform part-of-speech tagging with TreeTagger ...")
     else:
         pos_tagger = NLTKPosTagger(language_code)
+        logger.info("About to perform part-of-speech tagging with NLTK tagger ...")
 
     corpus = load_scraped_items(corpus)
+    
+    total = 0
     for i, tagged_document in enumerate(pos_tagger.tag_many(corpus, document_key, pos_tag_key, batch_size)):
+        total += 1
         output_file.write(json.dumps(tagged_document) + '\n')
         if (i + 1) % 10000 == 0:
             logger.info('processed %d items', i + 1)
-
+    
+    logger.info("Done. Total tagged items: %d" % total)
+    
     return 0
 
 
