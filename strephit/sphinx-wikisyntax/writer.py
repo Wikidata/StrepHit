@@ -30,7 +30,7 @@ class WikisyntaxWriter(writers.Writer):
 
 class WikisyntaxTranslator(TextTranslator):
 
-    MAXWIDTH = 200
+    MAXWIDTH = 20000000000
     STDINDENT = 1
 
     def depart_document(self, node):
@@ -165,4 +165,16 @@ class WikisyntaxTranslator(TextTranslator):
             doctest + self.nl +
             '</syntaxhighlight>'
         ])])
+
         self.end_state(wrap=False)
+
+    def visit_target(self, node):
+        _, text = self.states[-1].pop()
+        url = node.rawsource[2:-1]
+        self.add_text('[%s %s]' % (url, text))
+
+    def depart_target(self, node):
+        pass
+
+    def end_state(self, wrap=False, end=[''], first=None):
+        return TextTranslator.end_state(self, wrap, end, first)
