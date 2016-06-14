@@ -18,6 +18,7 @@ class SemistructuredSerializer:
 
     def serialize_item(self, item):
         """ Converts an item to quick statements.
+
             :param item: Scraped item, either str (json) or dict
             :returns: tuples <success, item> where item is an entity which
              could not be resolved if success is false, otherwise it is a

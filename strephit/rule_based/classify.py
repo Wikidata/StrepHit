@@ -41,6 +41,7 @@ class RuleBasedClassifier:
     def assign_frame_elements(self, linked, frame):
         """ Try to assign a frame element to each of the linked entities
             based on their ontology type(s)
+
             :param linked: Entities found in the sentence
             :param frame: Frame data
             :return: List of assigned frames
@@ -101,6 +102,7 @@ class RuleBasedClassifier:
 
     def label_sentence(self, sentence, normalize_numerical, score_type, core_weight):
         """ Labels a single sentence
+
             :param sentence: Sentence data to label
             :param normalize_numerical: Automatically normalize numerical FEs
             :param score_type: Which type of score (if any) to use to
@@ -167,11 +169,12 @@ class RuleBasedClassifier:
                         processes=0, input_encoded=False, output_encoded=False):
         """ Process all the given sentences with the rule-based classifier,
             optionally giving a confidence score
+
             :param sentences: List of sentence data
             :param normalize_numerical: Whether to automatically
              normalize numerical expressions
             :param score_type: Which type of score (if any) to use to
-            compute the classification confidence
+             compute the classification confidence
             :param core_weight: Weight of the core FEs (used in the scoring)
             :param processes: how many processes to use to concurrently label sentences
             :param input_encoded: whether the corpus is an iterable of dictionaries or an

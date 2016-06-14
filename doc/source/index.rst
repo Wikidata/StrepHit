@@ -32,11 +32,3 @@ Pipeline
 3. Sentence Extraction
 4. N-ary Relation Extraction
 5. Dataset Serialization
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-

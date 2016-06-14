@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    sphinx-wikisyntax
+    sphinx_wikisyntax
     ~~~~~~~~~~~~~~~~~~~
 
     Custom docutils writer for wikisyntax
@@ -25,7 +25,6 @@ class WikisyntaxWriter(writers.Writer):
         visitor = self.translator_class(self.document, self.builder)
         self.document.walkabout(visitor)
         self.output = visitor.body
-
 
 
 class WikisyntaxTranslator(TextTranslator):
@@ -54,7 +53,7 @@ class WikisyntaxTranslator(TextTranslator):
             if last[0] == 0 and last[1][0].startswith(delimiter):
                 self.states[-1].pop()
 
-        back_to_top = '\n[[#toctitle|back to top]]'
+        back_to_top = '\n[[#toctitle|back to top]]\n'
         self.states[-1].append((0, [' '.join([delimiter, text, delimiter, back_to_top])]))
 
     def visit_desc_signature(self, node):

@@ -87,6 +87,7 @@ class TFIDFRanking:
 
     def score_lemma(self, lemma):
         """ Computess TF-IDF based score of a single lemma
+
             :param str lemma: The lemma to score
             :return: tuple with lemma, average tf-idf, average of tf-idf standard deviations
             :rtype: tuple of (str, float, float)
@@ -101,6 +102,7 @@ class TFIDFRanking:
 
     def find_ranking(self, processes=0):
         """ Ranks the verbs
+
             :param int processes: How many processes to use for parallel ranking
             :return: tuple with average tf-idf and average standard deviation ordered rankings
             :rtype: tuple of (OrderedDict, OrderedDict)

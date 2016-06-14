@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 def lu_count(sentences, processes=0, input_encoded=False):
     """ Count how many sentences per LU there are for each source
+
         :param iterable sentences: Corpus with the POS-tagged sentences
         :param int processes: how many processes to use for parallel execution
         :param bool input_encoded: whether the corpus is an iterable of dictionaries
@@ -46,6 +47,7 @@ def lu_count(sentences, processes=0, input_encoded=False):
 
 def extract_sentences(sentences, probabilities, processes=0, input_encoded=False, output_encoded=False):
     """ Extracts some sentences from the corpus following the given probabilities
+
         :param iterable sentences: Extracted sentences
         :param dict probabilities: Conditional probabilities of extracting a sentence containing
          a specific LU given the source of the sentence. It is therefore a mapping

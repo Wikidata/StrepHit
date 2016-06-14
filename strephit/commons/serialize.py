@@ -42,6 +42,7 @@ class ClassificationSerializer:
 
     def get_subjects(self, data):
         """ Finds all subjects of the frame assigned to the sentence
+
             :param dict data: classification results
             :return: all subjects as tuples (chunk, wikidata id)
             :rtype: generator of tuples
@@ -95,6 +96,7 @@ class ClassificationSerializer:
 
     def to_statements(self, data, input_encoded=True):
         """ Converts the classification results into quick statements
+
             :param data: Data from the classifier. Can be either str or dict
             :param bool input_encoded: Whether data is a str or a dict
             :returns: Tuples <success, item> where item is a statement if success

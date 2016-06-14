@@ -24,6 +24,7 @@ class SentenceClassifier:
 
     def classify_sentences(self, sentences):
         """ Classify the given sentences
+
             :param list sentences: sentences to be classified. Each one
              should be a dict with a `text`, a source `url` and some `linked_entities`
             :return: Classified sentences with the recognized `fes`

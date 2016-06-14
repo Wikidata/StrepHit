@@ -1,7 +1,7 @@
-strephit.sphinx-wikisyntax package
+strephit.sphinx_wikisyntax package
 ==================================
 
-.. automodule:: strephit.sphinx-wikisyntax
+.. automodule:: strephit.sphinx_wikisyntax
     :members:
     :undoc-members:
     :show-inheritance:
@@ -9,18 +9,18 @@ strephit.sphinx-wikisyntax package
 Submodules
 ----------
 
-strephit.sphinx-wikisyntax.builder module
+strephit.sphinx_wikisyntax.builder module
 -----------------------------------------
 
-.. automodule:: strephit.sphinx-wikisyntax.builder
+.. automodule:: strephit.sphinx_wikisyntax.builder
     :members:
     :undoc-members:
     :show-inheritance:
 
-strephit.sphinx-wikisyntax.writer module
+strephit.sphinx_wikisyntax.writer module
 ----------------------------------------
 
-.. automodule:: strephit.sphinx-wikisyntax.writer
+.. automodule:: strephit.sphinx_wikisyntax.writer
     :members:
     :undoc-members:
     :show-inheritance:

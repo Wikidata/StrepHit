@@ -18,7 +18,7 @@ Subpackages
     strephit.extraction
     strephit.rule_based
     strephit.side_projects
-    strephit.sphinx-wikisyntax
+    strephit.sphinx_wikisyntax
     strephit.web_sources_corpus
 
 Submodules

@@ -61,8 +61,8 @@ def apply_custom_classification_rules(classified, language, overwrite=False):
 
 
 def reverse_gazetteer(gazetteer):
-    """ Reverses the gazetteer from feature -> chunks to
-        chunk -> features
+    """ Reverses the gazetteer from feature -> chunks to chunk -> features
+
         :param dict gazetteer: Gazetteer associating chunks to features
         :return: An equivalent gazetteer associating features to chunks
         :rtype: dict

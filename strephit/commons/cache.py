@@ -16,6 +16,7 @@ def _path_for(hashed_key):
     """ Computes the path in which the given key should be stored.
 
         :return: tuple (full path, base path, file name)
+        :rtype: tuple
     """
     loc = os.path.join(BASE_DIR, hashed_key[:3])
     return os.path.join(loc, hashed_key), loc, hashed_key
@@ -23,6 +24,7 @@ def _path_for(hashed_key):
 
 def get(key, default=None):
     """ Retrieves an item from the cache
+
         :param key: Key of the item
         :param default: Default value to return if the
          key is not in the cache
@@ -58,6 +60,7 @@ def get(key, default=None):
 
 def set(key, value, overwrite=True):
     """ Stores an item in the cache under the given key
+
         :param key: Unique key used to identify the idem.
         :param value: Value to store in the cache. Must be
          JSON-dumpable

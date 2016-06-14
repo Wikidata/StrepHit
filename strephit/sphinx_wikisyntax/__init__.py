@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    sphinx-wikisyntax
+    sphinx_wikisyntax
     ~~~~~~~~~~~~~~~~~~~~
 
     Sphinx extension to generate documentation in wikisyntax format

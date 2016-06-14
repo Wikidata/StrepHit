@@ -79,6 +79,7 @@ class TTPosTagger(object):
 
     def tag_one(self, text, skip_unknown=True, **kwargs):
         """ POS-Tags the given text, optionally skipping unknown lemmas
+
             :param unicode text: Text to be tagged
             :param bool skip_unknown: Automatically emove unrecognized tags from the result
 
