@@ -146,7 +146,7 @@ class SemistructuredSerializer:
                     dump_unresolved_file.write(json.dumps(item))
                     dump_unresolved_file.write('\n')
 
-        logger.info('Done, roduced %d statements so far, skipped %d names', count, skipped)
+        logger.info('Done, produced %d statements so far, skipped %d names', count, skipped)
         return genealogics_url_to_id, count, skipped
 
     def resolve_genealogics_family(self, input_file, url_to_id):
