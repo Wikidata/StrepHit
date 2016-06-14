@@ -80,7 +80,7 @@ dev
 secret_keys.py
 
 # Corpus data
-corpus*
+corpus
 *.gz
 
 # Crawl runs
