@@ -183,7 +183,7 @@ class ManyToManyExtractor(SentenceExtractor):
         text = item.get(self.document_key)
         url = item.get('url')
         if not text or not url:
-            logger.warn('skipping item without url or bio')
+            logger.debug('skipping item without url or bio')
             return
         elif isinstance(text, list):
             text = '\n'.join(text)
