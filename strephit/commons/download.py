@@ -38,10 +38,9 @@ def stanford_corenlp(extract_to, zip_url):
             for finfo in arch.infolist():
                 fname = os.path.basename(finfo.filename)
                 if fname.endswith('.jar') and \
-                        'src' not in fname and \
-                        'source' not in fname and \
-                        'javadoc' not in fname:
-
+                                'src' not in fname and \
+                                'source' not in fname and \
+                                'javadoc' not in fname:
                     logger.info(fname)
                     with open(os.path.join(extract_to, fname), 'w') as f:
                         f.write(arch.read(finfo))
