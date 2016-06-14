@@ -219,7 +219,7 @@ def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_id
     logger.info('scoring verbs by popularity')
     pop_ranking = PopularityRanking(pos_tagged, pos_tag_key).find_ranking(processes)
 
-    logger.info('scoring verbs by TF-IDF based metrics (average and stdandard deviation)')
+    logger.info('scoring verbs by TF-IDF based metrics (average and standard deviation)')
     tfidf_ranking, stdev_ranking = TFIDFRanking(vectorizer, lemma_tokens, tf_idf_matrix).find_ranking(processes)
 
     logger.info('producing final ranking')
