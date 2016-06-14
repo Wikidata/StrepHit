@@ -216,16 +216,16 @@ def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_id
         compute_tf_idf_matrix, (pos_tagged, document_key)
     )
 
-    logger.info('scoring verbs by popularity')
+    logger.info('Scoring verbs by popularity')
     pop_ranking = PopularityRanking(pos_tagged, pos_tag_key).find_ranking(processes)
 
-    logger.info('scoring verbs by TF-IDF based metrics (average and standard deviation)')
+    logger.info('Scoring verbs by TF-IDF based metrics (average and standard deviation)')
     tfidf_ranking, stdev_ranking = TFIDFRanking(vectorizer, lemma_tokens, tf_idf_matrix).find_ranking(processes)
 
-    logger.info('producing final ranking')
+    logger.info('Producing final ranking')
     final_ranking = harmonic_ranking(pop_ranking, tfidf_ranking, stdev_ranking)
 
-    logger.info('dumping all the rankings')
+    logger.info('Dumping all the rankings')
     json.dump(tfidf_ranking, dump_tf_idf, indent=2)
     json.dump(stdev_ranking, dump_stdev, indent=2)
     json.dump(pop_ranking, dump_popularity, indent=2)
