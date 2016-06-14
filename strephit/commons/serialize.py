@@ -49,7 +49,7 @@ class ClassificationSerializer:
         """
 
         if data['lu'] not in self.frame_data:
-            logger.warn('sentence with a LU not contained in the lexical database')
+            logger.debug('sentence with a LU not contained in the lexical database')
             logger.debug(data)
             subjects = []
         else:

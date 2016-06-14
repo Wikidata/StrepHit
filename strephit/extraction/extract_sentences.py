@@ -78,7 +78,7 @@ class SentenceExtractor:
                                                                self.corpus, processes)):
 
                 if not item.get('name') or not item.get('url'):
-                    logger.warn('skipping item without name or url')
+                    logger.warn('Skipping item without name or URL')
                     continue
 
                 # assign an unique incremental ID to each sentence
@@ -183,7 +183,7 @@ class ManyToManyExtractor(SentenceExtractor):
         text = item.get(self.document_key)
         url = item.get('url')
         if not text or not url:
-            logger.warn('skipping item without url or bio')
+            logger.debug('skipping item without url or bio')
             return
         elif isinstance(text, list):
             text = '\n'.join(text)
@@ -407,19 +407,19 @@ def extract_sentences(corpus, sentences_key, document_key, language,
     """
 
     if strategy == 'n2n':
-        logger.info("Will extract sentences using the 'many to many' strategy: the same "
+        logger.info("About to extract sentences using the 'many to many' strategy: the same "
                     "sentence is likely to appear multiple times, with different LUs.")
         extractor = ManyToManyExtractor
     elif strategy == '121':
-        logger.info("Will extract sentences using the 'one to one' strategy: the same "
+        logger.info("About to extract sentences using the 'one to one' strategy: the same "
                     "sentence will appear only once.")
         extractor = OneToOneExtractor
     elif strategy == 'grammar':
-        logger.info("Will extract sentences using the 'grammar' strategy: the same "
+        logger.info("About to extract sentences using the 'grammar' strategy: the same "
                     "sentence will appear only once.")
         extractor = GrammarExtractor
     elif strategy == 'syntactic':
-        logger.info("Will extract sentences using the 'syntactic' strategy: the same "
+        logger.info("About to extract sentences using the 'syntactic' strategy: the same "
                     "sentence will appear only once.")
         extractor = SyntacticExtractor
     else:
