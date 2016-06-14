@@ -29,7 +29,7 @@ class SemistructuredSerializer:
         if isinstance(item, basestring):
             item = json.loads(item)
 
-        name = item.pop('name')
+        name = item.pop('name', '')
         other = item.pop('other', {})
         url = item.pop('url', '')
 
