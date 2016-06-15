@@ -65,6 +65,7 @@ target/
 # Development directories
 testing
 dev
+output
 
 # vim
 *.swp
