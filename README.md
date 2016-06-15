@@ -98,7 +98,7 @@ $ python -m strephit extraction extract_sentences samples/corpus.jsonlines outpu
 $ python -m strephit commons entity_linking -p 1 output/sentences.jsonlines en
 ```
 
-- Extract facts with the rule-based classifier:
+- Extract facts with the rule-based classifier and serialize the results (*QuickStatements*):
 ```
 $ python -m strephit rule_based classify output/entity_linked.jsonlines samples/lexical_db.json en
 ```
@@ -110,7 +110,7 @@ $ python -m strephit classification train output/training_set.jsonlines en
 $ python -m strephit classification classify output/entity_linked.jsonlines output/classifier_model.pkl en
 ```
 
-- Serialize the classification results into a dataset of Wikidata assertions:
+- Serialize the supervised classification results into a dataset of Wikidata assertions (*QuickStatements*):
 ```
 $ python -m strephit commons serialize -p 1 output/supervised_classified.jsonlines samples/lexical_db.json en
 ```
