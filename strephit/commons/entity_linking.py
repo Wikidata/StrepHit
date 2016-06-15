@@ -25,14 +25,28 @@ def link(text, min_confidence, language):
      :rtype: list
     """
 
-    logger.debug("Will run entity linking on: %s" % text)
+    logger.debug("Will run entity linking on: '%s'" % text)
     nex_data = {
         'text': text,
-        'token': secrets.NEX_TOKEN,
         'include': 'types,alternate_labels',
         'min_confidence': min_confidence,
-        'lang': language,
+        'lang': language
     }
+    # Token-based authentication (current)
+    if hasattr(secrets, 'NEX_TOKEN'):
+        logger.debug("Token-based authentication")
+        nex_data['token'] = secrets.NEX_TOKEN
+    # App ID/key pair authentication (for old accounts)
+    elif hasattr(secrets, 'NEX_ID') and hasattr(secrets, 'NEX_KEY'):
+        logger.debug("App ID/key pair authentication")
+        nex_data['$app_id'] = secrets.NEX_ID
+        nex_data['$app_key'] = secrets.NEX_KEY
+    else:
+        raise AttributeError(
+            "One or more Dandelion API credentials are not defined. "
+            "Check if your 'strephit/commons/secret_keys.py' file "
+            "contains 'NEX_TOKEN', or 'NEX_ID' and 'NEX_KEY'"
+         )
     r = requests.post(secrets.NEX_URL, data=nex_data)
     r.raise_for_status()
     response = r.json()
@@ -94,5 +108,6 @@ def main(sentences, language, outfile, confidence, processes):
         count += 1
         if count % 1000 == 0:
             logger.info('Linked %d sentences', count)
-    logger.info("Dumped linked sentences to '%s'" % outfile.name)
+    if count > 0:
+        logger.info("Dumped linked sentences to '%s'" % outfile.name)
     logger.info('Done, linked %d sentences', count)
