@@ -30,10 +30,10 @@ https://www.mediawiki.org/wiki/StrepHit
 
 ## Get Ready
 - Install **[Python 2.7](https://www.python.org/downloads/)** and **[pip](https://pip.pypa.io/en/stable/installing/)**
-- Clone the repository and create the workspace:
+- Clone the repository and create the output folder:
 ```
 $ git clone https://github.com/Wikidata/StrepHit.git
-$ mkdir StrepHit/dev
+$ mkdir StrepHit/output
 ```
 - Install all the Python requirements (preferably in a [virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/))
 ```
@@ -42,15 +42,14 @@ $ pip install -r requirements.txt
 ```
 - Install [TreeTagger](http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/)
 - Register for a free account on the [Dandelion APIs](https://dandelion.eu/accounts/register/?next=/docs/api/datatxt/nex/getting-started/)
-- Create the file `strephit/commons/secret_keys.py` with your Dandelion credentials. They can be seen in [your dashboard](https://dandelion.eu/profile/dashboard/)
+- Create the file `strephit/commons/secret_keys.py` with your API token. You can find it in [your dashboard](https://dandelion.eu/profile/dashboard/)
 ```
 NEX_URL = 'https://api.dandelion.eu/datatxt/nex/v1/'
-NEX_APPID = 'your app ID'
-NEX_APPKEY = 'your app key'
+NEX_TOKEN = 'your API token here'
 ```
 
 ### Optional dependency
-If you want to **[extract sentences](../blob/master/strephit/extraction/extract_sentences.py)** via __[syntactic parsing](https://en.wikipedia.org/wiki/Parsing)__, you will need to install:
+If you want to **[extract sentences](strephit/extraction/extract_sentences.py)** via __[syntactic parsing](https://en.wikipedia.org/wiki/Parsing)__, you will need to install:
 - [Java 8](http://www.java.com/en/download/)
 - [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP/), through our utility:
 ```
@@ -84,37 +83,39 @@ Commands:
 ## Get Started
 - Generate a dataset of Wikidata assertions (*[QuickStatements](https://tools.wmflabs.org/wikidata-todo/quick_statements.php)* syntax) from semi-structured data in the corpus (takes time, and a good internet connection):
 ```
-$ python -m strephit extraction process_semistructured samples/corpus.jsonlines semistructured.qs
+$ python -m strephit extraction process_semistructured samples/corpus.jsonlines -p 1
 ```
 
 - Produce a ranking of meaningful verbs:
 ```
-$ python -m strephit commons pos_tag samples/corpus.jsonlines bio en -o dev/corpus-sample-tagged.jsonlines
-$ python -m strephit corpus_analysis rank_verbs dev/corpus-sample-tagged.jsonlines bio en --dump-verbs dev/verbs.json
+$ python -m strephit commons pos_tag samples/corpus.jsonlines bio en
+$ python -m strephit corpus_analysis rank_verbs output/pos_tagged.jsonlines bio en
 ```
 
 - Extract sentences using the ranking and perform [Entity Linking](https://en.wikipedia.org/wiki/Entity_linking):
 ```
-$ python -m strephit extraction extract_sentences samples/corpus.jsonlines en dev/verbs.json -o dev/sample-sentences.jsonlines
-$ python -m strephit commons entity_linking dev/sample-sentences.jsonlines en -o dev/sample-sentences-linked.jsonlines
+$ python -m strephit extraction extract_sentences samples/corpus.jsonlines output/verbs.json en
+$ python -m strephit commons entity_linking output/sentences.jsonlines en -p 1
 ```
 
 - Extract facts with the rule-based classifier:
 ```
-$ python -m strephit rule_based classify dev/sample-sentences-linked.jsonlines en samples/lexical-db.json -o dev/classified.jsonlines
+$ python -m strephit rule_based classify output/entity_linked.jsonlines samples/lexical_db.json en
 ```
 
 - Train the supervised classifier and extract facts:
 ```
-$ python -m strephit annotation parse_results samples/crowdflower-results.csv dev/sample-training-set.jsonlines
-$ python -m strephit classification train dev/sample-training-set.jsonlines en -o dev/sample-classifier.pkl
-$ python -m strephit classification classify dev/sample-sentences-linked.jsonlines dev/classified.jsonlines en --model dev/sample-classifier.pkl
+$ python -m strephit annotation parse_results samples/crowdflower_results.csv
+$ python -m strephit classification train output/training_set.jsonlines en
+$ python -m strephit classification classify output/entity_linked.jsonlines output/classifier_model.pkl en
 ```
 
 - Serialize the classification results into a dataset of Wikidata assertions:
 ```
-$ python -m strephit commons serialize dev/classified.jsonlines samples/lexical-db.json classified.qs en
+$ python -m strephit commons serialize output/supervised_classified.jsonlines samples/lexical_db.json en -p 1
 ```
+
+**N.B.**: you will find all the output files in the `output` folder.
 
 ## License
 The source code is under the terms of the [GNU General Public License, version 3](http://www.gnu.org/licenses/gpl.html).
