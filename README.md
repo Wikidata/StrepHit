@@ -5,13 +5,13 @@
 
 *StrepHit* will enhance the data quality of Wikidata by **suggesting references to validate statements**, and will help Wikidata become the gold-standard hub of the Open Data landscape.
 
-## Official Project Page
+# Official Project Page
 https://meta.wikimedia.org/wiki/Grants:IEG/StrepHit:_Wikidata_Statements_Validation_via_References
 
-## Documentation
+# Documentation
 https://www.mediawiki.org/wiki/StrepHit
 
-## Features
+# Features
 - **[Web spiders](strephit/web_sources_corpus)** to collect a biographical corpus from a [list of reliable sources](https://meta.wikimedia.org/wiki/Grants:IEG/StrepHit:_Wikidata_Statements_Validation_via_References/Timeline#Biographies)
 - **[Corpus analysis](strephit/corpus_analysis)** to understand the most meaningful verbs 
 - **[Extraction](strephit/extraction)** of sentences and semi-structured data from a corpus
@@ -21,14 +21,14 @@ https://www.mediawiki.org/wiki/StrepHit
     - [Rule-based](strephit/rule_based)
 - Several **[utilities](strephit/commons)**, ranging from NLP tasks like *[tokenization](https://en.wikipedia.org/wiki/Tokenization_(lexical_analysis))* and *[part-of-speech tagging](https://en.wikipedia.org/wiki/Part-of-speech_tagging)*, to facilities for parallel processing, caching and logging
 
-## Pipeline
+# Pipeline
 1. Corpus Harvesting
 2. Corpus Analysis
 3. Sentence Extraction
 4. N-ary Relation Extraction
 5. Dataset Serialization
 
-## Get Ready
+# Get Ready
 - Install **[Python 2.7](https://www.python.org/downloads/)** and **[pip](https://pip.pypa.io/en/stable/installing/)**
 - Clone the repository and create the output folder:
 ```
@@ -48,7 +48,7 @@ NEX_URL = 'https://api.dandelion.eu/datatxt/nex/v1/'
 NEX_TOKEN = 'your API token here'
 ```
 
-### Optional dependency
+## Optional dependency
 If you want to **[extract sentences](strephit/extraction/extract_sentences.py)** via __[syntactic parsing](https://en.wikipedia.org/wiki/Parsing)__, you will need to install:
 - [Java 8](http://www.java.com/en/download/)
 - [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP/), through our utility:
@@ -56,7 +56,7 @@ If you want to **[extract sentences](strephit/extraction/extract_sentences.py)**
 $ python -m strephit commons download stanford_corenlp
 ```
 
-## Command Line
+# Command Line
 You can run all the NLP pipeline components through a command line.
 Do not specify any argument, or use `--help` to see the available options.
 Each command can have a set of sub-commands, depending on its granularity.
@@ -80,7 +80,7 @@ Commands:
   web_sources_corpus  Corpus retrieval from the web
 ```
 
-## Get Started
+# Get Started
 - Generate a dataset of Wikidata assertions (*[QuickStatements](https://tools.wmflabs.org/wikidata-todo/quick_statements.php)* syntax) from semi-structured data in the corpus (takes time, and a good internet connection):
 ```
 $ python -m strephit extraction process_semistructured -p 1 samples/corpus.jsonlines
@@ -117,11 +117,11 @@ $ python -m strephit commons serialize -p 1 output/supervised_classified.jsonlin
 
 **N.B.**: you will find all the output files in the `output` folder.
 
-### Note on Parallel Processing
+## Note on Parallel Processing
 By default, StrepHit uses as many processes as the number of CPU cores in the machine where it runs.
 Add the `-p` parameter if you want to change the behavior.
 
 Set `-p 1` to **disable** parallel processing.
 
-## License
+# License
 The source code is under the terms of the [GNU General Public License, version 3](http://www.gnu.org/licenses/gpl.html).
