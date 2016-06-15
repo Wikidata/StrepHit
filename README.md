@@ -83,7 +83,7 @@ Commands:
 ## Get Started
 - Generate a dataset of Wikidata assertions (*[QuickStatements](https://tools.wmflabs.org/wikidata-todo/quick_statements.php)* syntax) from semi-structured data in the corpus (takes time, and a good internet connection):
 ```
-$ python -m strephit extraction process_semistructured samples/corpus.jsonlines -p 1
+$ python -m strephit extraction process_semistructured -p 1 samples/corpus.jsonlines
 ```
 
 - Produce a ranking of meaningful verbs:
@@ -95,7 +95,7 @@ $ python -m strephit corpus_analysis rank_verbs output/pos_tagged.jsonlines bio 
 - Extract sentences using the ranking and perform [Entity Linking](https://en.wikipedia.org/wiki/Entity_linking):
 ```
 $ python -m strephit extraction extract_sentences samples/corpus.jsonlines output/verbs.json en
-$ python -m strephit commons entity_linking output/sentences.jsonlines en -p 1
+$ python -m strephit commons entity_linking -p 1 output/sentences.jsonlines en
 ```
 
 - Extract facts with the rule-based classifier:
@@ -112,10 +112,16 @@ $ python -m strephit classification classify output/entity_linked.jsonlines outp
 
 - Serialize the classification results into a dataset of Wikidata assertions:
 ```
-$ python -m strephit commons serialize output/supervised_classified.jsonlines samples/lexical_db.json en -p 1
+$ python -m strephit commons serialize -p 1 output/supervised_classified.jsonlines samples/lexical_db.json en
 ```
 
 **N.B.**: you will find all the output files in the `output` folder.
+
+### Note on Parallel Processing
+By default, StrepHit uses as many processes as the number of CPU cores in the machine where it runs.
+Add the `-p` parameter if you want to change the behavior.
+
+Set `-p 1` to **disable** parallel processing.
 
 ## License
 The source code is under the terms of the [GNU General Public License, version 3](http://www.gnu.org/licenses/gpl.html).
