@@ -206,8 +206,8 @@ class SemistructuredSerializer:
 @click.option('--dump-unresolved', type=click.File('w'))
 def process_semistructured(corpus_dir, outfile, language, processes,
                            sourced_only, genealogics, dump_unresolved):
-    """ Processes the corpus and extracts semistructured data serialized into quick statements
-        Needs a second pass on genealogics to correctly resolve family members
+    """ Processes the corpus and extracts semi-structured data serialized into QuickStatements.
+        Needs a second pass on genealogics to correctly resolve family members.
     """
 
     resolver = SemistructuredSerializer(language, sourced_only, )
@@ -218,9 +218,10 @@ def process_semistructured(corpus_dir, outfile, language, processes,
 
     logger.info('Done, produced %d statements, skipped %d names', count, skipped)
     if not genealogics:
+        logger.info("Dataset serialized to '%s'" % outfile.name)
         return
 
-    logger.info('Starting second pass on genealogics')
+    logger.info('Starting second pass on genealogics ...')
     genealogics_data = resolver.resolve_genealogics_family(genealogics, genealogics_url_to_id)
     for success, item in genealogics_data:
         if success:
@@ -237,3 +238,4 @@ def process_semistructured(corpus_dir, outfile, language, processes,
                 dump_unresolved.write('\n')
 
     logger.info('Done, produced %d statements, skipped %d names', count, skipped)
+    logger.info("Dataset serialized to '%s'" % outfile.name)

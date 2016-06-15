@@ -119,4 +119,5 @@ def main(sentences, model, language, outfile, processes, gazetteer):
             logger.info('Classified %d sentences', count)
 
     logger.info('Done, classified %d sentences', count)
-    logger.info("Classified sentences dumped to '%s'", outfile.name)
+    if count > 0:
+        logger.info("Dumped classified sentences to '%s'", outfile.name)

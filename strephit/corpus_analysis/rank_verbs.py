@@ -225,11 +225,11 @@ def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_id
     logger.info('Producing combined final ranking ...')
     final_ranking = harmonic_ranking(pop_ranking, tfidf_ranking, stdev_ranking)
 
-    logger.info('Dumping all the rankings to %s' % [dump_tf_idf.name, dump_stdev.name, dump_popularity.name, dump_final.name])
     json.dump(tfidf_ranking, dump_tf_idf, indent=2)
     json.dump(stdev_ranking, dump_stdev, indent=2)
     json.dump(pop_ranking, dump_popularity, indent=2)
     json.dump(final_ranking, dump_final, indent=2)
+    logger.info('Dumped all the rankings to %s' % [dump_tf_idf.name, dump_stdev.name, dump_popularity.name, dump_final.name])
     
-    logger.info("Dumping lemma-to-token map to '%s'" % dump_verbs.name)
     json.dump(lemma_tokens, dump_verbs, default=lambda x: list(x), indent=2)
+    logger.info("Dumped lemma-to-token map to '%s'" % dump_verbs.name)
