@@ -28,8 +28,7 @@ def link(text, min_confidence, language):
     logger.debug("Will run entity linking on: %s" % text)
     nex_data = {
         'text': text,
-        '$app_id': secrets.NEX_ID,
-        '$app_key': secrets.NEX_KEY,
+        'token': secrets.NEX_TOKEN,
         'include': 'types,alternate_labels',
         'min_confidence': min_confidence,
         'lang': language,
