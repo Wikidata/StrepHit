@@ -204,8 +204,8 @@ def main(classified, lexical_db, outfile, language,
                 dump_unresolved.write(json.dumps(item))
                 dump_unresolved.write('\n')
 
-        if count % 1000 == 0:
-            logger.info('Produced %d statements, skipped %d names', count, skipped)
+        if count % 1000 == 0 and count > 0:
+            logger.info('Produced %d statements so far, skipped %d names', count, skipped)
 
     logger.info('Done, produced %d statements, skipped %d names', count, skipped)
     logger.info("Dataset serialized to '%s'" % outfile.name)
