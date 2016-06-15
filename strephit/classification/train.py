@@ -8,7 +8,7 @@ import click
 from strephit.commons.classification import reverse_gazetteer
 from sklearn.externals import joblib
 from sklearn.svm import LinearSVC
-from strephit.classification.feature_extractors import FeatureExtractor
+from strephit.classification.feature_extractors import FactExtractorFeatureExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def main(training_set, language, outfile, gazetteer, **kwargs):
     """ Trains the classifier """
 
     gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
-    extractor = FeatureExtractor(language)
+    extractor = FactExtractorFeatureExtractor(language)
 
     logger.info("Building training set from '%s' ..." % training_set.name)
     for row in training_set:

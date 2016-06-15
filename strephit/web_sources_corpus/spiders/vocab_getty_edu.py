@@ -158,6 +158,7 @@ class VocabGettyEduSpider(scrapy.Spider):
                     cleaned.append(None)
             else:
                 cleaned.append(field)
+
         url, name, bio1, bio2, nationality, birth_year, birth_place, death_year, death_place, gender = cleaned
         url = url.replace('http://vocab.getty.edu/ulan/', 'http://vocab.getty.edu/page/ulan/')
         gender = {

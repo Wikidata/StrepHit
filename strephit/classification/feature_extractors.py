@@ -3,13 +3,30 @@ import logging
 import numpy as np
 from scipy.sparse import csr_matrix
 from strephit.commons.pos_tag import TTPosTagger
-from sklearn.feature_extraction import DictVectorizer
 
 logger = logging.getLogger(__name__)
 
 
-class FeatureExtractor:
-    """ Extracts features from sentences. Will process sentences one by one
+class SortedSet:
+    """ Very simple sorted unique collection which remembers
+        the order of insertion of its items
+    """
+
+    def __init__(self):
+        self.items = {}
+
+    def put(self, item):
+        self.items[item] = self.items.get(item, len(self.items))
+        return self.items[item]
+
+    def index(self, item):
+        return self.items.get(item, -1)
+
+    def reverse_map(self):
+        return {v: k for k, v in self.items.iteritems()}
+
+class BaseFeatureExtractor:
+    """ Feature extractor template. Will process sentences one by one
         accumulating their features and finalizes them into the final
         training set.
 
@@ -18,29 +35,6 @@ class FeatureExtractor:
         the same entity into a single chunk while ignoring the actual
         frame element name, e.g. `fes = dict(enumerate(entities))`
     """
-
-    def __init__(self, language, window_width=2, collapse_fes=True):
-        """ Initializes the extractor.
-
-            :param language: The language of the sentences that will be used
-            :param window_width: how many tokens to look before and after a each
-             token when building its features.
-            :param collapse_fes: Whether to collapse FEs to a single token
-             or to keep them split.
-        """
-        self.language = language
-        self.tagger = TTPosTagger(language)
-        self.window_width = window_width
-        self.collapse_fes = collapse_fes
-        self.unk_feature = 'UNK'
-        self.start()
-
-    def start(self):
-        """ Clears the features accumulated so far and starts over.
-        """
-        self.samples = []
-        self.vocabulary = set()
-        self.labels = set()
 
     def process_sentence(self, sentence, fes, add_unknown, gazetteer):
         """ Extracts and accumulates features for the given sentence
@@ -56,57 +50,38 @@ class FeatureExtractor:
              values should be list of features
             :return: Nothing
         """
-
-        def add_feature_to(sample, feature_name, feature_value):
-            if add_unknown or feature_value in self.vocabulary:
-                sample[feature_name] = feature_value
-                self.vocabulary.add(feature_value)
-            else:
-                sample[feature_name] = self.unk_feature
-
-        tagged = self.sentence_to_tokens(sentence, fes)
-        for position in xrange(len(tagged)):
-            # add the unknown feature to every sample to trick the dict vectorizer into
-            # thinking that there is a feature like that. will be useful when add_unknown
-            # is false, because by default the dict vectorizer skips unseen labels
-            sample = {'unk': self.unk_feature}
-
-            for i in xrange(max(position - self.window_width, 0),
-                            min(position + self.window_width + 1, len(tagged))):
-                rel = i - position
-
-                add_feature_to(sample, 'TERM%+d' % rel, tagged[i][0])
-                add_feature_to(sample, 'POS%+d' % rel, tagged[i][1])
-                add_feature_to(sample, 'LEMMA%+d' % rel, tagged[i][2])
-
-                for feat in gazetteer.get(tagged[i][0], []):
-                    sample['GAZ%+d' % rel] = feat
-
-            label = 'O' if len(tagged[i]) == 3 else tagged[i][3]
-            self.labels.add(label)
-            self.samples.append((sample, label))
+        raise NotImplemented
 
     def get_features(self):
         """ Returns the final training set
 
             :return: A matrix whose rows are samples and columns are features and a
-             row vector with the sample label (i.e. the correct answer for the classifier)
+             column vector with the sample label (i.e. the correct answer for the classifier)
             :rtype: tuple
         """
-        samples, labels = zip(*self.samples)
+        raise NotImplemented
 
-        vect = DictVectorizer()
-        features = vect.fit_transform(samples)
+    def start(self):
+        """ Clears the features accumulated so far and starts over.
+        """
+        raise NotImplemented
 
-        label_index = {label: i for i, label in enumerate(self.labels)}
-        labels = np.array([label_index[label] for label in labels])
 
-        return features, labels
+class FactExtractorFeatureExtractor(BaseFeatureExtractor):
+    """ Feature extractor inspired from the fact-extractor
+    """
+
+    def __init__(self, language, window_width=2):
+        self.language = language
+        self.tagger = TTPosTagger(language)
+        self.feature_index = SortedSet()
+        self.role_index = SortedSet()
+        self.window_width = window_width
+        self.features = []
+        self.unk_index = self.feature_index.put('UNK')
 
     def sentence_to_tokens(self, sentence, fes):
-        """ Transforms a sentence into a list of tokens. Appends the FE type
-            to all tokens composing a certain FE and optionally group them into
-            a single token.
+        """ Transforms a sentence into a list of tokens
 
             :param unicode sentence: Text of the sentence
             :param dict fes: mapping FE -> chunk
@@ -115,6 +90,7 @@ class FeatureExtractor:
 
         tagged = self.tagger.tag_one(sentence, skip_unknown=False)
 
+        # find entities and group them into single tokens
         for fe, chunk in fes.iteritems():
             if chunk is None:
                 continue
@@ -139,34 +115,106 @@ class FeatureExtractor:
             if found:
                 position = i - len(fe_tokens) + 1
                 pos = 'ENT' if len(fe_tokens) > 1 else tagged[position][1]
-
-                if self.collapse_fes:
-                    # make a single token with the whole chunk
-                    tagged = tagged[:position] + [[chunk, pos, chunk, fe]] + tagged[position + len(fe_tokens):]
-                else:
-                    # set custom lemma and label for the tokens of the FE
-                    for i in xrange(position, position + len(fe_tokens)):
-                        token, pos, _ = tagged[i]
-                        tagged[i] = (token, pos, 'ENT', fe)
+                tagged = tagged[:position] + [[chunk, pos, chunk, fe]] + tagged[position + len(fe_tokens):]
             else:
                 logger.debug('cunk "%s" of fe "%s" not found in sentence "%s". Overlapping chunks?',
                              chunk, fe, sentence)
 
         return tagged
 
+    def feature_for(self, term, type_, position, add_unknown):
+        """ Returns the feature for the given token, i.e. the column of the feature in a sparse matrix
+
+            :param str term: Actual term
+            :param str type_: Type of the term, for example token, pos or lemma
+            :param int position: Relative position (used for context windows)
+            :param bool add_unknown: Whether to add previously unseen terms to the dictionary
+             or use the UNK token instead
+            :return: Column of the corresponding feature
+        """
+        feat = '%s_%s_%+d' % (term.lower(), type_.lower(), position)
+        if add_unknown:
+            index = self.feature_index.put(feat)
+        else:
+            index = self.feature_index.index(feat)
+            if index == -1:
+                index = self.unk_index
+        return index
+
+    def token_to_features(self, tokens, position, add_unknown, gazetteer):
+        """ Extracts the features for the token in the given position
+
+            :param list tokens: POS-tagged tokens of the sentence
+            :param int position: position of the token for which features are requestsd
+            :param dict gazetteer: mapping chunk -> additional features
+            :return: sparse set of features (i.e. numbers are indexes in a row of a sparse matrix)
+        """
+        features = set()
+
+        for i in xrange(max(position - self.window_width, 0), min(position + self.window_width + 1, len(tokens))):
+            rel = i - position
+            features.add(self.feature_for(tokens[i][0], 'TERM', rel, add_unknown))
+            features.add(self.feature_for(tokens[i][1], 'POS', rel, add_unknown))
+            features.add(self.feature_for(tokens[i][2], 'LEMMA', rel, add_unknown))
+            for feat in gazetteer.get(tokens[i][0], []):
+                features.add(self.feature_for(feat, 'GAZ', rel, add_unknown))
+
+        return features
+
+    def extract_features(self, sentence, fes, add_unknown, gazetteer):
+        """ Extracts the features for each token of the sentence
+
+            :param unicode sentence: Text of the sentence
+            :param dicr fes: mapping FE -> chunk
+            :param dict gazetteer: mapping chunk -> additional features
+            :return: List of features, each one as a sparse row
+             (i.e. with the indexes of the relevant columns)
+        """
+        tagged = self.sentence_to_tokens(sentence, fes)
+        features = []
+
+        for i in xrange(len(tagged)):
+            feat = self.token_to_features(tagged, i, add_unknown, gazetteer)
+            label = 'O' if len(tagged[i]) == 3 else tagged[i][3]
+            features.append((feat, self.role_index.put(label)))
+
+        return tagged, features
+
+    def process_sentence(self, sentence, fes, add_unknown, gazetteer):
+        tagged, features = self.extract_features(sentence, fes, add_unknown, gazetteer)
+        self.features.extend(features)
+        return tagged
+
+    def start(self):
+        self.features = []
+
+    def get_features(self):
+        x, y = [], []
+        data, indices, indptr = [], [], []
+
+        for sample, label in self.features:
+            y.append(label)
+
+            indptr.append(len(data))
+            for feature in sample:
+                indices.append(int(feature))
+                data.append(1.0)
+
+        indptr.append(len(data))
+        x = csr_matrix((data, indices, indptr),
+                       shape=(len(indptr) - 1, len(self.feature_index.items)),
+                       dtype=np.float32)
+        y = np.array(y)
+
+        return x, y
+
     def __getstate__(self):
-        return (self.language, self.unk_feature, self.window_width,
-                self.samples, self.vocabulary, self.labels, self.collapse_fes)
+        return (self.language, self.unk_index, self.window_width, self.role_index.items,
+                self.feature_index.items, self.features)
 
-    def __setstate__(self, (language, unk_feature, window_width, samples, vocabulary, labels, collapse_fes)):
+    def __setstate__(self, (language, unk_index, window_width, role_index, feature_index, features)):
         self.__init__(language, window_width)
-        self.samples = samples
-        self.vocabulary = vocabulary
-        self.unk_feature = unk_feature
-        self.collapse_fes = collapse_fes
-        self.labels = labels
-
-    def __str__(self):
-        return '%s(window_width=%d, collapse_fes=%r)' % (
-            self.__class__.__name__, self.window_width, self.collapse_fes
-        )
+        self.feature_index.items = feature_index
+        self.role_index.items = role_index
+        self.features = features
+        self.unk_index = unk_index
