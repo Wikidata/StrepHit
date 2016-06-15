@@ -88,8 +88,8 @@ def worker_with_sentences(bio):
 @click.argument('verbs', type=click.File('r'))
 @click.option('--sub-sentences/--simple-sentences', default=False)
 @click.option('--processes', '-p', default=0)
-@click.option('--output', '-o', default='dev/lus_per_sent.json', type=click.File('w'))
-def main(corpus, verbs, processes, output, sub_sentences):
+@click.option('--outfile', '-o', default='output/lus_per_sent.json', type=click.File('w'))
+def main(corpus, verbs, processes, outfile, sub_sentences):
     """ Compute the LU distribution in the corpus, i.e. how many LUs per sentence
     """
     global splitter, tagger, parser, all_verbs
@@ -117,4 +117,4 @@ def main(corpus, verbs, processes, output, sub_sentences):
     for k, v in counter.iteritems():
         print k, v
 
-    json.dump(counter, output, indent=2)
+    json.dump(counter, outfile, indent=2)

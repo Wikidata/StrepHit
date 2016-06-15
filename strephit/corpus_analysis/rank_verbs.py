@@ -197,11 +197,11 @@ def harmonic_ranking(*rankings):
 @click.argument('document_key')
 @click.argument('language')
 @click.option('--pos-tag-key', default='pos_tag')
-@click.option('--dump-verbs', type=click.File('w'), default='dev/verbs.json')
-@click.option('--dump-tf-idf', type=click.File('w'), default='dev/tf_idf_ranking.json')
-@click.option('--dump-stdev', type=click.File('w'), default='dev/stdev_ranking.json')
-@click.option('--dump-popularity', type=click.File('w'), default='dev/popularity_ranking.json')
-@click.option('--dump-final', type=click.File('w'), default='dev/verb_ranking.json')
+@click.option('--dump-verbs', type=click.File('w'), default='output/verbs.json')
+@click.option('--dump-tf-idf', type=click.File('w'), default='output/tf_idf_ranking.json')
+@click.option('--dump-stdev', type=click.File('w'), default='output/stdev_ranking.json')
+@click.option('--dump-popularity', type=click.File('w'), default='output/popularity_ranking.json')
+@click.option('--dump-final', type=click.File('w'), default='output/verb_ranking.json')
 @click.option('--processes', '-p', default=0)
 def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_idf,
          dump_stdev, dump_popularity, dump_final, processes):
@@ -209,25 +209,27 @@ def main(pos_tagged, document_key, pos_tag_key, language, dump_verbs, dump_tf_id
         standard deviation and popularity.
     """
 
-    logger.info('Computing lemma to token map and TF-IDF matrix')
+    logger.info('Computing lemma-to-token map and TF-IDF matrix ...')
     lemma_tokens, (vectorizer, tf_idf_matrix) = parallel.execute(
         2,
         produce_lemma_tokens, (pos_tagged, pos_tag_key, language),
         compute_tf_idf_matrix, (pos_tagged, document_key)
     )
 
-    logger.info('Scoring verbs by popularity')
+    logger.info('Scoring verbs by popularity ...')
     pop_ranking = PopularityRanking(pos_tagged, pos_tag_key).find_ranking(processes)
 
-    logger.info('Scoring verbs by TF-IDF based metrics (average and standard deviation)')
+    logger.info('Scoring verbs by TF-IDF based metrics (average and standard deviation) ...')
     tfidf_ranking, stdev_ranking = TFIDFRanking(vectorizer, lemma_tokens, tf_idf_matrix).find_ranking(processes)
 
-    logger.info('Producing final ranking')
+    logger.info('Producing combined final ranking ...')
     final_ranking = harmonic_ranking(pop_ranking, tfidf_ranking, stdev_ranking)
 
-    logger.info('Dumping all the rankings')
+    logger.info('Dumping all the rankings to %s' % [dump_tf_idf.name, dump_stdev.name, dump_popularity.name, dump_final.name])
     json.dump(tfidf_ranking, dump_tf_idf, indent=2)
     json.dump(stdev_ranking, dump_stdev, indent=2)
     json.dump(pop_ranking, dump_popularity, indent=2)
-    json.dump(lemma_tokens, dump_verbs, default=lambda x: list(x), indent=2)
     json.dump(final_ranking, dump_final, indent=2)
+    
+    logger.info("Dumping lemma-to-token map to '%s'" % dump_verbs.name)
+    json.dump(lemma_tokens, dump_verbs, default=lambda x: list(x), indent=2)

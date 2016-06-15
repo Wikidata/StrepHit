@@ -150,9 +150,9 @@ def extract_top_corpus_tokens(enriched_lemmas, all_lemma_tokens):
 @click.argument('language_code')
 @click.option('--top-n', '-n', default=150)
 @click.option('--dump-enriched', '-e', type=click.File('w'),
-              default='dev/framenet_lus.json')
+              default='output/framenet_lus.json')
 @click.option('--dump-top-lemmas', '-t', type=click.File('w'),
-              default='dev/top_lemma_tokens.json')
+              default='output/top_lemma_tokens.json')
 @click.option('--pid-batch', default=500)
 @click.option('--prop-batch', default=50)
 def main(ranking, all_lemmas, language_code, top_n, dump_enriched, dump_top_lemmas, pid_batch, prop_batch):

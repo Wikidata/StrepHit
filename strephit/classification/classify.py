@@ -90,16 +90,15 @@ class SentenceClassifier:
 
 @click.command()
 @click.argument('sentences', type=click.File('r'))
-@click.argument('output', type=click.File('w'))
+@click.argument('model', type=click.Path(dir_okay=False, writable=True))
 @click.argument('language')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/supervised_classified.jsonlines')
 @click.option('--processes', '-p', default=0)
-@click.option('--model', type=click.Path(dir_okay=False, writable=True),
-              default='dev/classifier.pkl')
 @click.option('--gazetteer', type=click.File('r'))
-def main(sentences, output, language, model, processes, gazetteer):
+def main(sentences, model, language, outfile, processes, gazetteer):
     gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
 
-    logger.info('Loading model from %s', model)
+    logger.info("Loading model from '%s' ...", model)
     model, extractor = joblib.load(model)
 
     classifier = SentenceClassifier(model, extractor, language, gazetteer)
@@ -112,11 +111,12 @@ def main(sentences, output, language, model, processes, gazetteer):
     count = 0
     for each in parallel.map(worker, sentences, batch_size=1000,
                              flatten=True, processes=processes):
-        output.write(each)
-        output.write('\n')
+        outfile.write(each)
+        outfile.write('\n')
 
         count += 1
         if count % 1000 == 0:
-            logger.info('classified %d sentences', count)
+            logger.info('Classified %d sentences', count)
 
-    logger.info('done, classified %d sentences', count)
+    logger.info('Done, classified %d sentences', count)
+    logger.info("Classified sentences dumped to '%s'", outfile.name)

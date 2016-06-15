@@ -95,7 +95,7 @@ class SentenceExtractor:
                     logger.info('Processed %d items, extracted %d sentences',
                                 i + 1, count)
 
-            logger.info('Total sentences extracted: %d', count)
+            logger.info('Done, total sentences extracted: %d', count)
         finally:
             self.teardown_extractor()
 
@@ -433,22 +433,25 @@ def extract_sentences(corpus, sentences_key, document_key, language,
 
 @click.command()
 @click.argument('corpus', type=click.Path(exists=True))
-@click.argument('language_code')
 @click.argument('lemma_to_tokens', type=click.File('r'))
+@click.argument('language_code')
 @click.option('--strategy', '-s', type=click.Choice(['n2n', '121', 'grammar', 'syntactic']), default='n2n')
-@click.option('--output', '-o', type=click.File('w'), default='dev/sentences.jsonlines')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/sentences.jsonlines')
 @click.option('--sentences-key', default='sentences')
 @click.option('--document-key', default='bio')
 @click.option('--processes', '-p', default=0)
 @click.option('--match-base-form', is_flag=True, default=False)
-def main(corpus, language_code, lemma_to_tokens, strategy, output, processes,
+def main(corpus, lemma_to_tokens, language_code, strategy, outfile, processes,
          sentences_key, document_key, match_base_form):
     """ Extract corpus sentences containing at least one token in the given set. """
     corpus = load_scraped_items(corpus)
     updated = extract_sentences(corpus, sentences_key, document_key, language_code,
                                 json.load(lemma_to_tokens), strategy, match_base_form, processes)
+
     for item in updated:
-        output.write(json.dumps(item) + '\n')
+        outfile.write(json.dumps(item) + '\n')
+    logger.info("Dumped sentences to '%s'" % outfile.name)
+    
     return 0
 
 

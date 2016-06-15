@@ -146,7 +146,7 @@ class SemistructuredSerializer:
                     dump_unresolved_file.write(json.dumps(item))
                     dump_unresolved_file.write('\n')
 
-        logger.info('Done, produced %d statements so far, skipped %d names', count, skipped)
+        logger.info('Produced %d statements so far, skipped %d names', count, skipped)
         return genealogics_url_to_id, count, skipped
 
     def resolve_genealogics_family(self, input_file, url_to_id):
@@ -198,13 +198,13 @@ class SemistructuredSerializer:
 
 @click.command()
 @click.argument('corpus-dir', type=click.Path())
-@click.argument('out-file', type=click.File('w'))
+@click.option('--outfile', '-o', type=click.File('w'), default='output/semi_structured.qs')
 @click.option('--genealogics', type=click.File('r'))
 @click.option('--sourced-only/--allow-unsourced', default=True)
 @click.option('--language', default='en', help='The names are searched in this language')
 @click.option('--processes', '-p', default=0)
 @click.option('--dump-unresolved', type=click.File('w'))
-def process_semistructured(corpus_dir, out_file, language, processes,
+def process_semistructured(corpus_dir, outfile, language, processes,
                            sourced_only, genealogics, dump_unresolved):
     """ Processes the corpus and extracts semistructured data serialized into quick statements
         Needs a second pass on genealogics to correctly resolve family members
@@ -213,7 +213,7 @@ def process_semistructured(corpus_dir, out_file, language, processes,
     resolver = SemistructuredSerializer(language, sourced_only, )
 
     genealogics_url_to_id, count, skipped = resolver.process_corpus(
-        io.load_scraped_items(corpus_dir), out_file, dump_unresolved, genealogics, processes
+        io.load_scraped_items(corpus_dir), outfile, dump_unresolved, genealogics, processes
     )
 
     logger.info('Done, produced %d statements, skipped %d names', count, skipped)
@@ -224,8 +224,8 @@ def process_semistructured(corpus_dir, out_file, language, processes,
     genealogics_data = resolver.resolve_genealogics_family(genealogics, genealogics_url_to_id)
     for success, item in genealogics_data:
         if success:
-            out_file.write(item.encode('utf8'))
-            out_file.write('\n')
+            outfile.write(item.encode('utf8'))
+            outfile.write('\n')
 
             count += 1
             if count % 10000 == 0:

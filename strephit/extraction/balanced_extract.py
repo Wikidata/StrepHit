@@ -95,9 +95,9 @@ def extract_sentences(sentences, probabilities, processes=0, input_encoded=False
 @click.argument('sentences', type=click.File('r'))
 @click.argument('sentences-per-lu', type=click.FLOAT)
 @click.option('--processes', '-p', default=0)
-@click.option('-o', '--output', type=click.File('w'),
-              default='dev/sentences-balanced.jsonlines')
-def main(sentences, sentences_per_lu, processes, output):
+@click.option('--outfile', '-o', type=click.File('w'),
+              default='output/sentences_balanced.jsonlines')
+def main(sentences, sentences_per_lu, processes, outfile):
     """ Stochastically extracts sentences so that there are a given number
         of sentences for each LU equally spread amongst the different sources
     """
@@ -131,8 +131,8 @@ def main(sentences, sentences_per_lu, processes, output):
     count = 0
     for i, sentence in enumerate(extract_sentences(sentences, probabilities, processes,
                                                    input_encoded=True, output_encoded=True)):
-        output.write(sentence)
-        output.write('\n')
+        outfile.write(sentence)
+        outfile.write('\n')
 
         count = i + 1
         if count % 1000 == 0:

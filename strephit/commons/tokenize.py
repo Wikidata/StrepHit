@@ -50,8 +50,8 @@ class Tokenizer():
 @click.argument('input-dir', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document-key')
 @click.argument('language-code')
-@click.option('-o', '--output-file', type=click.File('w'), default='tokenized.json')
-def main(input_dir, document_key, language_code, output_file):
+@click.option('-o', '--outfile', type=click.File('w'), default='output/tokenized.json')
+def main(input_dir, document_key, language_code, outfile):
     """ Tokenize an input corpus.
         Sentence splitting is not performed.
     """
@@ -60,7 +60,7 @@ def main(input_dir, document_key, language_code, output_file):
     logger.info("Starting Tokenization of the input corpus ...")
     for i, document in enumerate(corpus):
         tokens = t.tokenize(document)
-        output_file.write(json.dumps({i: tokens}, indent=2) + '\n')
+        outfile.write(json.dumps({i: tokens}, indent=2) + '\n')
     return 0
 
 

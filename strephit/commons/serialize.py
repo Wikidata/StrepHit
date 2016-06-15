@@ -31,11 +31,11 @@ class ClassificationSerializer:
                         fe_to_wid[fe['fe']] = fe['id']
                     else:
                         # FIXME the check fails for an odd number of occurrences, but it shouldn't happen right?
-                        logger.warn('the FE %s has been assigned two different wikidata properties: %s and %s, '
-                                    'it will be skipped altogether', fe['fe'], fe_to_wid['fe'], fe['id'])
+                        logger.warn("the FE %s has been assigned two different wikidata properties: '%s' and '%s', "
+                                    "it will be skipped altogether", fe['fe'], fe_to_wid['fe'], fe['id'])
                         fe_to_wid.pop(fe['fe'])
                 else:
-                    logger.warn('dropping FE %s because no wikidata property is specified',
+                    logger.debug("Dropping FE '%s' because no Wikidata property mapping is specified",
                                 fe['fe'])
 
         return fe_to_wid
@@ -112,7 +112,7 @@ class ClassificationSerializer:
 
         for name, subj in self.get_subjects(data):
             if not subj:
-                logger.warn('could not resolve wikidata id of subject "%s"', name)
+                logger.warn("Could not resolve Wikidata Item ID of subject '%s'", name)
                 yield False, {'chunk': name, 'additional': {'sentence': data['text'], 'url': url}}
                 continue
 
@@ -167,35 +167,35 @@ def map_url_to_wid(semistructured):
 
 @click.command()
 @click.argument('classified', type=click.File('r'))
-@click.argument('frame-data', type=click.File('r'))
-@click.argument('output', type=click.File('w'))
+@click.argument('lexical-db', type=click.File('r'))
 @click.argument('language')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/serialized.qs')
 @click.option('--semistructured', type=click.File('r'))
 @click.option('--processes', '-p', default=0)
 @click.option('--dump-unresolved', type=click.File('w'))
-def main(classified, frame_data, output, language,
+def main(classified, lexical_db, outfile, language,
          semistructured, processes, dump_unresolved):
     """ Serialize classification results into quickstatements
     """
 
     if semistructured:
         url_to_wid = map_url_to_wid(semistructured)
-        logger.info('used semi structured dataset to infer %d wikidata ids',
+        logger.info('Used semi-structured dataset to infer %d Wikidata Item IDs',
                     len(url_to_wid))
     else:
         url_to_wid = {}
-        logger.info('TIP: using the semi structured dataset could help in '
-                    'resolving the wikidata id of more subjects')
+        logger.info('TIP: using the semi-structured dataset could help in '
+                    'resolving the Wikidata Item ID of more subjects')
 
-    frame_data = json.load(frame_data)
+    lexical_db = json.load(lexical_db)
 
     count = skipped = 0
-    serializer = ClassificationSerializer(language, frame_data, url_to_wid)
-    for successs, item in parallel.map(serializer.to_statements, classified,
+    serializer = ClassificationSerializer(language, lexical_db, url_to_wid)
+    for success, item in parallel.map(serializer.to_statements, classified,
                                        processes=processes, flatten=True):
-        if successs:
-            output.write(item.encode('utf8'))
-            output.write('\n')
+        if success:
+            outfile.write(item.encode('utf8'))
+            outfile.write('\n')
 
             count += 1
         else:
@@ -205,6 +205,9 @@ def main(classified, frame_data, output, language,
                 dump_unresolved.write('\n')
 
         if count % 1000 == 0:
-            logger.info('produced %d statements, skipped %d names', count, skipped)
+            logger.info('Produced %d statements, skipped %d names', count, skipped)
 
     logger.info('Done, produced %d statements, skipped %d names', count, skipped)
+    logger.info("Dataset serialized to '%s'" % outfile.name)
+    if dump_unresolved:
+        logger.info("Unresolved entities dumped to '%s'" % dump_unresolved.name)

@@ -59,11 +59,12 @@ def process_unit(unit_id, sentences):
 
 @click.command()
 @click.argument('results', type=click.File('r'))
-@click.argument('output', type=click.File('w'))
-def main(results, output):
+@click.option('--outfile', '-o', type=click.File('w'), default='output/training_set.jsonlines')
+def main(results, outfile):
     """ Parses the CSV with the results from crowdflower
     """
 
+    logger.info("Parsing annotation results from '%s' ..." % results.name)
     sentences = defaultdict(lambda: list())
     reader = csv.DictReader(results)
     for each in reader:
@@ -71,5 +72,6 @@ def main(results, output):
 
     for k, v in sentences.iteritems():
         processed = process_unit(k, v)
-        output.write(json.dumps(processed))
-        output.write('\n')
+        outfile.write(json.dumps(processed))
+        outfile.write('\n')
+    logger.info("Done, training data dumped to '%s'" % outfile.name)

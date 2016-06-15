@@ -70,9 +70,9 @@ def extract_entities(response_json):
 @click.argument('sentences', type=click.File('r'))
 @click.argument('language')
 @click.option('--processes', '-p', default=0)
-@click.option('--output', '-o', type=click.File('w'), default='dev/entity_linked.json')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/entity_linked.jsonlines')
 @click.option('--confidence', '-c', default=0.25, help='Minimum confidence score, defaults to 0.25.')
-def main(sentences, language, output, confidence, processes):
+def main(sentences, language, outfile, confidence, processes):
     """ Perform entity linking over a set of input sentences.
         The service is Dandelion Entity Extraction API:
         https://dandelion.eu/docs/api/datatxt/nex/v1/ .
@@ -89,10 +89,11 @@ def main(sentences, language, output, confidence, processes):
 
     count = 0
     for each in parallel.map(worker, sentences, processes):
-        output.write(each)
-        output.write('\n')
+        outfile.write(each)
+        outfile.write('\n')
 
         count += 1
         if count % 1000 == 0:
-            logger.info('linked %d sentences', count)
-    logger.info('done, linked %d sentences', count)
+            logger.info('Linked %d sentences', count)
+    logger.info("Dumped linked sentences to '%s'" % outfile.name)
+    logger.info('Done, linked %d sentences', count)

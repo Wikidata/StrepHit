@@ -201,14 +201,14 @@ class RuleBasedClassifier:
 
 @click.command()
 @click.argument('sentences', type=click.File('r'))
-@click.argument('language')
 @click.argument('frame-data', type=click.File('r'))
-@click.option('--output', '-o', default='dev/labeled.jsonlines', type=click.File('w'))
+@click.argument('language')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/rule_based_classified.jsonlines')
 @click.option('--processes', '-p', default=0)
 @click.option('--score-type', type=click.Choice(scoring.AVAILABLE_SCORES))
 @click.option('--core-weight', default=2)
 @click.option('--normalize-numerical', is_flag=True, default=True)
-def main(sentences, language, output, frame_data, score_type, core_weight,
+def main(sentences, frame_data, language, outfile, score_type, core_weight,
          normalize_numerical, processes):
     """ Rule-based role labeling
     """
@@ -222,11 +222,13 @@ def main(sentences, language, output, frame_data, score_type, core_weight,
 
     count = 0
     for i, each in enumerate(labeled):
-        output.write(each)
-        output.write('\n')
+        outfile.write(each)
+        outfile.write('\n')
 
         count = i + 1
         if count % 1000 == 0:
             logger.info('Labeled %d sentences', count)
-
+    
+    if count > 0:
+        logger.info("Dumped labeled sentences to '%s'" % outfile.name)
     logger.info('Done, labeled %d sentences', count)

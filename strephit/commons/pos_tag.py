@@ -168,12 +168,12 @@ def get_pos_tagger(language, **kwargs):
 @click.argument('document-key')
 @click.argument('language-code')
 @click.option('-t', '--tagger', type=click.Choice(['tt', 'nltk']), default='tt')
-@click.option('-o', '--output-file', type=click.File('w'), default='pos_tagged.jsonlines')
+@click.option('-o', '--outfile', type=click.File('w'), default='output/pos_tagged.jsonlines')
 @click.option('-T', '--pos-tag-key', default='pos_tag')
 @click.option('--tt-home', type=click.Path(exists=True, resolve_path=True),
               help="home directory for TreeTagger")
 @click.option('--batch-size', '-b', default=10000)
-def main(corpus, document_key, pos_tag_key, language_code, tagger, output_file, tt_home, batch_size):
+def main(corpus, document_key, pos_tag_key, language_code, tagger, outfile, tt_home, batch_size):
     """ Perform part-of-speech (POS) tagging over an input corpus.
     """
     if tagger == 'tt':
@@ -188,11 +188,11 @@ def main(corpus, document_key, pos_tag_key, language_code, tagger, output_file, 
     total = 0
     for i, tagged_document in enumerate(pos_tagger.tag_many(corpus, document_key, pos_tag_key, batch_size)):
         total += 1
-        output_file.write(json.dumps(tagged_document) + '\n')
+        outfile.write(json.dumps(tagged_document) + '\n')
         if (i + 1) % 10000 == 0:
             logger.info('processed %d items', i + 1)
     
-    logger.info("Done. Total tagged items: %d" % total)
+    logger.info("Done, total tagged items: %d" % total)
     
     return 0
 

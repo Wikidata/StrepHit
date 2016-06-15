@@ -108,9 +108,9 @@ class PunktSentenceSplitter(object):
 @click.argument('corpus', type=click.Path(exists=True, dir_okay=True, resolve_path=True))
 @click.argument('document-key')
 @click.argument('language-code')
-@click.option('--output-file', '-o', type=click.File('w'), default='-')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/split_sentences.jsonlines')
 @click.option('--processes', '-p', default=0)
-def main(corpus, document_key, language_code, output_file, processes):
+def main(corpus, document_key, language_code, outfile, processes):
     """ Split an input corpus into sentences """
     corpus = load_corpus(corpus, document_key, text_only=True)
     s = PunktSentenceSplitter(language_code)
@@ -122,8 +122,8 @@ def main(corpus, document_key, language_code, output_file, processes):
         return json.dumps({i: sentences}) if sentences else None
 
     for sentences in parallel.map(worker, enumerate(corpus), processes):
-        output_file.write(sentences)
-        output_file.write('\n')
+        outfile.write(sentences)
+        outfile.write('\n')
 
     return 0
 

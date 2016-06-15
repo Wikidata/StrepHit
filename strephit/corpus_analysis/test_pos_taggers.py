@@ -42,10 +42,10 @@ def tag(text, tt_home):
 
 
 @click.command()
-@click.argument('input-file', type=click.File('rb'))
-@click.option('--output-file', type=click.File('wb'), default='tagged.json')
+@click.argument('input-file', type=click.File('r'))
+@click.option('--outfile', '-o', type=click.File('w'), default='output/tagged.json')
 @click.option('--tt-home')
-def main(input_file, output_file, tt_home):
+def main(input_file, outfile, tt_home):
     output = []
     source = json.load(input_file)
     logger.info("Loaded input file '%s'" % input_file.name)
@@ -67,8 +67,8 @@ def main(input_file, output_file, tt_home):
             output_item['TreeTagger'] = tt_tagged
             output.append(output_item)
 
-    json.dump(output, output_file, indent=2)
-    logger.info("Tagged data dumped to '%s'" % output_file.name)
+    json.dump(output, outfile, indent=2)
+    logger.info("Tagged data dumped to '%s'" % outfile.name)
     logger.info("Total items = %d" % len(source))
     logger.info("NLTK total execution time = %f seconds" % nltk_total_execution)
     logger.info("TreeTagger total execution time = %f seconds" % tt_total_execution)

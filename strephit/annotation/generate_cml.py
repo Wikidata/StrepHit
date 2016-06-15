@@ -80,7 +80,7 @@ def generate_crowdflower_interface_template(input_csv, output_html):
 
 @click.command()
 @click.argument('input_csv', type=click.File())
-@click.option('--outfile', '-o', type=click.File('w'), default='dev/cml.html')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/cml.html')
 def main(input_csv, outfile):
     """Generate CML interface template"""
     generate_crowdflower_interface_template(input_csv, outfile)

@@ -85,7 +85,7 @@ def write_input_spreadsheet(data_units, outfile):
 @click.argument('frame_data', type=click.File())
 @click.argument('sentences_data', type=click.File())
 @click.option('--filter-places', '-f', is_flag=True, default=False)
-@click.option('--outfile', '-o', type=click.File('w'), default='crowdflower_input.csv')
+@click.option('--outfile', '-o', type=click.File('w'), default='output/crowdflower_input.csv')
 def main(frame_data, sentences_data, outfile, filter_places):
     """ Build the CSV input data for a CrowdFlower annotation job """
     if filter_places:

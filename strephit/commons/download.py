@@ -23,7 +23,7 @@ def main():
 
 
 @main.command()
-@click.option('--extract-to', default='dev/', type=click.Path(exists=True, file_okay=False, resolve_path=True))
+@click.option('--extract-to', default='output/', type=click.Path(exists=True, file_okay=False, resolve_path=True))
 @click.option('--zip-url', default='http://nlp.stanford.edu/software/stanford-corenlp-full-2015-12-09.zip')
 def stanford_corenlp(extract_to, zip_url):
     logger.info('downloading to %s', extract_to)
