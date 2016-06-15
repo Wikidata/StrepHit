@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 def process_unit(unit_id, sentences):
-    assert all(s['_unit_id'] == unit_id for s in sentences)
+    assert all(s['id'] == unit_id for s in sentences)
     assert len(set(s['id'] for s in sentences)) == 1
-    assert len(set(s['sentence'] for s in sentences)) == 1
+    assert len(set(s['sentence'].strip() for s in sentences)) == 1
     assert len(set(s['frame'] for s in sentences)) == 1
 
     chunk_count = 1 + max(int(k.split('_')[1]) for k in sentences[0].keys() if re.match(r'chunk_\d+', k))
@@ -68,7 +68,7 @@ def main(results, outfile):
     sentences = defaultdict(lambda: list())
     reader = csv.DictReader(results)
     for each in reader:
-        sentences[each['_unit_id']].append(each)
+        sentences[each['id']].append(each)
 
     for k, v in sentences.iteritems():
         processed = process_unit(k, v)
