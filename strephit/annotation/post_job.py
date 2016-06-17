@@ -28,21 +28,26 @@ INCLUDED_COUNTRIES = [
     ]
 
 JOB_SETTINGS = {
-    "job[judgments_per_unit]": 3,
-    "job[max_judgments_per_worker]": 280,
+    "job[judgments_per_unit]": 1,
+    "language": "en",
+    "job[max_judgments_per_worker]": 500,
     "job[minimum_requirements][min_score]": 1,
     "job[minimum_requirements][priority]": 1,
     "job[minimum_requirements][skill_scores][it_crowd_official]": 1,
-    # Highest quality workers
-    "job[minimum_requirements][skill_scores][level_3_contributors]": 1,
+    # Worker levels
+    # In all levels workers must have answered > 100 test questions
+    # Level 1: > 70% accuracy
+    # Level 2: > 80% accuracy
+    # Level 3: > 85% accuracy
+    "job[minimum_requirements][skill_scores][level_1_contributors]": 1,
     "job[options][after_gold]": "2",
     # Minimum time per page = 20 seconds
-    "job[options][calibrated_unit_time]": 20,
+    "job[options][calibrated_unit_time]": "20",
     "job[options][include_unfinished]": "true",
     "job[options][logical_aggregation]": "true",
     "job[options][mail_to]": "fossati@fbk.eu",
-    # Minimum worker accuracy = 60 % (3/5 test questions to pass)
-    "job[options][reject_at]": "60",
+    # Minimum worker accuracy = 40 % (2/5 test questions to pass)
+    "job[options][reject_at]": "40",
     "job[options][req_ttl_in_seconds]": 900,
     "job[options][track_clones]": "true",
     "job[pages_per_assignment]": 1,
@@ -155,7 +160,7 @@ def tag_job(job_id, tags):
 
 @click.command()
 @click.argument('csv_data', type=click.File())
-@click.option('--title', '-t', default='Word Sense Understanding')
+@click.option('--title', '-t', default='Make Sense of Sentences')
 @click.option('--instructions', '-i', type=click.File(),
               default=resource_stream(__name__, 'resources/instructions.html'))
 @click.option('--cml', '-c', type=click.File(), default=resource_stream(__name__, 'resources/cml.html'))
