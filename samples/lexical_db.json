@@ -1,161 +1,30 @@
 {
-  "play": {
-    "frame": "Players_and_roles",
-    "lu": "play.v",
-    "extra_fes": [
-
-    ],
-    "pos": "V",
-    "core_fes": [
-      {
-        "type": "Core",
-        "fe": "Player",
-        "semantic_type": "Sentient",
-        "mapping": {
-          "description": "musician, music group, or other performer associated with this work",
-          "datatype": "wikibase-item",
-          "label": "performer",
-          "id": "P175",
-          "types": [
-
-          ],
-          "aliases": [
-            "band",
-            "musician",
-            "music group",
-            "musical artist",
-            "group",
-            "singer"
-          ]
-        },
-        "dbpedia_classes": [
-          "Person"
-        ]
-      },
-      {
-        "type": "Core",
-        "fe": "Co-player",
-        "semantic_type": null,
-        "mapping": {
-          "description": "person or organization that contributed to a subject: co-creator of a creative work; a player assisted to score a point or a goal in a game etc.",
-          "datatype": "wikibase-item",
-          "label": "contributor",
-          "id": "P767",
-          "types": [
-            "for items about works"
-          ],
-          "aliases": [
-            "assistant"
-          ]
-        },
-        "dbpedia_classes": [
-          "Person"
-        ]
-      },
-      {
-        "type": "Core",
-        "fe": "Audience",
-        "semantic_type": null,
-        "mapping": {
-          "description": "this work or product (or object) is intended to be read/watched by, or has been designed to that person or class of person, or animals, plants, …",
-          "datatype": "wikibase-item",
-          "label": "intended public",
-          "id": "P2360",
-          "example": [
-            6959839
-          ],
-          "types": [
-            "for items about works"
-          ],
-          "aliases": [
-            "designed for",
-            "target group",
-            "target market",
-            "serving",
-            "audience of",
-            "for audience of",
-            "for market",
-            "made for",
-            "created for"
-          ]
-        },
-        "dbpedia_classes": [
-          "Organisation"
-        ]
-      },
-      {
-        "type": "Core",
-        "fe": "Performance",
-        "semantic_type": null,
-        "mapping": {
-        },
-        "dbpedia_classes": [
-          "Work"
-        ]
-      }
-    ]
-  },
-  "go": {
-    "frame": "Motion",
-    "lu": "go.v",
+  "win": {
+    "frame": "Win_prize",
+    "lu": "win.v",
     "extra_fes": [
       {
         "type": "Peripheral",
-        "fe": "Purpose",
-        "semantic_type": "State_of_affairs",
+        "fe": "Ranking",
+        "semantic_type": null,
         "mapping": {
-          "description": "main use of the subject (includes current and former usage)",
-          "datatype": "wikibase-item",
-          "label": "use",
-          "id": "P366",
-          "example": [
-            571
-          ],
+          "description": "the subject's position in the specified rank",
+          "datatype": "quantity",
+          "label": "ranking",
+          "id": "P1352",
           "types": [
-
+            "related to sport",
+            "for items about people"
           ],
           "aliases": [
-            "function",
-            "role",
-            "mission",
-            "purpose",
-            "utility"
+
           ]
         }
       },
       {
         "type": "Peripheral",
-        "fe": "Cause",
-        "semantic_type": "Human_act",
-        "mapping": {
-          "description": "underlying cause, thing that ultimately resulted in this effect",
-          "datatype": "wikibase-item",
-          "example": [
-            408089
-          ],
-          "label": "has cause",
-          "id": "P828",
-          "aliases": [
-            "cause",
-            "has causes",
-            "has underlying cause",
-            "underlying cause",
-            "ultimate cause",
-            "ultimate causes",
-            "initial cause",
-            "effect of",
-            "outcome of",
-            "result of",
-            "has reason",
-            "reason",
-            "caused by"
-          ]
-        }
-      },
-      {
-        "type": "Peripheral",
-        "fe": "Companion_or_participant",
-        "semantic_type": "Sentient",
+        "fe": "Opponent",
+        "semantic_type": null,
         "mapping": {
           "description": "person, group of people or organization that actively takes/took part in the event",
           "datatype": "wikibase-item",
@@ -182,365 +51,36 @@
             "event participant",
             "agent"
           ]
-        }
+        },
+        "dbpedia_classes": [
+          "Person"
+        ]
       }
     ],
     "pos": "V",
     "core_fes": [
       {
         "type": "Core",
-        "fe": "Destination",
+        "fe": "Winner",
+        "is_subject": true,
         "semantic_type": null,
         "mapping": {
-          "description": "intended destination for this journey, flight, sailing, exploration, migration etc.",
+          "description": "winner of an event",
           "datatype": "wikibase-item",
-          "label": "journey destination",
-          "id": "P1444",
-          "types": [
-
-          ],
-          "aliases": [
-            "destination",
-            "to",
-            "end of journey"
-          ]
-        },
-        "dbpedia_classes": [
-          "Place"
-        ]
-      },
-      {
-        "type": "Core",
-        "fe": "Provenance",
-        "semantic_type": null,
-        "mapping": {
-          "description": "starting place of this journey, flight, voyage, trek, migration etc. (excl. spaceflight launch)",
-          "datatype": "wikibase-item",
-          "label": "journey origin",
-          "id": "P1427",
-          "types": [
-
-          ],
-          "aliases": [
-            "flight origin",
-            "start location",
-            "from"
-          ]
-        },
-        "dbpedia_classes": [
-          "Place"
-        ]
-      }
-    ]
-  },
-  "create": {
-    "frame": "Creating",
-    "lu": "create.v",
-    "extra_fes": [
-      {
-        "type": "Core-Unexpressed",
-        "fe": "Cause",
-        "semantic_type": null,
-        "mapping": {
-          "P828": {
-            "description": "underlying cause, thing that ultimately resulted in this effect",
-            "datatype": "wikibase-item",
-            "example": [
-              408089
-            ],
-            "label": "has cause",
-            "id": "P828",
-            "aliases": [
-              "cause",
-              "has causes",
-              "has underlying cause",
-              "underlying cause",
-              "ultimate cause",
-              "ultimate causes",
-              "initial cause",
-              "effect of",
-              "outcome of",
-              "result of",
-              "has reason",
-              "reason",
-              "caused by"
-            ]
-          }
-        }
-      },
-      {
-        "type": "Peripheral",
-        "fe": "Material_used",
-        "semantic_type": null,
-        "mapping": {
-          "description": "material the subject is made of or derived from",
-          "datatype": "wikibase-item",
-          "label": "material used",
-          "id": "P186",
+          "id": "P1346",
+          "label": "winner",
           "example": [
-            195,
-            663,
-            243,
-            571,
-            9202
+            15220420,
+            19598850
           ],
           "types": [
-
+            "related to sport"
           ],
           "aliases": [
-            "medium",
-            "made from",
-            "constructed from",
-            "constructed out of",
-            "construction material",
-            "media",
-            "built from",
-            "built out of",
-            "manufactured from",
-            "manufactured out of",
-            "crafted from",
-            "crafted out of",
-            "formed from",
-            "formed out of",
-            "made of",
-            "ore",
-            "source material",
-            "raw material",
-            "feedstock",
-            "reactant",
-            "ingredient"
-          ]
-        }
-      },
-      {
-        "type": "Extra-Thematic",
-        "fe": "Co-creator",
-        "semantic_type": "Sentient",
-        "mapping": {
-          "description": "person or organization that contributed to a subject: co-creator of a creative work; a player assisted to score a point or a goal in a game etc.",
-          "datatype": "wikibase-item",
-          "label": "contributor",
-          "id": "P767",
-          "types": [
-            "for items about works"
-          ],
-          "aliases": [
-            "assistant"
-          ]
-        }
-      }
-    ],
-    "pos": "V",
-    "core_fes": [
-      {
-        "type": "Core",
-        "fe": "Creator",
-        "semantic_type": null,
-        "mapping": {
-          "description": "maker of a creative work or other object (where no more specific property exists)",
-          "datatype": "wikibase-item",
-          "example": [
-            154469
-          ],
-          "label": "creator",
-          "id": "P170",
-          "types": [
-            "for items about works"
-          ],
-          "aliases": [
-            "artist (non-musical)",
-            "created by",
-            "painter",
-            "sculptor"
-          ]
-        },
-        "dbpedia_classes": [
-          "Person",
-          "Artist",
-          "Painter",
-          "Sculptor"
-        ]
-      },
-      {
-        "type": "Core",
-        "fe": "Created",
-        "semantic_type": null,
-        "mapping": {
-          "description": "subject's notable scientific work or work of art",
-          "datatype": "wikibase-item",
-          "example": [
-            991,
-            1067
-          ],
-          "label": "notable work",
-          "id": "P800",
-          "types": [
-            "for items about people"
-          ],
-          "aliases": [
-            "literary works",
-            "bibliography",
-            "work",
-            "works",
-            "major works",
-            "famous works",
-            "significant works",
-            "known for"
-          ]
-        },
-        "dbpedia_classes": [
-          "Work",
-          "Artwork",
-          "Painting",
-          "Sculpture"
-        ]
-      }
-    ]
-  },
-  "write": {
-    "frame": "Text_creation",
-    "lu": "write.v",
-    "extra_fes": [
-      {
-        "type": "Peripheral",
-        "fe": "Reason",
-        "semantic_type": "State_of_affairs",
-        "mapping": {
-          "description": "underlying cause, thing that ultimately resulted in this effect",
-          "datatype": "wikibase-item",
-          "label": "has cause",
-          "id": "P828",
-          "example": [
-            408089
-          ],
-          "aliases": [
-            "cause",
-            "has causes",
-            "has underlying cause",
-            "underlying cause",
-            "ultimate cause",
-            "ultimate causes",
-            "initial cause",
-            "effect of",
-            "outcome of",
-            "result of",
-            "has reason",
-            "reason",
-            "caused by"
-          ]
-        }
-      },
-      {
-        "type": "Extra-Thematic",
-        "fe": "Addressee",
-        "semantic_type": "Sentient",
-        "mapping": {
-          "description": "person or organization to whom a letter or note is addressed",
-          "datatype": "wikibase-item",
-          "label": "addressee",
-          "id": "P1817",
-          "types": [
-
-          ],
-          "aliases": [
-            "addressed to",
-            "sent to"
-          ]
-        }
-      },
-      {
-        "type": "Peripheral",
-        "fe": "Purpose",
-        "semantic_type": "State_of_affairs",
-        "mapping": {
-          "description": "main use of the subject (includes current and former usage)",
-          "datatype": "wikibase-item",
-          "label": "use",
-          "id": "P366",
-          "example": [
-            571
-          ],
-          "types": [
-
-          ],
-          "aliases": [
-            "function",
-            "role",
-            "mission",
-            "purpose",
-            "utility"
-          ]
-        }
-      },
-      {
-        "type": "Peripheral",
-        "fe": "Main_topic",
-        "semantic_type": null,
-        "mapping": {
-          "description": "primary topic of a work. Should not be confused with genre (P136), which relates creative works to their genres like science fiction (Q24925)",
-          "datatype": "wikibase-item",
-          "label": "main subject",
-          "id": "P921",
-          "example": [
-            13416074,
-            14915757
-          ],
-          "types": [
-            "for items about works"
-          ],
-          "aliases": [
-            "index term",
-            "topic of work",
-            "main topic",
-            "aboutness",
-            "about",
-            "topic",
-            "subject",
-            "subject heading"
-          ]
-        }
-      },
-      {
-        "type": "Extra-Thematic",
-        "fe": "Co-author",
-        "semantic_type": "Sentient",
-        "mapping": {
-          "description": "person or organization that contributed to a subject: co-creator of a creative work; a player assisted to score a point or a goal in a game etc.",
-          "datatype": "wikibase-item",
-          "label": "contributor",
-          "id": "P767",
-          "types": [
-            "for items about works"
-          ],
-          "aliases": [
-            "assistant"
-          ]
-        }
-      }
-    ],
-    "pos": "V",
-    "core_fes": [
-      {
-        "type": "Core",
-        "fe": "Author",
-        "semantic_type": "Sentient",
-        "mapping": {
-          "description": "main creator(s) of a written work",
-          "datatype": "wikibase-item",
-          "label": "author",
-          "id": "P50",
-          "example": [
-            170583,
-            8275,
-            15228,
-            147787
-          ],
-          "types": [
-            "for items about works"
-          ],
-          "aliases": [
-            "written by",
-            "writer (of written work)"
+            "won by",
+            "victor",
+            "champion",
+            "winners"
           ]
         },
         "dbpedia_classes": [
@@ -549,9 +89,58 @@
       },
       {
         "type": "Core",
-        "fe": "Written_work",
+        "fe": "Competition",
         "semantic_type": null,
         "mapping": {
+          "description": "competition or event won by the subject",
+          "datatype": "wikibase-item",
+          "id": "P2522",
+          "label": "victory",
+          "example": [
+            19516702,
+            943556
+          ],
+          "types": [
+            "related to sport"
+          ],
+          "aliases": [
+            "won event"
+          ]
+        },
+        "dbpedia_classes": [
+          "Event"
+        ]
+      },
+      {
+        "type": "Core",
+        "fe": "Prize",
+        "semantic_type": null,
+        "mapping": {
+          "description": "award or recognition received by a person, organisation or creative work",
+          "datatype": "wikibase-item",
+          "id": "P166",
+          "label": "award received",
+          "example": [
+            212190,
+            302817,
+            22676744
+          ],
+          "types": [
+            "for items about people",
+            "for items about organizations",
+            "for items about works"
+          ],
+          "aliases": [
+            "prize received",
+            "awards",
+            "honorary title",
+            "recognition title",
+            "award",
+            "honours",
+            "honors",
+            "medals",
+            "awarded"
+          ]
         },
         "dbpedia_classes": [
           "Work"
@@ -559,9 +148,83 @@
       }
     ]
   },
-  "bear": {
-    "frame": "Birth",
-    "lu": "bear.v",
+  "kill": {
+    "frame": "Killing",
+    "lu": "kill.v",
+    "extra_fes": [
+      {
+        "type": "Peripheral",
+        "fe": "Weapon",
+        "semantic_type": "Physical_entity",
+        "mapping": {
+          "description": "equippable weapon item for the subject",
+          "datatype": "wikibase-item",
+          "id": "P520",
+          "label": "armament",
+          "example": [
+            223318
+          ],
+          "types": [
+
+          ],
+          "aliases": [
+            "armed with",
+            "weapon",
+            "Ship armament"
+          ]
+        },
+        "dbpedia_classes": [
+          "Device"
+        ]
+      }
+    ],
+    "pos": "V",
+    "core_fes": [
+      {
+        "type": "Core",
+        "fe": "Killer",
+        "semantic_type": null,
+        "mapping": {
+          "description": "person who killed the subject",
+          "datatype": "wikibase-item",
+          "label": "killed by",
+          "id": "P157",
+          "types": [
+
+          ],
+          "aliases": [
+            "killer",
+            "assassin",
+            "murderer",
+            "murdered by",
+            "executioner",
+            "assassinated by",
+            "slain by",
+            "mortally wounded by",
+            "executed by",
+            "slaughtered by"
+          ]
+        },
+        "dbpedia_classes": [
+          "Person"
+        ]
+      },
+      {
+        "type": "Core",
+        "fe": "Victim",
+        "is_subject": true,
+        "semantic_type": "Sentient",
+        "mapping": {
+        },
+        "dbpedia_classes": [
+          "Person"
+        ]
+      }
+    ]
+  },
+  "attend": {
+    "frame": "Attending",
+    "lu": "attend.v",
     "extra_fes": [
 
     ],
@@ -569,29 +232,34 @@
     "core_fes": [
       {
         "type": "Core",
-        "fe": "Mother",
-        "semantic_type": null,
+        "fe": "Attendee",
+        "semantic_type": "Sentient",
+        "is_subject": true,
         "mapping": {
-          "description": "female parent",
+          "description": "person, group of people or organization that actively takes/took part in the event",
           "datatype": "wikibase-item",
+          "id": "P710",
+          "label": "participant",
           "example": [
-            43274,
-            302,
-            40901
+            19682450
           ],
-          "label": "mother",
-          "id": "P25",
           "types": [
 
           ],
           "aliases": [
-            "mum",
-            "mom",
-            "mam",
-            "has mother",
-            "son of",
-            "daughter of",
-            "child of"
+            "artist",
+            "artists",
+            "participants",
+            "athlete",
+            "athletes",
+            "attendee",
+            "player",
+            "team",
+            "competitor",
+            "candidate",
+            "party",
+            "event participant",
+            "agent"
           ]
         },
         "dbpedia_classes": [
@@ -600,97 +268,34 @@
       },
       {
         "type": "Core",
-        "fe": "Child",
+        "fe": "Event",
         "semantic_type": null,
+        "is_subject": true,
         "mapping": {
-          "description": "subject has the object as their biological offspring",
+          "description": "significant or notable events associated with the subject",
           "datatype": "wikibase-item",
+          "id": "P793",
+          "label": "significant event",
           "example": [
-            104027,
-            345,
-            34201,
-            5679
+            882375,
+            4492725
           ],
-          "label": "child",
-          "id": "P40",
           "types": [
 
           ],
           "aliases": [
-            "son",
-            "daughter",
-            "kid",
-            "is parent of",
-            "has child",
-            "children",
-            "father of",
-            "mother of",
-            "parent of",
-            "is father of",
-            "is mother of"
+            "key event",
+            "key incident",
+            "significant incident",
+            "notable event",
+            "notable incident",
+            "event",
+            "major event",
+            "big event"
           ]
         },
         "dbpedia_classes": [
-          "Person"
-        ]
-      },
-      {
-        "type": "Core",
-        "fe": "Father",
-        "semantic_type": null,
-        "mapping": {
-          "description": "male parent",
-          "datatype": "wikibase-item",
-          "example": [
-            41142,
-            207206,
-            1149,
-            121973,
-            22348311,
-            36949
-          ],
-          "label": "father",
-          "id": "P22",
-          "types": [
-
-          ],
-          "aliases": [
-            "dad",
-            "son of",
-            "has father",
-            "daughter of",
-            "child of"
-          ]
-        },
-        "dbpedia_classes": [
-          "Person"
-        ]
-      },
-      {
-        "type": "Core",
-        "fe": "Occupation",
-        "semantic_type": null,
-        "mapping": {
-          "description": "occupation of a person; see also \"field of work\" (Property:P101)",
-          "datatype": "wikibase-item",
-          "example": [
-            42037
-          ],
-          "label": "occupation",
-          "id": "P106",
-          "types": [
-            "for items about people"
-          ],
-          "aliases": [
-            "profession",
-            "job",
-            "work",
-            "career",
-            "employment",
-            "craft"
-          ]
-        },
-        "dbpedia_classes": [
+          "Event"
         ]
       }
     ]
