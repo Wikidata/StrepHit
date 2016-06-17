@@ -98,7 +98,7 @@ $ python -m strephit extraction extract_sentences samples/corpus.jsonlines outpu
 $ python -m strephit commons entity_linking -p 1 output/sentences.jsonlines en
 ```
 
-- Extract facts with the rule-based classifier and serialize the results (*QuickStatements*):
+- Extract facts with the rule-based classifier:
 ```
 $ python -m strephit rule_based classify output/entity_linked.jsonlines samples/lexical_db.json en
 ```
