@@ -28,7 +28,7 @@ def prepare_crowdflower_input(sentences, frame_data, filter_places):
         }
         linked_entities = sentence.get('linked_entities')
         if not linked_entities:
-            logger.warn("No linked entities chunks for sentence #%d. Skipping ..." % sentence_id)
+            logger.debug("No linked entities for sentence #%d. Skipping ..." % sentence_id)
             continue
         if filter_places:
             chunks = []
@@ -40,6 +40,9 @@ def prepare_crowdflower_input(sentences, frame_data, filter_places):
                 chunks.append(chunk)
         else:
             chunks = [entity['chunk'] for entity in linked_entities]
+        if not chunks:
+            logger.debug("No chunks for sentence #%d. Skipping ..." % sentence_id)
+            continue
         logger.debug('Unit ID: %s' % data_unit['id'])
         logger.debug('Unit sentence: %s' % data_unit['sentence'])
         logger.debug('Unit LU: %s' % data_unit['lu'])
