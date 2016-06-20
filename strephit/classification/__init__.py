@@ -1,2 +1,4 @@
 import cli
-import train
+import classify
+import feature_extractors
+import model_selection

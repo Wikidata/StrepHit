@@ -46,12 +46,12 @@ class SentenceClassifier:
             data['tagged'] = tagged
             sentences_data.append(data)
 
-        features, _ = self.extractor.get_features()
+        features, _ = self.extractor.get_features(refit=False)
         y = self.model.predict(features)
 
         token_offset = 0
-        role_label_to_index = self.extractor.role_index.items
-        role_index_to_label = self.extractor.role_index.reverse_map()
+        role_label_to_index = self.extractor.label_index
+        role_index_to_label = {v: k for k, v in self.extractor.label_index.iteritems()}
 
         for data in sentences_data:
             fes = []
@@ -90,7 +90,7 @@ class SentenceClassifier:
 
 @click.command()
 @click.argument('sentences', type=click.File('r'))
-@click.argument('model', type=click.Path(dir_okay=False, writable=True))
+@click.argument('model', type=click.Path(dir_okay=False, writable=False))
 @click.argument('language')
 @click.option('--outfile', '-o', type=click.File('w'), default='output/supervised_classified.jsonlines')
 @click.option('--processes', '-p', default=0)
@@ -109,7 +109,7 @@ def main(sentences, model, language, outfile, processes, gazetteer):
             yield json.dumps(classified)
 
     count = 0
-    for each in parallel.map(worker, sentences, batch_size=1000,
+    for each in parallel.map(worker, sentences, batch_size=100,
                              flatten=True, processes=processes):
         outfile.write(each)
         outfile.write('\n')
