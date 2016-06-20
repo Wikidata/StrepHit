@@ -46,12 +46,10 @@ class SentenceClassifier:
             data['tagged'] = tagged
             sentences_data.append(data)
 
-        features, _ = self.extractor.get_features()
+        features, _ = self.extractor.get_features(refit=False)
         y = self.model.predict(features)
 
         token_offset = 0
-        role_label_to_index = self.extractor.role_index.items
-        role_index_to_label = self.extractor.role_index.reverse_map()
 
         for data in sentences_data:
             fes = []

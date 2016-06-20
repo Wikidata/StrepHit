@@ -5,13 +5,15 @@ import itertools
 from inspect import isclass
 
 import click
-
+from sklearn.externals import joblib
 from sklearn.svm import LinearSVC, SVC
 from sklearn.grid_search import GridSearchCV
 from sklearn import metrics
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.dummy import DummyClassifier
+
 from sklearn.ensemble import RandomForestClassifier
+
 from strephit.commons.classification import reverse_gazetteer
 from strephit.classification.feature_extractors import FeatureExtractor
 
@@ -58,7 +60,7 @@ class MultimodelGridSearchCV:
 
                 score, params, model = search.best_score_, search.best_params_, search.best_estimator_
                 logger.debug('%s with parameters %s and training settings %d has score %s',
-                            type(model), params, i, score)
+                             type(model), params, i, score)
                 if best_score is None or score > best_score:
                     best_training, best_score, best_params, best_model = i, score, params, model
 
@@ -73,7 +75,9 @@ class MultimodelGridSearchCV:
 @click.option('--n-folds', default=10)
 @click.option('--n-jobs', default=1)
 @click.option('--scoring', default='f1_weighted')
-def main(training_set, language, gold_standard, gazetteer, n_folds, n_jobs, scoring):
+@click.option('--output', type=click.Path(dir_okay=False, writable=True),
+              default='output/classifier_model.pkl', help='Where to save the model')
+def main(training_set, language, gold_standard, gazetteer, n_folds, n_jobs, scoring, output):
     """ Searches for the best hyperparameters """
 
     logger.info('Building training sets')
@@ -94,7 +98,7 @@ def main(training_set, language, gold_standard, gazetteer, n_folds, n_jobs, scor
                 data = json.loads(row)
                 extractor.process_sentence(data['sentence'], data['fes'],
                                            add_unknown=True, gazetteer=gazetteer)
-            x, y = extractor.get_features()
+            x, y = extractor.get_features(refit=True)
             training_sets.append((x, y))
             training_set_settings.append((gaz, extractor))
 
@@ -134,6 +138,9 @@ def main(training_set, language, gold_standard, gazetteer, n_folds, n_jobs, scor
     logger.info('  Gazetteer: %s', gazetteer)
     logger.info('  Extractor: %s', extractor)
 
+    joblib.dump((best_model, extractor), output)
+    logger.info("Done, dumped model to '%s'", output)
+
     if not gold_standard:
         logger.info('Skipping gold standard evaluation')
         return
@@ -145,7 +152,7 @@ def main(training_set, language, gold_standard, gazetteer, n_folds, n_jobs, scor
     for row in gold_standard:
         data = json.loads(row)
         extractor.process_sentence(data['sentence'], data['fes'], add_unknown=False, gazetteer=gazetteer)
-    x_gold, y_gold = extractor.get_features()
+    x_gold, y_gold = extractor.get_features(refit=False)
 
     dummy = DummyClassifier(strategy='stratified')
     dummy.fit(x, y)

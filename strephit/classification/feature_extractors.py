@@ -1,9 +1,10 @@
 # -*- encoding: utf-8 -*-
 import logging
+
 import numpy as np
-from scipy.sparse import csr_matrix
-from strephit.commons.pos_tag import TTPosTagger
 from sklearn.feature_extraction import DictVectorizer
+
+from strephit.commons.pos_tag import TTPosTagger
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +37,12 @@ class FeatureExtractor:
         self.start()
 
     def start(self):
-        """ Clears the features accumulated so far and starts over.
+        """ Clears the samples accumulated so far and starts over.
         """
         self.samples = []
         self.vocabulary = set()
         self.labels = set()
+        self.vectorizer = DictVectorizer()
 
     def process_sentence(self, sentence, fes, add_unknown, gazetteer):
         """ Extracts and accumulates features for the given sentence
@@ -86,17 +88,22 @@ class FeatureExtractor:
             self.labels.add(label)
             self.samples.append((sample, label))
 
-    def get_features(self):
-        """ Returns the final training set
+    def get_features(self, refit):
+        """ Returns the final features matrix
 
+            :param bool refit: whether to refit the features or use the previous model.
+             use refit=True when training and refit=False when retrieving features
+             for classifying unknown samples
             :return: A matrix whose rows are samples and columns are features and a
              row vector with the sample label (i.e. the correct answer for the classifier)
             :rtype: tuple
         """
         samples, labels = zip(*self.samples)
 
-        vect = DictVectorizer()
-        features = vect.fit_transform(samples)
+        if refit:
+            features = self.vectorizer.fit_transform(samples)
+        else:
+            features = self.vectorizer.transform(samples)
 
         label_index = {label: i for i, label in enumerate(self.labels)}
         labels = np.array([label_index[label] for label in labels])
@@ -155,16 +162,18 @@ class FeatureExtractor:
         return tagged
 
     def __getstate__(self):
-        return (self.language, self.unk_feature, self.window_width,
-                self.samples, self.vocabulary, self.labels, self.collapse_fes)
+        return (self.language, self.unk_feature, self.window_width, self.samples,
+                self.vocabulary, self.labels, self.collapse_fes, self.vectorizer)
 
-    def __setstate__(self, (language, unk_feature, window_width, samples, vocabulary, labels, collapse_fes)):
+    def __setstate__(self, (language, unk_feature, window_width, samples, vocabulary,
+                     labels, collapse_fes, vect)):
         self.__init__(language, window_width)
         self.samples = samples
         self.vocabulary = vocabulary
         self.unk_feature = unk_feature
         self.collapse_fes = collapse_fes
         self.labels = labels
+        self.vectorizer = vect
 
     def __str__(self):
         return '%s(window_width=%d, collapse_fes=%r)' % (
