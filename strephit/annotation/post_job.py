@@ -122,7 +122,7 @@ def upload_units(job_id, csv_data):
     return r.json()
 
 
-def activate_gold(job_id):
+def convert_gold(job_id):
     """
      Activate gold units in the given job.
      Corresponds to the 'Convert Uploaded Test Questions' UI button.
@@ -189,7 +189,7 @@ def main(csv_data, title, instructions, cml, javascript, tags, activate_gold, di
     logger.debug("Job ID %d object response from CrowdFlower: %s" % (job_id, json.dumps(uploaded, indent=2)))
     if activate_gold:
         logger.info("Activating gold units ...")
-        activated = activate_gold(job_id)
+        activated = convert_gold(job_id)
         logger.debug("CrowdFlower API inconsistent response: %s" % json.dumps(activated, indent=2))
     logger.info("Setting up job parameters ...")
     configurated = config_job(job_id)
