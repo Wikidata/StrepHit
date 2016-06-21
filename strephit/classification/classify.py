@@ -40,7 +40,7 @@ class SentenceClassifier:
 
             entities = dict(enumerate(e['chunk'] for e in data.get('linked_entities', [])))
             tagged = self.extractor.process_sentence(
-                data['text'], entities, add_unknown=False, gazetteer=self.gazetteer
+                data['text'], data['lu'], entities, add_unknown=False, gazetteer=self.gazetteer
             )
 
             data['tagged'] = tagged
@@ -99,8 +99,9 @@ def main(sentences, model, language, outfile, processes, gazetteer):
     gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
 
     logger.info("Loading model from '%s' ...", model)
-    model, extractor = joblib.load(model)
+    model, extractor_data = joblib.load(model)
 
+    extractor = extractor_data['extractor']
     classifier = SentenceClassifier(model, extractor, language, gazetteer)
 
     def worker(batch):
@@ -108,6 +109,7 @@ def main(sentences, model, language, outfile, processes, gazetteer):
         for classified in classifier.classify_sentences(data):
             yield json.dumps(classified)
 
+    logger.info('Starting classification')
     count = 0
     for each in parallel.map(worker, sentences, batch_size=100,
                              flatten=True, processes=processes):

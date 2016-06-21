@@ -3,13 +3,13 @@ import logging
 
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
-
+import gensim
 from strephit.commons.pos_tag import TTPosTagger
 
 logger = logging.getLogger(__name__)
 
 
-class FeatureExtractor:
+class BagOfTermsFeatureExtractor(object):
     """ Extracts features from sentences. Will process sentences one by one
         accumulating their features and finalizes them into the final
         training set.
@@ -35,19 +35,20 @@ class FeatureExtractor:
         self.collapse_fes = collapse_fes
         self.unk_feature = 'UNK'
         self.vectorizer = DictVectorizer()
+        self.vocabulary = set()
+        self.label_index = {}
         self.start()
 
     def start(self):
         """ Clears the samples accumulated so far and starts over.
         """
         self.samples = []
-        self.vocabulary = set()
-        self.label_index = {}
 
-    def process_sentence(self, sentence, fes, add_unknown, gazetteer):
+    def process_sentence(self, sentence, lu, fes, add_unknown, gazetteer):
         """ Extracts and accumulates features for the given sentence
 
             :param unicode sentence: Text of the sentence
+            :param unicode lu: lexical unit of the sentence
             :param dict fes: Dictionary with FEs and corresponding chunks
             :param bol add_unknown: Whether unknown tokens should be added
              to the index of treaded as a special, unknown token.
@@ -59,27 +60,22 @@ class FeatureExtractor:
             :return: Nothing
         """
 
-        def add_feature_to(sample, feature_name, feature_value):
-            if add_unknown or feature_value in self.vocabulary:
-                sample[feature_name] = feature_value
-                self.vocabulary.add(feature_value)
-            else:
-                sample[feature_name] = self.unk_feature
+        gazetteer = gazetteer or {}
 
         tagged = self.sentence_to_tokens(sentence, fes)
         for position in xrange(len(tagged)):
             # add the unknown feature to every sample to trick the dict vectorizer into
             # thinking that there is a feature like that. will be useful when add_unknown
             # is false, because by default the dict vectorizer skips unseen labels
-            sample = {'unk': self.unk_feature}
+            sample = {'unk': self.unk_feature, 'lu': lu}
 
             for i in xrange(max(position - self.window_width, 0),
                             min(position + self.window_width + 1, len(tagged))):
                 rel = i - position
 
-                add_feature_to(sample, 'TERM%+d' % rel, tagged[i][0])
-                add_feature_to(sample, 'POS%+d' % rel, tagged[i][1])
-                add_feature_to(sample, 'LEMMA%+d' % rel, tagged[i][2])
+                self.add_feature_to(sample, 'TERM%+d' % rel, tagged[i][0], add_unknown)
+                self.add_feature_to(sample, 'POS%+d' % rel, tagged[i][1], add_unknown)
+                self.add_feature_to(sample, 'LEMMA%+d' % rel, tagged[i][2], add_unknown)
 
                 for feat in gazetteer.get(tagged[i][0], []):
                     sample['GAZ%+d' % rel] = feat
@@ -90,6 +86,13 @@ class FeatureExtractor:
             self.samples.append((sample, label))
 
         return tagged
+
+    def add_feature_to(self, sample, feature_name, feature_value, add_unknown):
+        if add_unknown or feature_value in self.vocabulary:
+            sample[feature_name] = feature_value
+            self.vocabulary.add(feature_value)
+        else:
+            sample[feature_name] = self.unk_feature
 
     def get_features(self, refit):
         """ Returns the final features matrix
@@ -181,3 +184,27 @@ class FeatureExtractor:
         return '%s(window_width=%d, collapse_fes=%r)' % (
             self.__class__.__name__, self.window_width, self.collapse_fes
         )
+
+
+class Word2VecFeatureExtractor(BagOfTermsFeatureExtractor):
+    """ Extracts features using word2vec's cbow pre-trained model as
+        toknens' features with a fallback on a bag-of-terms approach
+        for tokens outside the vocabulary
+    """
+    def __init__(self, language, model_path, window_width=2, collapse_fes=True):
+        super(Word2VecFeatureExtractor, self).__init__(language, window_width, collapse_fes)
+        self.cbow = gensim.models.Word2Vec.load_word2vec_format(model_path, binary=True)
+
+    def add_feature_to(self, sample, feature_name, feature_value, add_unknown):
+        if add_unknown or feature_value in self.vocabulary:
+            if feature_name.startswith('TERM') and feature_value in self.cbow:
+                sample['W2V'] = 1
+                for i, x in enumerate(self.cbow[feature_value]):
+                    sample['%s-W2V-%d' % (feature_name, i)] = x
+            else:
+                sample['W2V'] = 0
+                sample[feature_name] = feature_value
+                self.vocabulary.add(feature_value)
+        else:
+            sample['W2V'] = 0
+            sample[feature_name] = self.unk_feature

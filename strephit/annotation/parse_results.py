@@ -52,6 +52,7 @@ def process_unit(unit_id, sentences):
         'id': sentences[0]['id'],
         'sentence': sentences[0]['sentence'],
         'frame': sentences[0]['frame'],
+        'lu': sentences[0]['lu'],
         'fes': fes,
     }
 
