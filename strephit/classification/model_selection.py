@@ -15,6 +15,7 @@ from sklearn.dummy import DummyClassifier
 
 from sklearn.ensemble import RandomForestClassifier
 
+from strephit.classification.classifiers import FeatureSelectedClassifier
 from strephit.commons.classification import reverse_gazetteer
 from strephit.classification.feature_extractors import BagOfTermsFeatureExtractor, Word2VecFeatureExtractor
 
@@ -40,7 +41,7 @@ class MultimodelGridSearchCV:
         kwargs['refit'] = True
         self.kwargs = kwargs
 
-    def fit(self, training_sets):
+    def fit(self, training_sets, per_lu_classifier):
         """ Searches for the best estimator and its arguments as well as the best
             training set amongst those specified.
 
@@ -48,18 +49,26 @@ class MultimodelGridSearchCV:
              of tuples (x, y, metadata) where x is the training set, y is the
              correct answer for each chunk and metadata contains additional data that will
              be returned back
+            :param bool per_lu_classifier: Whether to use a different classifier for
+             each lexical unit
             :return: the metadata of the training set which yielded the best score,
              the best score obtained by the model, parameters of the model and
              fitted model itself
             :rtype: tuple
         """
         best_training, best_score, best_params, best_model = None, None, None, None
-        for i, (metadata, x, y) in enumerate(training_sets):
+        for i, (metadata, extractor) in enumerate(training_sets):
             for model, grid in self.models:
-                if isclass(model):
-                    model = model()
+                assert isclass(model)
 
-                search = GridSearchCV(model, param_grid=[grid], **self.kwargs)
+                x, y = extractor.get_features(refit=True)
+
+                grid['model_cls'] = [model]
+                grid['selector_column'] = [None, extractor.lu_column()]
+
+                search = GridSearchCV(
+                    FeatureSelectedClassifier(model), param_grid=grid, **self.kwargs
+                )
                 search.fit(x, y)
 
                 score, params, model = search.best_score_, search.best_params_, search.best_estimator_
@@ -115,7 +124,6 @@ def get_training_sets(training_set, language, gazetteer, word2vec_model):
                 data = json.loads(row)
                 extractor.process_sentence(data['sentence'], data['lu'], data['fes'],
                                            add_unknown=True, gazetteer=gazetteer)
-            x, y = extractor.get_features(refit=True)
 
             meta = {
                 'gazetteer': gaz,
@@ -124,7 +132,7 @@ def get_training_sets(training_set, language, gazetteer, word2vec_model):
                 'extractor': extractor
             }
 
-            yield meta, x, y
+            yield meta, extractor
 
 
 def get_models(test):
@@ -144,9 +152,9 @@ def get_models(test):
         }),
         (RandomForestClassifier, {
             'criterion': ['gini', 'entropy'],
-            'min_samples_split': [1, 2, 5, 10, 25],
-            'min_samples_leaf': [1, 2, 5, 10, 25],
-            'n_estimators': [1, 5, 10, 50, 100, 500, 1000],
+            'min_samples_split': [5, 10, 25],
+            'min_samples_leaf': [5, 10, 25],
+            'n_estimators': [5, 10, 50, 100],
         })
     ] if not test else [])
 
@@ -175,7 +183,7 @@ def main(training_set, language, gold_standard, gazetteer, n_folds, n_jobs,
 
     search = MultimodelGridSearchCV(*models, cv=n_folds, n_jobs=n_jobs,
                                     scoring=Scorer(scoring, True))
-    (x_tr, y_tr, best_training_meta), best_score, best_params, best_model = search.fit(training_sets)
+    (x_tr, y_tr, best_training_meta), best_score, best_params, best_model = search.fit(training_sets, True)
 
     logger.info('Evaluation Results')
     logger.info('  Best model: %s', best_model.__class__.__name__)

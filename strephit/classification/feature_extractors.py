@@ -37,12 +37,16 @@ class BagOfTermsFeatureExtractor(object):
         self.vectorizer = DictVectorizer()
         self.vocabulary = set()
         self.label_index = {}
+        self.lu_index = {}
         self.start()
 
     def start(self):
         """ Clears the samples accumulated so far and starts over.
         """
         self.samples = []
+
+    def lu_column(self):
+        return self.vectorizer.vocabulary_['lu']
 
     def process_sentence(self, sentence, lu, fes, add_unknown, gazetteer):
         """ Extracts and accumulates features for the given sentence
@@ -67,7 +71,8 @@ class BagOfTermsFeatureExtractor(object):
             # add the unknown feature to every sample to trick the dict vectorizer into
             # thinking that there is a feature like that. will be useful when add_unknown
             # is false, because by default the dict vectorizer skips unseen labels
-            sample = {'unk': self.unk_feature, 'lu': lu}
+            self.lu_index[lu] = self.lu_index.get(lu, len(self.lu_index))
+            sample = {'unk': self.unk_feature, 'lu': self.lu_index[lu]}
 
             for i in xrange(max(position - self.window_width, 0),
                             min(position + self.window_width + 1, len(tagged))):
@@ -81,8 +86,7 @@ class BagOfTermsFeatureExtractor(object):
                     sample['GAZ%+d' % rel] = feat
 
             label = 'O' if len(tagged[i]) == 3 else tagged[i][3]
-            if label not in self.label_index:
-                self.label_index[label] = len(self.label_index)
+            self.label_index[label] = self.label_index.get(label, len(self.label_index))
             self.samples.append((sample, label))
 
         return tagged
