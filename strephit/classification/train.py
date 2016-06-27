@@ -50,7 +50,7 @@ def main(training_set, language, outfile, model, model_param, extractor, extract
     """ Trains the classifier """
 
     gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
-    extractor = initialize(extractor, [('language', 'en')] + list(extractor_param))
+    extractor = initialize(extractor, [('language', language)] + list(extractor_param))
     model = initialize(model, model_param)
 
     logger.info("Building training set from '%s' ..." % training_set.name)
