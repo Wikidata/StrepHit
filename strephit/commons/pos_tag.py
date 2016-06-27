@@ -128,28 +128,39 @@ class TTPosTagger(object):
                          Tag(word=u'two', pos=u'CD', lemma=u'two')],
               'text': u'In the second position is item two'}]
         """
-        tt_pool = TaggerProcessPoll(
-            TAGLANG=self.language,
-            TAGDIR=self.tt_home,
-            TAGOPT=u'-token -lemma -sgml -quiet',
-            CHUNKERPROC=self._tokenizer_wrapper
-        )
-        logging.getLogger('TreeTagger').setLevel(logging.WARNING)
         try:
-            jobs = []
-            for i, item in enumerate(items):
-                if not item.get(document_key):
-                    continue
+            tt_pool = TaggerProcessPoll(
+                TAGLANG=self.language,
+                TAGDIR=self.tt_home,
+                TAGOPT=u'-token -lemma -sgml -quiet',
+                CHUNKERPROC=self._tokenizer_wrapper
+            )
+        except TypeError:
+            logger.warn('failed to initialize tree tragger process pool, fallback to single-process tagging')
+            for each in items:
+                text = each.get(document_key)
+                if text:
+                    each[pos_tag_key] = self.tag_one(text, **kwargs)
+                    yield each
+        else:
+            logging.getLogger('TreeTagger').setLevel(logging.WARNING)
+            try:
+                jobs = []
+                s = 0
+                for i, item in enumerate(items):
+                    if not item.get(document_key):
+                        s += 1
+                        continue
 
-                jobs.append((item, tt_pool.tag_text_async(item[document_key], **kwargs)))
-                if i % batch_size == 0:
-                    for each in self._finalize_batch(jobs, pos_tag_key):
-                        yield each
-                    jobs = []
-            for each in self._finalize_batch(jobs, pos_tag_key):
-                yield each
-        finally:
-            tt_pool.stop_poll()
+                    jobs.append((item, tt_pool.tag_text_async(item[document_key], **kwargs)))
+                    if len(jobs) % batch_size == 0:
+                        for each in self._finalize_batch(jobs, pos_tag_key):
+                            yield each
+                        jobs = []
+                for each in self._finalize_batch(jobs, pos_tag_key):
+                    yield each
+            finally:
+                tt_pool.stop_poll()
 
     def _finalize_batch(self, jobs, pos_tag_key):
         for item, job in jobs:
