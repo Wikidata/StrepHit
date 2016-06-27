@@ -1,11 +1,12 @@
 # -*- encoding: utf-8 -*-
 import click
 
-from strephit.classification import model_selection, classify
+from strephit.classification import model_selection, classify, train
 
 CLI_COMMANDS = {
     'model_selection': model_selection.main,
     'classify': classify.main,
+    'train': train.main,
 }
 
 
