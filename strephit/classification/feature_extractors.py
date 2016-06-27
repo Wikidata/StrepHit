@@ -20,7 +20,7 @@ class BagOfTermsFeatureExtractor(object):
         frame element name, e.g. `fes = dict(enumerate(entities))`
     """
 
-    def __init__(self, language, window_width=2, collapse_fes=True):
+    def __init__(self, language='en', window_width=2, collapse_fes=True):
         """ Initializes the extractor.
 
             :param language: The language of the sentences that will be used
