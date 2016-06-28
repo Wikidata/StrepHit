@@ -46,7 +46,6 @@ class FeatureSelectedClassifier(BaseEstimator, ClassifierMixin):
         if self.selector_column is None:
             return self.default_classifier_.predict(x)
 
-        y = np.zeros(x.shape[0])
         y = np.array([-1] * x.shape[0])
         selector = np.squeeze(x[:, self.selector_column].toarray())
         for label in set(selector):
@@ -82,7 +81,8 @@ class FeatureSelectedClassifier(BaseEstimator, ClassifierMixin):
         }
 
     def set_params(self, **params):
-        self.model_cls = params.get('model_cls', self.model_cls)
-        self.selector_column = params.get('selector_column', self.selector_column)
-        self.model_args = params.get('model_args', self.model_args)
+        # seems like nested dicts get flattened, so model_args's content is scattered around
+        self.model_cls = params.pop('model_cls', self.model_cls)
+        self.selector_column = params.pop('selector_column', self.selector_column)
+        self.model_args = params
         return self
