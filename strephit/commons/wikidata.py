@@ -26,7 +26,7 @@ PROPERTY_TO_WIKIDATA = {
     'Given Name': 'P735',
     # 'Worked for': 'P108',
     # 'title': 'P97',
-    # 'lblProfession': 'P106',
+    'lblProfession': 'P106',
     'lblNationality': 'P27',
     'gender': 'P21',
     'lblIdentifier': 'P742',
@@ -211,13 +211,25 @@ def resolver_with_hints(property, value, language, **kwargs):
 
 
 @cache.cached
-# @resolver('P108', 'P97', 'P106', 'P166')
+# @resolver('P108', 'P97', 'P166')
 def generic_search_resolver(property, value, language, **kwargs):
     """ Last-hope resolver, searches wikidata hoping to find something
         which exactly matches the given value
     """
     results = search(value, language, type_=None)
     return results[0]['id'] if results else ''
+
+
+@resolver('P106')
+def profession_resolver(property, value, language, **kwargs):
+    for occupation in value.split('/'):
+        # Q28640 = profession, Q12737077 = occupation
+        results = search(occupation, language, type_={12737077, 28640})
+
+        if len(results) == 1:
+            return results[0]['id']
+        else:
+            logger.debug('could not find occupation %s', occupation)
 
 
 @cache.cached
