@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 import gensim
 from strephit.commons.pos_tag import TTPosTagger
+from strephit.commons .stopwords import StopWords
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class BagOfTermsFeatureExtractor(object):
         frame element name, e.g. `fes = dict(enumerate(entities))`
     """
 
-    def __init__(self, language, window_width=2, collapse_fes=True):
+    def __init__(self, language='en', window_width=2, collapse_fes=True):
         """ Initializes the extractor.
 
             :param language: The language of the sentences that will be used
@@ -38,6 +39,7 @@ class BagOfTermsFeatureExtractor(object):
         self.vocabulary = set()
         self.label_index = {}
         self.lu_index = {}
+        self.stopwords = set(w.lower() for w in StopWords().words(language))
         self.start()
 
     def start(self):
@@ -76,6 +78,9 @@ class BagOfTermsFeatureExtractor(object):
 
             for i in xrange(max(position - self.window_width, 0),
                             min(position + self.window_width + 1, len(tagged))):
+                if tagged[i][1].lower() in self.stopwords:
+                    continue
+
                 rel = i - position
 
                 self.add_feature_to(sample, 'TERM%+d' % rel, tagged[i][0], add_unknown)
