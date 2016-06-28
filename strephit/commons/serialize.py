@@ -6,7 +6,7 @@ import json
 
 import click
 
-from strephit.commons import wikidata, parallel
+from strephit.commons import wikidata, parallel, text
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class ClassificationSerializer:
                         fe_to_wid.pop(fe['fe'])
                 else:
                     logger.debug("Dropping FE '%s' because no Wikidata property mapping is specified",
-                                fe['fe'])
+                                 fe['fe'])
 
         return fe_to_wid
 
@@ -59,19 +59,22 @@ class ClassificationSerializer:
         if subjects:
             for each in subjects:
                 name = each['chunk']
+                import pdb; pdb.set_trace()
                 wid = wikidata.resolver_with_hints(
-                    'P1559', name, self.language
+                    'P1559', text.fix_name(name)[0], self.language
                 )
                 yield name, wid
         else:
-            # if this fails, assume the subject is the main subject of the article
-            # from which this sentence was extracted
+            # if this fails, assume the subject is the main subject of the
+            # article from which this sentence was extracted
             if data['url'] in self.url_to_wid:
                 name = None
                 wid = self.url_to_wid[data['url']]
             else:
                 name = data.get('name')
-                wid = wikidata.resolver_with_hints('P1559', name, self.language) or None if name else None
+                wid = wikidata.resolver_with_hints(
+                    'P1559', text.fix_name(name)[0], self.language
+                ) or None if name else None
 
             yield name, wid
 
@@ -192,7 +195,7 @@ def main(classified, lexical_db, outfile, language,
     count = skipped = 0
     serializer = ClassificationSerializer(language, lexical_db, url_to_wid)
     for success, item in parallel.map(serializer.to_statements, classified,
-                                       processes=processes, flatten=True):
+                                      processes=processes, flatten=True):
         if success:
             outfile.write(item.encode('utf8'))
             outfile.write('\n')

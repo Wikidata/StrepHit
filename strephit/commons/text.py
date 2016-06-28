@@ -1,5 +1,9 @@
+from __future__ import absolute_import
 import re
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 def clean_extract(sel, path, path_type='xpath', limit_from=None, limit_to=None, sep='\n',
                   unicode=True):
@@ -115,18 +119,20 @@ def fix_name(name):
         :param name: The name to normalize
         :returns: a tuple with the normalized name and a list of honorifics
     """
-    name = name.lower()
+    orig = name
+    name = re.sub(r'\([^)]+\)', '', name.lower())
 
-    try:
+    if ',' in name:
         last_name, first_name = name.split(',', 1)
-        name = first_name.strip() + ' ' + last_name.strip()
-    except ValueError:
-        pass
+        first_name, honorifics = strip_honorifics(first_name.strip())
+        name = first_name.split(' ')[0] + ' ' + last_name.strip()
+    else:
+        parts = name.split()
+        if len(parts) > 2:
+            name = '%s %s' % (parts[0], parts[-1])
+        name, honorifics = strip_honorifics(name)
 
-    name = ''.join(c if c.isalnum() else ' '
-                   for c in name if c.isalnum() or c.isspace())
-    name, honorifics = strip_honorifics(name)
-
+    logger.debug('normalized name "%s" to "%s"', orig, name)
     return name.strip(), honorifics
 
 
