@@ -55,10 +55,11 @@ class SentenceClassifier:
 
         for data in sentences_data:
             fes = []
-            for each in data['tagged']:
-                chunk = each[0]
-                predicted_role = y[token_offset]
+            for chunk, is_sample in data['tagged']:
+                if not is_sample:
+                    continue
 
+                predicted_role = y[token_offset]
                 if predicted_role != role_label_to_index['O']:
                     label = role_index_to_label[predicted_role]
                     logger.debug('chunk "%s" classified as "%s"', chunk, label)
@@ -66,10 +67,6 @@ class SentenceClassifier:
                         'chunk': chunk,
                         'fe': label,
                     })
-                    # TODO
-                    # do not group entities into a single chunk, and after classification
-                    # check if the word is contained in an entity; if so, assign the label
-                    # to the whole entity
 
                 token_offset += 1
 
@@ -86,6 +83,8 @@ class SentenceClassifier:
 
                 final = apply_custom_classification_rules(classified, self.language)
                 yield final
+
+        assert token_offset == len(y), 'processed %d tokens, classified %d' % (token_offset, len(y))
 
 
 @click.command()

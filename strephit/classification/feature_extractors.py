@@ -3,9 +3,11 @@ import logging
 
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
+from sklearn.decomposition import TruncatedSVD
 import gensim
 from strephit.commons.pos_tag import TTPosTagger
-from strephit.commons .stopwords import StopWords
+from strephit.commons.stopwords import StopWords
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ class BagOfTermsFeatureExtractor(object):
         frame element name, e.g. `fes = dict(enumerate(entities))`
     """
 
-    def __init__(self, language='en', window_width=2, collapse_fes=True):
+    def __init__(self, language='en', window_width=2, collapse_fes=True, target_size=None):
         """ Initializes the extractor.
 
             :param language: The language of the sentences that will be used
@@ -36,6 +38,8 @@ class BagOfTermsFeatureExtractor(object):
         self.collapse_fes = collapse_fes
         self.unk_feature = 'UNK'
         self.vectorizer = DictVectorizer()
+        self.target_size = target_size
+        self.reducer = TruncatedSVD(target_size) if target_size else None
         self.vocabulary = set()
         self.label_index = {}
         self.lu_index = {}
@@ -48,7 +52,7 @@ class BagOfTermsFeatureExtractor(object):
         self.samples = []
 
     def lu_column(self):
-        return self.vectorizer.vocabulary_['lu']
+        return self.vectorizer.vocabulary_['lu'] if not self.target_size else None
 
     def process_sentence(self, sentence, lu, fes, add_unknown, gazetteer):
         """ Extracts and accumulates features for the given sentence
@@ -63,13 +67,23 @@ class BagOfTermsFeatureExtractor(object):
             :param dict gazetteer: Additional features to add when a given
              chunk is found in the sentence. Keys should be chunks and
              values should be list of features
-            :return: Nothing
+            :return: List of tuples whose first elements are chunks of words
+             and the second ones indicate whether the chunk was used as a
+             sample or skipped altogether
+            :type: list of tuples (chunk, is_sample)
         """
 
         gazetteer = gazetteer or {}
-
         tagged = self.sentence_to_tokens(sentence, fes)
+
+        ret = []
         for position in xrange(len(tagged)):
+            if tagged[position][0].lower() in self.stopwords:
+                ret.append((tagged[position][0], False))
+                continue
+            else:
+                ret.append((tagged[position][0], True))
+
             # add the unknown feature to every sample to trick the dict vectorizer into
             # thinking that there is a feature like that. will be useful when add_unknown
             # is false, because by default the dict vectorizer skips unseen labels
@@ -78,7 +92,7 @@ class BagOfTermsFeatureExtractor(object):
 
             for i in xrange(max(position - self.window_width, 0),
                             min(position + self.window_width + 1, len(tagged))):
-                if tagged[i][1].lower() in self.stopwords:
+                if tagged[i][0].lower() in self.stopwords:
                     continue
 
                 rel = i - position
@@ -94,7 +108,7 @@ class BagOfTermsFeatureExtractor(object):
             self.label_index[label] = self.label_index.get(label, len(self.label_index))
             self.samples.append((sample, label))
 
-        return tagged
+        return ret
 
     def add_feature_to(self, sample, feature_name, feature_value, add_unknown):
         if add_unknown or feature_value in self.vocabulary:
@@ -117,8 +131,12 @@ class BagOfTermsFeatureExtractor(object):
 
         if refit:
             features = self.vectorizer.fit_transform(samples)
+            if self.target_size:
+                features = self.reducer.fit_transform(features)
         else:
             features = self.vectorizer.transform(samples)
+            if self.target_size:
+                features = self.reducer.transform(features)
 
         labels = np.array([self.label_index[label] for label in labels])
 
@@ -177,17 +195,18 @@ class BagOfTermsFeatureExtractor(object):
 
     def __getstate__(self):
         return (self.language, self.unk_feature, self.window_width, self.samples,
-                self.vocabulary, self.label_index, self.collapse_fes, self.vectorizer)
+                self.vocabulary, self.label_index, self.vectorizer, self.collapse_fes,
+                self.reducer, self.target_size)
 
     def __setstate__(self, (language, unk_feature, window_width, samples, vocabulary,
-                     label_index, collapse_fes, vectorizer)):
-        self.__init__(language, window_width)
+                     label_index, vectorizer, collapse_fes, reducer, target_size)):
+        self.__init__(language, window_width, collapse_fes, target_size)
         self.samples = samples
         self.vocabulary = vocabulary
         self.unk_feature = unk_feature
-        self.collapse_fes = collapse_fes
         self.label_index = label_index
         self.vectorizer = vectorizer
+        self.reducer = reducer
 
     def __str__(self):
         return '%s(window_width=%d, collapse_fes=%r)' % (
