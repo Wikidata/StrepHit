@@ -41,7 +41,7 @@ class MultimodelGridSearchCV:
         kwargs['refit'] = True
         self.kwargs = kwargs
 
-    def fit(self, training_sets, per_lu_classifier):
+    def fit(self, training_sets):
         """ Searches for the best estimator and its arguments as well as the best
             training set amongst those specified.
 
@@ -49,8 +49,6 @@ class MultimodelGridSearchCV:
              of tuples (x, y, metadata) where x is the training set, y is the
              correct answer for each chunk and metadata contains additional data that will
              be returned back
-            :param bool per_lu_classifier: Whether to use a different classifier for
-             each lexical unit
             :return: the metadata of the training set which yielded the best score,
              the best score obtained by the model, parameters of the model and
              fitted model itself
@@ -72,8 +70,8 @@ class MultimodelGridSearchCV:
                 search.fit(x, y)
 
                 score, params, model = search.best_score_, search.best_params_, search.best_estimator_
-                logger.debug('%s with parameters %s and training settings %d has score %s',
-                             type(model), params, i, score)
+                logger.debug('%s with parameters %s and training meta %s has score %s',
+                             type(model), params, metadata, score)
                 if best_score is None or score > best_score:
                     best_training, best_score, best_params, best_model = (x, y, metadata), score, params, model
 
@@ -100,50 +98,55 @@ class Scorer(object):
         return metrics.f1_score(y_true, y_pred, labels=labels, average=self.scoring)
 
 
-def get_training_sets(training_set, language, gazetteer, word2vec_model):
+def get_training_sets(training_set, language, gazetteer, word2vec_model, independent_lus):
     extractor_args = itertools.chain(
-        itertools.product([BagOfTermsFeatureExtractor], [True, False], [0, 1, 2]),
+        itertools.product([BagOfTermsFeatureExtractor], [True, False], [0, 1, 2], [None, 100, 1000]),
 
         itertools.product([Word2VecFeatureExtractor], [word2vec_model], [True, False], [0, 1, 2])
         if word2vec_model else []
     )
 
+    lus = set(json.loads(row)['lu'] for row in training_set) if independent_lus else ['$all']
+
     count = 0
     for gaz in list(gazetteer) + [None]:
         for args in extractor_args:
-            logger.debug('%d) gazetteer: %s, extractor params: %s',
-                         count, gaz.name if gaz else None, args)
-            count += 1
+            for lu in lus:
+                logger.debug('%d) gazetteer: %s, extractor params: %s, lu: %s',
+                             count, gaz.name if gaz else None, args, lu)
+                count += 1
 
-            extractor, init_args = args[0], args[1:]
-            extractor = extractor(language, *init_args)
-            gazetteer = reverse_gazetteer(json.load(gazetteer)) if gaz else {}
+                extractor, init_args = args[0], args[1:]
+                extractor = extractor(language, *init_args)
+                gazetteer = reverse_gazetteer(json.load(gazetteer)) if gaz else {}
 
-            training_set.seek(0)
-            for row in training_set:
-                data = json.loads(row)
-                extractor.process_sentence(data['sentence'], data['lu'], data['fes'],
-                                           add_unknown=True, gazetteer=gazetteer)
+                training_set.seek(0)
+                for row in training_set:
+                    data = json.loads(row)
+                    if not independent_lus or data['lu'] in lus:
+                        extractor.process_sentence(data['sentence'], data['lu'], data['fes'],
+                                                   add_unknown=True, gazetteer=gazetteer)
 
-            meta = {
-                'gazetteer': gaz,
-                'extractor_cls': args[0],
-                'extractor_args': [language] + list(args[1:]),
-                'extractor': extractor
-            }
+                meta = {
+                    'lu': lu,
+                    'gazetteer': gaz,
+                    'extractor_cls': args[0],
+                    'extractor_args': [language] + list(args[1:]),
+                    #'extractor': extractor
+                }
 
-            yield meta, extractor
+                yield meta, extractor
 
 
 def get_models(test):
     return [
-        (KNeighborsClassifier, {
-            'weights': ['uniform', 'distance'],
-        }),
-    ] + ([
         (LinearSVC, {
             'C': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],
             'multi_class': ['ovr', 'crammer_singer'],
+        }),
+    ] + ([
+        (KNeighborsClassifier, {
+            'weights': ['uniform', 'distance'],
         }),
         (SVC, {
             'C': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],
@@ -172,18 +175,20 @@ def get_models(test):
 @click.option('--test', is_flag=True, help='Only try a small subset of the models')
 @click.option('--word2vec-model', type=click.Path(exists=True, dir_okay=False),
               help='google for GoogleNews-vectors-negative300.bin.gz')
+@click.option('--independent-lus', is_flag=True,
+              help='Perform model selection over each LU (returns only the best one overall)')
 def main(training_set, language, gold_standard, gazetteer, n_folds, n_jobs,
-         scoring, output, test, word2vec_model):
+         scoring, output, test, word2vec_model, independent_lus):
     """ Searches for the best hyperparameters """
 
     logger.info('Searching for the best model and parameters')
 
-    training_sets = get_training_sets(training_set, language, gazetteer, word2vec_model)
+    training_sets = get_training_sets(training_set, language, gazetteer, word2vec_model, independent_lus)
     models = get_models(test)
 
     search = MultimodelGridSearchCV(*models, cv=n_folds, n_jobs=n_jobs,
                                     scoring=Scorer(scoring, True))
-    (x_tr, y_tr, best_training_meta), best_score, best_params, best_model = search.fit(training_sets, True)
+    (x_tr, y_tr, best_training_meta), best_score, best_params, best_model = search.fit(training_sets)
 
     logger.info('Evaluation Results')
     logger.info('  Best model: %s', best_model.__class__.__name__)
