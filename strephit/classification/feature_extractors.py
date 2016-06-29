@@ -152,6 +152,9 @@ class BagOfTermsFeatureExtractor(object):
             :return: List of tokens
         """
 
+        if not sentence:
+            return []
+
         tagged = self.tagger.tag_one(sentence, skip_unknown=False)
 
         for fe, chunk in fes.iteritems():

@@ -132,7 +132,7 @@ def get_training_sets(training_set, language, gazetteer, word2vec_model, indepen
                     'gazetteer': gaz,
                     'extractor_cls': args[0],
                     'extractor_args': [language] + list(args[1:]),
-                    #'extractor': extractor
+                    'extractor': extractor
                 }
 
                 yield meta, extractor

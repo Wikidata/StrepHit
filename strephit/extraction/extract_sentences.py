@@ -137,13 +137,16 @@ class OneToOneExtractor(SentenceExtractor):
 
         document = item.get(self.document_key)
         if not document:
-            logger.warn('skipping item without document')
+            logger.debug('skipping item without document')
             return
         elif isinstance(document, list):
             document = '\n'.join(document)
 
         sentences = self.splitter.split(document)
         for sentence in sentences:
+            if not sentence:
+                continue
+
             tagged = self.tagger.tag_one(sentence, skip_unknown=False)
             sentence_verbs = [token for token, pos, lemma in tagged if pos.startswith('V')]
 
@@ -190,6 +193,9 @@ class ManyToManyExtractor(SentenceExtractor):
 
         sentences = self.splitter.split(text)
         for sentence in sentences:
+            if not sentence:
+                continue
+
             tagged = self.tagger.tag_one(sentence, skip_unknown=False)
             sentence_verbs = {token.lower() for token, pos, lemma in tagged if pos.startswith('V')}
 
@@ -353,6 +359,9 @@ class GrammarExtractor(SentenceExtractor):
         sentences = self.splitter.split(document)
         tokens = 0
         for sentence in sentences:
+            if not sentence:
+                continue
+
             tagged = [(token, pos) for token, pos, lemma in self.tagger.tag_one(sentence)]
 
             # Parsing via grammar
