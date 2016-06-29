@@ -74,23 +74,29 @@ class ClassificationSerializer:
 
             yield name, wid
 
-    def serialize_numerical(self, subj, fe, url):
+    def serialize_numerical(self, subj, fe, data):
         """ Serializes a numerical FE found by the normalizer
         """
         literal = fe['literal']
+        wikidata_property = self.lu_fe_to_wid.get((data['lu'], fe['fe']))
+        if not wikidata_property:
+            logger.debug('skipping *numerical* FE of type "%s" and lu "%s"',
+                         fe['fe'], data['lu'])
+            return
+
         if fe['fe'] == 'Time':
             value = wikidata.format_date(**literal)
-            yield wikidata.finalize_statement(subj, 'P585', value, self.language, url,
+            yield wikidata.finalize_statement(subj, wikidata_property, value, self.language, data['url'],
                                               resolve_property=False, resolve_value=False)
         elif fe['fe'] == 'Duration':
             if 'start' in literal:
                 value = wikidata.format_date(**literal['start'])
-                yield wikidata.finalize_statement(subj, 'P580', value, self.language, url,
+                yield wikidata.finalize_statement(subj, wikidata_property, value, self.language, data['url'],
                                                   resolve_property=False, resolve_value=False)
 
             if 'end' in literal:
                 value = wikidata.format_date(**literal['end'])
-                yield wikidata.finalize_statement(subj, 'P580', value, self.language, url,
+                yield wikidata.finalize_statement(subj, wikidata_property, value, self.language, data['url'],
                                                   resolve_property=False, resolve_value=False)
 
     def find_qualifiers(self, fes):
@@ -153,7 +159,7 @@ class ClassificationSerializer:
                     continue
 
                 if fe['fe'] in ['Time', 'Duration']:
-                    for each in self.serialize_numerical(subj, fe, url):
+                    for each in self.serialize_numerical(subj, fe, data):
                         yield True, each
                 else:
                     prop = self.lu_fe_to_wid.get((data['lu'], fe['fe']))
