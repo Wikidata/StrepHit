@@ -144,7 +144,7 @@ class OneToOneExtractor(SentenceExtractor):
 
         sentences = self.splitter.split(document)
         for sentence in sentences:
-            if not sentence:
+            if not sentence.strip():
                 continue
 
             tagged = self.tagger.tag_one(sentence, skip_unknown=False)
@@ -193,7 +193,7 @@ class ManyToManyExtractor(SentenceExtractor):
 
         sentences = self.splitter.split(text)
         for sentence in sentences:
-            if not sentence:
+            if not sentence.strip():
                 continue
 
             tagged = self.tagger.tag_one(sentence, skip_unknown=False)
@@ -359,7 +359,7 @@ class GrammarExtractor(SentenceExtractor):
         sentences = self.splitter.split(document)
         tokens = 0
         for sentence in sentences:
-            if not sentence:
+            if not sentence.strip():
                 continue
 
             tagged = [(token, pos) for token, pos, lemma in self.tagger.tag_one(sentence)]

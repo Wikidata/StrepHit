@@ -152,7 +152,7 @@ class BagOfTermsFeatureExtractor(object):
             :return: List of tokens
         """
 
-        if not sentence:
+        if not sentence.strip():
             return []
 
         tagged = self.tagger.tag_one(sentence, skip_unknown=False)
