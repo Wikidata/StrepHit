@@ -157,6 +157,7 @@ class BagOfTermsFeatureExtractor(object):
 
         tagged = self.tagger.tag_one(sentence, skip_unknown=False)
 
+        tokens = []
         for fe, chunk in fes.iteritems():
             if chunk is None:
                 continue
@@ -184,17 +185,20 @@ class BagOfTermsFeatureExtractor(object):
 
                 if self.collapse_fes:
                     # make a single token with the whole chunk
+                    tokens.append([chunk, pos, chunk, fe])
                     tagged = tagged[:position] + [[chunk, pos, chunk, fe]] + tagged[position + len(fe_tokens):]
                 else:
                     # set custom lemma and label for the tokens of the FE
                     for i in xrange(position, position + len(fe_tokens)):
                         token, pos, _ = tagged[i]
-                        tagged[i] = (token, pos, 'ENT', fe)
+                        token = (token, pos, 'ENT', fe)
+                        tagged[i] = token
+                        tokens.append(token)
             else:
                 logger.debug('cunk "%s" of fe "%s" not found in sentence "%s". Overlapping chunks?',
                              chunk, fe, sentence)
 
-        return tagged
+        return tokens
 
     def __getstate__(self):
         return (self.language, self.unk_feature, self.window_width, self.samples,

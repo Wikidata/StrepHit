@@ -16,29 +16,32 @@ class ClassificationSerializer:
         self.url_to_wid = url_to_wid or {}
         self.language = language
         self.frame_data = frame_data
-        self.fe_to_wid = self.map_fe_to_wid(self.frame_data)
+        self.lu_fe_to_wid = self.map_lu_fe_to_wid(self.frame_data)
 
     @staticmethod
-    def map_fe_to_wid(frame_data):
-        fe_to_wid = {
-            'Place': 'P276',
+    def map_lu_fe_to_wid(frame_data):
+        lu_fe_to_wid = {
+            #'Place': 'P276',
         }
 
         for data in frame_data.values():
+            lu = data['lu'].split('.')[0]
             for fe in data.get('core_fes', []) + data.get('extra_fes', []):
-                if 'id' in fe:
-                    if fe['fe'] not in fe_to_wid:
-                        fe_to_wid[fe['fe']] = fe['id']
-                    else:
-                        # FIXME the check fails for an odd number of occurrences, but it shouldn't happen right?
-                        logger.warn("the FE %s has been assigned two different wikidata properties: '%s' and '%s', "
-                                    "it will be skipped altogether", fe['fe'], fe_to_wid['fe'], fe['id'])
-                        fe_to_wid.pop(fe['fe'])
+                if 'id' in fe['mapping']:
+                    key = lu, fe['fe']
+                    if key not in lu_fe_to_wid:
+                        lu_fe_to_wid[key] = fe['mapping']['id']
+                    elif lu_fe_to_wid[key] != fe['mapping']['id']:
+                        logger.warn("the FE %s with LU %s has been assigned two different wikidata properties:",
+                                    "'%s' and '%s', it will be skipped altogether",
+                                    fe['fe'], lu, lu_fe_to_wid[key], fe['mapping']['id'])
+                        lu_fe_to_wid.pop(key)
                 else:
                     logger.debug("Dropping FE '%s' because no Wikidata property mapping is specified",
                                  fe['fe'])
 
-        return fe_to_wid
+        logger.info('got %d frame elements', len(lu_fe_to_wid))
+        return lu_fe_to_wid
 
     def get_subjects(self, data):
         """ Finds all subjects of the frame assigned to the sentence
@@ -59,7 +62,6 @@ class ClassificationSerializer:
         if subjects:
             for each in subjects:
                 name = each['chunk']
-                import pdb; pdb.set_trace()
                 wid = wikidata.resolver_with_hints(
                     'P1559', text.fix_name(name)[0], self.language
                 )
@@ -127,24 +129,40 @@ class ClassificationSerializer:
                     for each in self.serialize_numerical(subj, fe, url):
                         yield True, each
                 else:
-                    prop = self.fe_to_wid.get(fe['fe'])
+                    prop = self.lu_fe_to_wid.get((data['lu'], fe['fe']))
                     if not prop:
-                        logger.debug('unknown fe type %s, skipping', fe['fe'])
+                        logger.debug('unknown fe type %s for LU %s, skipping', fe['fe'], data['lu'])
                         continue
 
-                    val = wikidata.resolve(prop, fe['chunk'], self.language)
-                    if val:
-                        yield True, wikidata.finalize_statement(
-                            subj, prop, val, self.language, url,
-                            resolve_property=False, resolve_value=False
-                        )
-                    else:
+                    val = None
+                    if 'link' in fe:
+                        uri = fe['link']['uri']
+                        ids = wikidata.wikidata_id_from_wikipedia_url(uri)
+                        if not ids:
+                            logger.debug('failed to reconcile uri %s with a wikidata page, '
+                                         'trying a normal search through the apis', uri)
+                        elif len(ids) > 1:
+                            logger.debug('uri %s was reconciled to items %s, picking the first one',
+                                         ', '.join(ids))
+                            val = ids[0]
+                        else:
+                            val = ids[0]
+
+                    if not val:
+                        val = wikidata.resolve(prop, fe['chunk'], self.language)
+
+                    if not val:
                         logger.debug('could not resolve chunk "%s" of fe %s (property is %s)',
                                      fe['chunk'], fe['fe'], prop)
                         yield False, {
                             'chunk': fe['chunk'],
                             'additional': {'fe': fe, 'sentence': data['text'], 'url': url}
                         }
+                    else:
+                        yield True, wikidata.finalize_statement(
+                            subj, prop, val, self.language, url,
+                            resolve_property=False, resolve_value=False
+                        )
 
 
 def map_url_to_wid(semistructured):

@@ -55,6 +55,7 @@ class SentenceClassifier:
 
         for data in sentences_data:
             fes = []
+            chunk_to_entity = {entity['chunk']: entity for entity in data.get('linked_entities', [])}
             for chunk, is_sample in data['tagged']:
                 if not is_sample:
                     continue
@@ -63,10 +64,14 @@ class SentenceClassifier:
                 if predicted_role != role_label_to_index['O']:
                     label = role_index_to_label[predicted_role]
                     logger.debug('chunk "%s" classified as "%s"', chunk, label)
-                    fes.append({
+                    fe = {
                         'chunk': chunk,
                         'fe': label,
-                    })
+                    }
+                    if chunk in chunk_to_entity:
+                        fe['link'] = chunk_to_entity[chunk]
+
+                    fes.append(fe)
 
                 token_offset += 1
 
@@ -78,7 +83,6 @@ class SentenceClassifier:
                     'url': data['url'],
                     'text': data['text'],
                     'fes': fes,
-                    'linked_entities': data.get('linked_entities', []),
                 }
 
                 final = apply_custom_classification_rules(classified, self.language)

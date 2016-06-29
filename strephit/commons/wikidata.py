@@ -6,8 +6,9 @@ import json
 import logging
 from itertools import product
 import os
-
+from urlparse import urlparse
 from strephit.commons import cache, io, datetime
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +221,7 @@ def generic_search_resolver(property, value, language, **kwargs):
     return results[0]['id'] if results else ''
 
 
+@cache.cached
 @resolver('P106')
 def profession_resolver(property, value, language, **kwargs):
     for occupation in value.split('/'):
@@ -268,7 +270,7 @@ def nationality_resolver(property, value, language, **kwargs):
 
 
 @cache.cached
-# @resolver('P19', 'P20')
+@resolver('P19', 'P20', 'P1444')
 def place_resolver(property, value, language, **kwargs):
     """ Resolves place names
     """
@@ -557,3 +559,16 @@ def get_labels_and_aliases(entities, language_code):
             logger.debug("No '%s' aliases for entity ID '%s'. Skipping ..." % (language_code, entity_id))
     logger.info("Total entities with label and aliases: %d" % len(clean))
     return clean
+
+
+def wikidata_id_from_wikipedia_url(wiki_url):
+    title = urlparse(wiki_url).path[len('/wiki/'):]
+    data = json.loads(io.get_and_cache(
+        'https://en.wikipedia.org/w/api.php?action=query&prop=pageprops&format=json&titles=' + title
+    ))
+
+    return [
+        page['pageprops']['wikibase_item']
+        for pid, page in data['query']['pages'].iteritems()
+        if pid >= 0 and 'pageprops' in page
+    ]
