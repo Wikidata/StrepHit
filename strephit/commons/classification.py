@@ -42,6 +42,7 @@ def apply_custom_classification_rules(classified, language, overwrite=False):
                 'fe': 'Place',
                 'chunk': entity['chunk'],
                 'score': entity['confidence'],
+                'link': entity,
             }
 
             old = chunk_to_fe.get(entity['chunk'])

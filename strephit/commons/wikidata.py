@@ -370,7 +370,7 @@ def search(term, language, type_=None, label_exact=True, limit='15'):
     return results
 
 
-def finalize_statement(subject, property, value, language, url=None,
+def finalize_statement(subject, property, value, language, url=None, qualifiers=None,
                        resolve_property=True, resolve_value=True, **kwargs):
     """ Given the components of a statement, convert it into a quick statement.
 
@@ -397,11 +397,12 @@ def finalize_statement(subject, property, value, language, url=None,
     if not value:
         return None
 
-    statement = u'%s\t%s\t%s' % (subject, property, value)
+    statement = [subject, property, value] + (qualifiers or [])
     if url:
-        statement += u'\tS854\t"%s"' % url
+        statement.append('S854')
+        statement.append('"%s"' % url)
 
-    return statement
+    return '\t'.join(map(unicode, statement))
 
 
 def format_date(year=None, month=None, day=None):
@@ -567,8 +568,17 @@ def wikidata_id_from_wikipedia_url(wiki_url):
         'https://en.wikipedia.org/w/api.php?action=query&prop=pageprops&format=json&titles=' + title
     ))
 
-    return [
+    ids = [
         page['pageprops']['wikibase_item']
         for pid, page in data['query']['pages'].iteritems()
         if pid >= 0 and 'pageprops' in page
     ]
+
+    if not ids:
+        logger.debug('failed to reconcile uri %s with a wikidata page')
+        return None
+    elif len(ids) > 1:
+        logger.debug('uri %s was reconciled to items %s, picking the first one',
+                     ', '.join(ids))
+
+    return ids[0]
