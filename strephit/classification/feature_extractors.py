@@ -78,7 +78,7 @@ class BagOfTermsFeatureExtractor(object):
 
         ret = []
         for position in xrange(len(tagged)):
-            if tagged[position][0].lower() in self.stopwords:
+            if tagged[position][0].lower() in self.stopwords or tagged[position][2] != 'ENT':
                 ret.append((tagged[position][0], False))
                 continue
             else:
@@ -92,11 +92,8 @@ class BagOfTermsFeatureExtractor(object):
 
             for i in xrange(max(position - self.window_width, 0),
                             min(position + self.window_width + 1, len(tagged))):
-                if tagged[i][0].lower() in self.stopwords:
-                    continue
 
                 rel = i - position
-
                 self.add_feature_to(sample, 'TERM%+d' % rel, tagged[i][0], add_unknown)
                 self.add_feature_to(sample, 'POS%+d' % rel, tagged[i][1], add_unknown)
                 self.add_feature_to(sample, 'LEMMA%+d' % rel, tagged[i][2], add_unknown)
@@ -156,8 +153,6 @@ class BagOfTermsFeatureExtractor(object):
             return []
 
         tagged = self.tagger.tag_one(sentence, skip_unknown=False)
-
-        tokens = []
         for fe, chunk in fes.iteritems():
             if chunk is None:
                 continue
@@ -185,20 +180,17 @@ class BagOfTermsFeatureExtractor(object):
 
                 if self.collapse_fes:
                     # make a single token with the whole chunk
-                    tokens.append([chunk, pos, chunk, fe])
-                    tagged = tagged[:position] + [[chunk, pos, chunk, fe]] + tagged[position + len(fe_tokens):]
+                    tagged = tagged[:position] + [[chunk, pos, 'ENT', fe]] + tagged[position + len(fe_tokens):]
                 else:
                     # set custom lemma and label for the tokens of the FE
                     for i in xrange(position, position + len(fe_tokens)):
                         token, pos, _ = tagged[i]
-                        token = (token, pos, 'ENT', fe)
-                        tagged[i] = token
-                        tokens.append(token)
+                        tagged[i] = (token, pos, 'ENT', fe)
             else:
                 logger.debug('cunk "%s" of fe "%s" not found in sentence "%s". Overlapping chunks?',
                              chunk, fe, sentence)
 
-        return tokens
+        return tagged
 
     def __getstate__(self):
         return (self.language, self.unk_feature, self.window_width, self.samples,
