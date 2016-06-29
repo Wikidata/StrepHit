@@ -60,8 +60,9 @@ def process_unit(unit_id, sentences):
 
 @click.command()
 @click.argument('results', type=click.File('r'))
-@click.option('--outfile', '-o', type=click.File('w'), default='output/training_set.jsonlines')
-def main(results, outfile):
+@click.option('--outfile', '-o', type=click.Path(dir_okay=False), default='output/training_set.jsonlines')
+@click.option('--split-lus', is_flag=True)
+def main(results, outfile, split_lus):
     """ Parses the CSV with the results from crowdflower
     """
 
@@ -71,8 +72,22 @@ def main(results, outfile):
     for each in reader:
         sentences[each['_unit_id']].append(each)
 
-    for k, v in sentences.iteritems():
-        processed = process_unit(k, v)
-        outfile.write(json.dumps(processed))
-        outfile.write('\n')
-    logger.info("Done, training data dumped to '%s'" % outfile.name)
+    files = {}
+
+    def get_file(lu):
+        fname = outfile % lu if split_lus else outfile
+        if fname not in files:
+            files[fname] = open(fname, 'w')
+        return files[fname]
+
+    try:
+        for k, v in sentences.iteritems():
+            processed = process_unit(k, v)
+            f = get_file(processed['lu'])
+            f.write(json.dumps(processed))
+            f.write('\n')
+    finally:
+        for f in files.values():
+            f.close()
+        logger.info("Done, training data dumped to %s",
+                    ', '.join(files.keys()))
