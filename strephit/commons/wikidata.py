@@ -353,9 +353,13 @@ def search(term, language, type_=None, label_exact=True, limit='15'):
         if type_ and not any(t['mainsnak']['datavalue']['value']['numeric-id'] in type_ for t in entity_type):
             continue
         elif label_exact:
-            if 'label' in entity and entity['label'].lower() != term:
-                continue
-            elif 'labels' in entity and entity['labels'][language]['value'].lower().encode('utf8') != term:
+            if 'label' in entity:
+                if entity['label'].lower() != term:
+                    continue
+            elif 'labels' in entity and language in entity['labels']:
+                if entity['labels'][language]['value'].lower().encode('utf8') != term:
+                    continue
+            else:
                 continue
 
         results.append(entity)
