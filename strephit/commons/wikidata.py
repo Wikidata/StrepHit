@@ -571,7 +571,7 @@ def wikidata_id_from_wikipedia_url(wiki_url):
     ids = [
         page['pageprops']['wikibase_item']
         for pid, page in data['query']['pages'].iteritems()
-        if pid >= 0 and 'pageprops' in page
+        if pid >= 0 and 'wikibase_item' in page.get('pageprops', {})
     ]
 
     if not ids:
