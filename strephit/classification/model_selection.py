@@ -100,7 +100,7 @@ class Scorer(object):
 
 def get_training_sets(training_set, language, gazetteer, word2vec_model, independent_lus):
     extractor_args = itertools.chain(
-        itertools.product([BagOfTermsFeatureExtractor], [True, False], [0, 1, 2], [None, 100, 1000]),
+        itertools.product([BagOfTermsFeatureExtractor], [True, False], [0, 1, 2]),
 
         itertools.product([Word2VecFeatureExtractor], [word2vec_model], [True, False], [0, 1, 2])
         if word2vec_model else []
