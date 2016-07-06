@@ -19,23 +19,24 @@ class ClassificationSerializer:
         self.process_frame_data(self.frame_data)
 
     def process_frame_data(self, frame_data):
-        lu_fe_to_wid = {}
-        lu_fe_to_qualifiers = {}
+        lu_fe_map = {}
 
         for data in frame_data.values():
             lu = data['lu'].split('.')[0]
             for fe in data.get('core_fes', []) + data.get('extra_fes', []):
                 if 'id' in fe['mapping']:
                     key = lu, fe['fe']
-                    lu_fe_to_wid[key] = fe['mapping']['id']
-                    lu_fe_to_qualifiers[key] = fe.get('qualifiers', [])
+                    lu_fe_map[key] = {
+                        'wid': fe['mapping']['id'],
+                        'qualifiers': fe.get('qualifiers', []),
+                        'types': set(fe.get('dbpedia_classes', [])),
+                    }
                 else:
                     logger.debug("Dropping FE '%s' because no Wikidata property mapping is specified",
                                  fe['fe'])
 
-        logger.info('got %d frame elements', len(lu_fe_to_wid))
-        self.lu_fe_to_wid = lu_fe_to_wid
-        self.lu_fe_to_qualifiers = lu_fe_to_qualifiers
+        logger.info('got %d frame elements', len(lu_fe_map))
+        self.lu_fe_map = lu_fe_map
 
     def get_subjects(self, data):
         """ Finds all subjects of the frame assigned to the sentence
@@ -78,7 +79,7 @@ class ClassificationSerializer:
         """ Serializes a numerical FE found by the normalizer
         """
         literal = fe['literal']
-        wikidata_property = self.lu_fe_to_wid.get((data['lu'], fe['fe']))
+        wikidata_property = self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('wid')
         if not wikidata_property:
             logger.debug('skipping *numerical* FE of type "%s" and lu "%s"',
                          fe['fe'], data['lu'])
@@ -162,9 +163,17 @@ class ClassificationSerializer:
                     for each in self.serialize_numerical(subj, fe, data):
                         yield True, each
                 else:
-                    prop = self.lu_fe_to_wid.get((data['lu'], fe['fe']))
+                    prop = self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('wid')
                     if not prop:
                         logger.debug('unknown fe type %s for LU %s, skipping', fe['fe'], data['lu'])
+                        continue
+
+                    chunk_types = set(t[len('http://dbpedia.org/ontology/'):]
+                                      for t in fe.get('link').get('types'))
+                    fe_types = self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('types', set())
+                    if fe_types and chunk_types and not fe_types & chunk_types:
+                        logger.debug('skipping chunk "%s" of fe %s because types do not match, '
+                                     'expected: %s actual %s', fe['chunk'], fe['fe'], fe_types, chunk_types)
                         continue
 
                     val = None
@@ -182,7 +191,7 @@ class ClassificationSerializer:
                                      fe['chunk'], fe['fe'], prop, val)
 
                     stmt_qualifiers = []
-                    for qualifier_property in self.lu_fe_to_qualifiers.get((data['lu'], fe['fe']), []):
+                    for qualifier_property in self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('qualifiers', []):
                         for qualifier_value in all_qualifiers.get(qualifier_property, []):
                             stmt_qualifiers.extend((qualifier_property, qualifier_value))
 
