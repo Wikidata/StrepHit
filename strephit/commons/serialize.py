@@ -70,7 +70,8 @@ class ClassificationSerializer:
             else:
                 name = data.get('name')
                 wid = wikidata.resolver_with_hints(
-                    'P1559', text.fix_name(name)[0], self.language
+                    'P1559', text.fix_name(name)[0], self.language,
+                    type_=5  # Q5 = human
                 ) or None if name else None
 
             yield name, wid
