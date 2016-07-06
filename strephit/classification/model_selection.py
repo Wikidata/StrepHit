@@ -95,7 +95,7 @@ class Scorer(object):
         else:
             labels = list(set(y_true) | set(y_pred))
 
-        return metrics.f1_score(y_true, y_pred, labels=labels, average=self.scoring)
+        return metrics.f1_score(y_true, y_pred, labels=labels, average=self.scoring, pos_label=None)
 
 
 def get_training_sets(training_set, language, gazetteer, word2vec_model, independent_lus):
