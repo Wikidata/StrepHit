@@ -170,7 +170,7 @@ class ClassificationSerializer:
                         continue
 
                     chunk_types = set(t[len('http://dbpedia.org/ontology/'):]
-                                      for t in fe.get('link').get('types'))
+                                      for t in fe.get('link', {}).get('types'))
                     fe_types = self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('types', set())
                     if fe_types and chunk_types and not fe_types & chunk_types:
                         logger.debug('skipping chunk "%s" of fe %s because types do not match, '
