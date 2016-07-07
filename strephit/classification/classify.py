@@ -82,6 +82,7 @@ class SentenceClassifier:
                     'name': data['name'],
                     'url': data['url'],
                     'text': data['text'],
+                    'linked_entities': data.get('linked_entities', []),
                     'fes': fes,
                 }
 
