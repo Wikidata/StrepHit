@@ -218,7 +218,8 @@ class Word2VecFeatureExtractor(BagOfTermsFeatureExtractor):
         toknens' features with a fallback on a bag-of-terms approach
         for tokens outside the vocabulary
     """
-    def __init__(self, language, model_path, window_width=2, collapse_fes=True):
+    def __init__(self, language='en', window_width=2, collapse_fes=True,
+                 model_path='dev/GoogleNews-vectors-negative300.bin'):
         super(Word2VecFeatureExtractor, self).__init__(language, window_width, collapse_fes)
         self.cbow = gensim.models.Word2Vec.load_word2vec_format(model_path, binary=True)
 

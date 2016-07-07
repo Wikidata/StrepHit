@@ -141,7 +141,7 @@ def get_training_sets(training_set, language, gazetteer, word2vec_model, indepen
 def get_models(test):
     return [
         (LinearSVC, {
-            'C': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],
+            'C': [0.01, 0.1, 1.0, 10.0],
             'multi_class': ['ovr', 'crammer_singer'],
         }),
     ] + ([
@@ -149,7 +149,7 @@ def get_models(test):
             'weights': ['uniform', 'distance'],
         }),
         (SVC, {
-            'C': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],
+            'C': [0.01, 0.1, 1.0, 10.0, 100.0],
             'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
             'decision_function_shape': ['ovr', 'ovo'],
         }),

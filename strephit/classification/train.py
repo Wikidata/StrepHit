@@ -4,6 +4,7 @@ import logging
 from importlib import import_module
 from inspect import getargspec
 import click
+from sklearn.dummy import DummyClassifier
 from sklearn.externals import joblib
 from sklearn.cross_validation import KFold
 from strephit.commons.classification import reverse_gazetteer
@@ -34,17 +35,49 @@ def initialize(cls_name, args, call_init):
     return cls(**init_args) if call_init else (cls, init_args)
 
 
+def kfolds_evaluation(folds, model, scorer, x, y):
+    kf = KFold(x.shape[0], folds, shuffle=True)
+
+    scores_dummy, scores_test, scores_train = [], [], []
+    for train_index, test_index in kf:
+        x_train, y_train = x[train_index], y[train_index]
+        x_test, y_test = x[test_index], y[test_index]
+
+        model.fit(x_train, y_train)
+        dummy = DummyClassifier()
+        dummy.fit(x_train, y_train)
+
+        scores_test.append(scorer(model, x_test, y_test))
+        scores_dummy.append(scorer(dummy, x_test, y_test))
+        scores_train.append(scorer(model, x_train, y_train))
+
+    logger.info('%d-folds cross evaluation results', folds)
+    logger.info('    minimum test %f  dummy %f  training %f',
+                min(scores_test), min(scores_dummy), min(scores_train))
+
+    logger.info('    maximum test %f  dummy %f  training %f',
+                max(scores_test), max(scores_dummy), max(scores_train))
+    logger.info('    average test %f  dummy %f  training %f',
+                np.average(scores_test), np.average(scores_dummy), np.average(scores_train))
+    logger.info('    median  test %f  dummy %f  training %f',
+                np.median(scores_test), np.median(scores_dummy), np.median(scores_train))
+
+    logger.debug('full test scores: %s', scores_test)
+    logger.debug('full dummy scores: %s', scores_dummy)
+    logger.debug('full train scores: %s', scores_train)
+
+
 @click.command()
 @click.argument('training-set', type=click.File('r'))
 @click.argument('language')
 @click.option('-o', '--outfile', type=click.Path(dir_okay=False, writable=True),
               default='output/classifier_model.pkl', help='Where to save the model')
-@click.option('--model-class', default='sklearn.svm.LinearSVC')
+@click.option('--model-class', default='sklearn.svm.SVC')
 @click.option('--model-param', '-p', type=(unicode, unicode), multiple=True,
               help='kwargs for the model. See scikit doc',
-              default=[('multi_class', 'ovr'), ('C', '1.0')])
+              default=[('kernel', 'linear'), ('C', '0.15')])
 @click.option('--extractor-class', default='strephit.classification.feature_extractors.BagOfTermsFeatureExtractor')
-@click.option('--extractor-param', '-P', type=(unicode, unicode),
+@click.option('--extractor-param', '-P', type=(unicode, unicode), multiple=True,
               help='extrator kwargs',
               default=[('window_width', '2'), ('collapse_fes', 'true')])
 @click.option('--gazetteer', type=click.File('r'))
@@ -67,25 +100,10 @@ def main(training_set, language, outfile, model_class, model_param, extractor_cl
     logger.info('Got %d samples with %d features each', *x.shape)
 
     if folds > 1:
-        kf = KFold(x.shape[0], folds, shuffle=True)
         model_cls, model_args = initialize(model_class, model_param, False)
         model = FeatureSelectedClassifier(model_cls, extractor.lu_column(), model_args)
         scorer = Scorer(scoring, skip_majority)
-
-        scores = []
-        for train_index, test_index in kf:
-            x_train, y_train = x[train_index], y[train_index]
-            x_test, y_test = x[test_index], y[test_index]
-
-            model.fit(x_train, y_train)
-            scores.append(scorer(model, x_test, y_test))
-
-        logger.info('%d-folds cross evaluation results', folds)
-        logger.info('    minimum %f', min(scores))
-        logger.info('    maximum %f', max(scores))
-        logger.info('    average %f', np.average(scores))
-        logger.info('    median  %f', np.median(scores))
-        logger.debug('full scores: %s', scores)
+        kfolds_evaluation(folds, model, scorer, x, y)
 
     logger.info('Fitting model ...')
     model_cls, model_args = initialize(model_class, model_param, False)
