@@ -3,14 +3,18 @@ import json
 import logging
 from importlib import import_module
 from inspect import getargspec
+
 import click
 from sklearn.dummy import DummyClassifier
 from sklearn.externals import joblib
+from sklearn import metrics
 from sklearn.cross_validation import KFold
+import numpy as np
+
 from strephit.commons.classification import reverse_gazetteer
 from strephit.classification.model_selection import Scorer
 from strephit.classification.classifiers import FeatureSelectedClassifier
-import numpy as np
+from sklearn.preprocessing import MultiLabelBinarizer
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +39,9 @@ def initialize(cls_name, args, call_init):
     return cls(**init_args) if call_init else (cls, init_args)
 
 
-def kfolds_evaluation(folds, model, scorer, x, y):
+def kfolds_evaluation(folds, model, scoring, skip_majority, x, y):
     kf = KFold(x.shape[0], folds, shuffle=True)
+    scorer = Scorer(scoring, skip_majority)
 
     scores_dummy, scores_test, scores_train = [], [], []
     for train_index, test_index in kf:
@@ -67,6 +72,46 @@ def kfolds_evaluation(folds, model, scorer, x, y):
     logger.debug('full train scores: %s', scores_train)
 
 
+def gold_evaluation(sentences, extractor, gazetteer, model_cls, model_args):
+    logger.info('Evaluating on the gold sentences')
+
+    for each in sentences:
+        if not each.get('gold_fes'):
+            extractor.process_sentence(each['sentence'], each['lu'], each['fes'],
+                                       add_unknown=True, gazetteer=gazetteer)
+    x_tr, y_tr = extractor.get_features(refit=True)
+
+    extractor.start()
+    tagged_gold = []
+    for each in sentences:
+        if each.get('gold_fes'):
+            tagged_gold.append((each['gold_fes'], extractor.process_sentence(
+                each['sentence'], each['lu'], each['fes'],
+                add_unknown=False, gazetteer=gazetteer
+            )))
+
+    if not tagged_gold:
+        logger.warn('asked to evaluate gold, but no gold sentences found')
+        return
+
+    x_gold, _ = extractor.get_features(refit=False)
+    y_gold = []
+    for gold_fes, tagged in tagged_gold:
+        for chunk, is_sample in tagged:
+            if is_sample:
+                y_gold.append([extractor.label_index[fe or 'O'] for fe in gold_fes.get(chunk, [])])
+
+    assert len(y_gold) == x_gold.shape[0]
+
+    model = FeatureSelectedClassifier(model_cls, extractor.lu_column(), model_args)
+    model.fit(x_tr, y_tr)
+    y_pred = model.predict(x_gold)
+
+    correct = len([1 for actual, predicted in zip(y_gold, y_pred) if predicted in actual])
+    logger.info('Gold accuracy: %f (%d / %d roles)', float(correct) / len(y_gold),
+                correct, len(y_gold))
+
+
 @click.command()
 @click.argument('training-set', type=click.File('r'))
 @click.argument('language')
@@ -84,11 +129,27 @@ def kfolds_evaluation(folds, model, scorer, x, y):
 @click.option('--folds', default=0, help='Perform k-fold evaluation before training on full data')
 @click.option('--scoring', default='macro')
 @click.option('--skip-majority', is_flag=True)
+@click.option('--evaluate-gold', is_flag=True)
 def main(training_set, language, outfile, model_class, model_param, extractor_class,
-         extractor_param, gazetteer, folds, scoring, skip_majority):
+         extractor_param, gazetteer, folds, scoring, skip_majority, evaluate_gold):
     """ Trains the classifier """
 
     gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
+
+    model_cls, model_args = initialize(model_class, model_param, False)
+
+    if evaluate_gold:
+        gold_extractor = initialize(
+            extractor_class, [('language', language)] + list(extractor_param), True
+        )
+
+        gold_evaluation(
+            map(json.loads, training_set), gold_extractor,
+            gazetteer, model_cls, model_args
+        )
+
+        training_set.seek(0)
+
     extractor = initialize(extractor_class, [('language', language)] + list(extractor_param), True)
 
     logger.info("Building training set from '%s' ..." % training_set.name)
@@ -99,15 +160,12 @@ def main(training_set, language, outfile, model_class, model_param, extractor_cl
     x, y = extractor.get_features(refit=True)
     logger.info('Got %d samples with %d features each', *x.shape)
 
+    model = FeatureSelectedClassifier(model_cls, extractor.lu_column(), model_args)
+
     if folds > 1:
-        model_cls, model_args = initialize(model_class, model_param, False)
-        model = FeatureSelectedClassifier(model_cls, extractor.lu_column(), model_args)
-        scorer = Scorer(scoring, skip_majority)
-        kfolds_evaluation(folds, model, scorer, x, y)
+        kfolds_evaluation(folds, model, scoring, skip_majority, x, y)
 
     logger.info('Fitting model ...')
-    model_cls, model_args = initialize(model_class, model_param, False)
-    model = FeatureSelectedClassifier(model_cls, extractor.lu_column(), model_args)
     model.fit(x, y)
 
     joblib.dump((model, {

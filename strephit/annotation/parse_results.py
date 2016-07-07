@@ -23,7 +23,7 @@ def process_unit(unit_id, sentences):
     fe_count = 1 + max(int(k.split('_')[1]) for k in sentences[0].keys() if re.match(r'fe_\d+', k))
 
     # build a mapping chunk --> all assigned FEs
-    chunks = defaultdict(lambda: list())
+    chunks = defaultdict(list)
     for each in sentences:
         for i in xrange(chunk_count):
             fe = each['answer_chunk_%02d' % i]
@@ -48,12 +48,25 @@ def process_unit(unit_id, sentences):
         if fe and fe not in fes:
             fes[fe] = None
 
+    is_gold = sentences[0]['_golden'].lower() in {'t', 'true', 'y', 'yes'}
+    gold_fes = {}
+    if is_gold:
+        for i in xrange(fe_count):
+            fe = sentences[0]['chunk_%02d' % i]
+            gold = sentences[0]['answer_chunk_%02d_gold' % i]
+            if fe and gold:
+                gold_fes[fe] = [
+                    g if g.lower() != 'none' else None
+                    for g in gold.split('\n')
+                ]
+
     unit = {
         'id': sentences[0]['id'],
         'sentence': sentences[0]['sentence'],
         'frame': sentences[0]['frame'],
         'lu': sentences[0]['lu'],
         'fes': fes,
+        'gold_fes': dict(gold_fes),
     }
 
     return unit
