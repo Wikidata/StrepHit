@@ -49,7 +49,7 @@ def apply_custom_classification_rules(classified, language, overwrite=False):
             old = chunk_to_fe.get(entity['chunk'])
             if old is None:
                 chunk_to_fe[fe['chunk']] = fe
-            elif overwrite or typeof_place in old.get('link', {}).get('types', []):
+            elif overwrite or typeof_place not in old.get('link', {}).get('types', []):
                 chunk_to_fe[fe['chunk']] = fe
                 logger.debug('chunk "%s" was assigned role %s, assigning %s instead',
                              old['chunk'], old['fe'], 'Place')
