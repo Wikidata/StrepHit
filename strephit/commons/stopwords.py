@@ -11,15 +11,15 @@ class StopWords(object):
     
     # Mapping between languages and the filenames containing stop words for those languages
     _language_to_file_mapping = {
-        'bulgarian': 'stop-words_bulgarian.txt',
-        'dutch': 'stop-words_dutch.txt',
-        'english': 'stop-words_english.txt',
-        'french': 'stop-words_french.txt',
-        'german': 'stop-words_german.txt',
-        'italian': 'stop-words_italian.txt',
-        'portugese': 'stop-words_portugese.txt',
-        'russian': 'stop-words_russian.txt',
-        'spanish': 'stop-words_spanish.txt'
+        'bg': 'stop-words_bulgarian.txt',
+        'nl': 'stop-words_dutch.txt',
+        'en': 'stop-words_english.txt',
+        'fr': 'stop-words_french.txt',
+        'de': 'stop-words_german.txt',
+        'it': 'stop-words_italian.txt',
+        'pt': 'stop-words_portugese.txt',
+        'ru': 'stop-words_russian.txt',
+        'es': 'stop-words_spanish.txt'
     }
 
     # directory containing the above files

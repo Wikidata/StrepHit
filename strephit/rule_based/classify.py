@@ -80,11 +80,8 @@ class RuleBasedClassifier:
                     chosen = frame['fes'][random.choice(list(available))]
                     assigned_fes.append({
                         'fe': chosen['fe'],
-                        'fe_type': chosen['type'],
-                        'entity_type': type_uri,
                         'chunk': entity['chunk'],
-                        'uri': entity['uri'],
-                        'score': entity['confidence']
+                        'link': entity,
                     })
                     logger.debug('assigned FE %s of frame %s to chunk "%s" of type %s',
                                  chosen['fe'], frame['frame'], entity['chunk'], dbpedia_class)
@@ -113,6 +110,8 @@ class RuleBasedClassifier:
         logger.debug('processing sentence "%s"', sentence['text'])
         if not sentence.get('url'):
             logger.warn('a sentence is missing the url, skipping it')
+            return None
+        elif not sentence.get('text', '').strip():
             return None
 
         tagged = sentence['tagged'] if 'tagged' in sentence else self.tagger.tag_one(sentence['text'])

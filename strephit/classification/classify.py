@@ -40,36 +40,38 @@ class SentenceClassifier:
 
             entities = dict(enumerate(e['chunk'] for e in data.get('linked_entities', [])))
             tagged = self.extractor.process_sentence(
-                data['text'], entities, add_unknown=False, gazetteer=self.gazetteer
+                data['text'], data['lu'], entities, add_unknown=False, gazetteer=self.gazetteer
             )
 
             data['tagged'] = tagged
             sentences_data.append(data)
 
-        features, _ = self.extractor.get_features()
+        features, _ = self.extractor.get_features(refit=False)
         y = self.model.predict(features)
 
         token_offset = 0
-        role_label_to_index = self.extractor.role_index.items
-        role_index_to_label = self.extractor.role_index.reverse_map()
+        role_label_to_index = self.extractor.label_index
+        role_index_to_label = {v: k for k, v in self.extractor.label_index.iteritems()}
 
         for data in sentences_data:
             fes = []
-            for each in data['tagged']:
-                chunk = each[0]
-                predicted_role = y[token_offset]
+            chunk_to_entity = {entity['chunk']: entity for entity in data.get('linked_entities', [])}
+            for chunk, is_sample in data['tagged']:
+                if not is_sample:
+                    continue
 
+                predicted_role = y[token_offset]
                 if predicted_role != role_label_to_index['O']:
                     label = role_index_to_label[predicted_role]
                     logger.debug('chunk "%s" classified as "%s"', chunk, label)
-                    fes.append({
+                    fe = {
                         'chunk': chunk,
                         'fe': label,
-                    })
-                    # TODO
-                    # do not group entities into a single chunk, and after classification
-                    # check if the word is contained in an entity; if so, assign the label
-                    # to the whole entity
+                    }
+                    if chunk in chunk_to_entity:
+                        fe['link'] = chunk_to_entity[chunk]
+
+                    fes.append(fe)
 
                 token_offset += 1
 
@@ -80,17 +82,19 @@ class SentenceClassifier:
                     'name': data['name'],
                     'url': data['url'],
                     'text': data['text'],
-                    'fes': fes,
                     'linked_entities': data.get('linked_entities', []),
+                    'fes': fes,
                 }
 
                 final = apply_custom_classification_rules(classified, self.language)
                 yield final
 
+        assert token_offset == len(y), 'processed %d tokens, classified %d' % (token_offset, len(y))
+
 
 @click.command()
 @click.argument('sentences', type=click.File('r'))
-@click.argument('model', type=click.Path(dir_okay=False, writable=True))
+@click.argument('model', type=click.Path(dir_okay=False, writable=False))
 @click.argument('language')
 @click.option('--outfile', '-o', type=click.File('w'), default='output/supervised_classified.jsonlines')
 @click.option('--processes', '-p', default=0)
@@ -99,8 +103,9 @@ def main(sentences, model, language, outfile, processes, gazetteer):
     gazetteer = reverse_gazetteer(json.load(gazetteer)) if gazetteer else {}
 
     logger.info("Loading model from '%s' ...", model)
-    model, extractor = joblib.load(model)
+    model, extractor_data = joblib.load(model)
 
+    extractor = extractor_data['extractor']
     classifier = SentenceClassifier(model, extractor, language, gazetteer)
 
     def worker(batch):
@@ -108,8 +113,9 @@ def main(sentences, model, language, outfile, processes, gazetteer):
         for classified in classifier.classify_sentences(data):
             yield json.dumps(classified)
 
+    logger.info('Starting classification')
     count = 0
-    for each in parallel.map(worker, sentences, batch_size=1000,
+    for each in parallel.map(worker, sentences, batch_size=100,
                              flatten=True, processes=processes):
         outfile.write(each)
         outfile.write('\n')

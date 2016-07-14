@@ -6,8 +6,9 @@ import json
 import logging
 from itertools import product
 import os
-
+from urlparse import urlparse
 from strephit.commons import cache, io, datetime
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ PROPERTY_TO_WIKIDATA = {
     'Given Name': 'P735',
     # 'Worked for': 'P108',
     # 'title': 'P97',
-    # 'lblProfession': 'P106',
+    'lblProfession': 'P106',
     'lblNationality': 'P27',
     'gender': 'P21',
     'lblIdentifier': 'P742',
@@ -211,13 +212,26 @@ def resolver_with_hints(property, value, language, **kwargs):
 
 
 @cache.cached
-# @resolver('P108', 'P97', 'P106', 'P166')
+# @resolver('P108', 'P97', 'P166')
 def generic_search_resolver(property, value, language, **kwargs):
     """ Last-hope resolver, searches wikidata hoping to find something
         which exactly matches the given value
     """
     results = search(value, language, type_=None)
     return results[0]['id'] if results else ''
+
+
+@cache.cached
+@resolver('P106')
+def profession_resolver(property, value, language, **kwargs):
+    for occupation in value.split('/'):
+        # Q28640 = profession, Q12737077 = occupation
+        results = search(occupation, language, type_={12737077, 28640})
+
+        if len(results) == 1:
+            return results[0]['id']
+        else:
+            logger.debug('could not find occupation %s', occupation)
 
 
 @cache.cached
@@ -256,7 +270,7 @@ def nationality_resolver(property, value, language, **kwargs):
 
 
 @cache.cached
-# @resolver('P19', 'P20')
+@resolver('P19', 'P20', 'P1444')
 def place_resolver(property, value, language, **kwargs):
     """ Resolves place names
     """
@@ -339,9 +353,13 @@ def search(term, language, type_=None, label_exact=True, limit='15'):
         if type_ and not any(t['mainsnak']['datavalue']['value']['numeric-id'] in type_ for t in entity_type):
             continue
         elif label_exact:
-            if 'label' in entity and entity['label'].lower() != term:
-                continue
-            elif 'labels' in entity and entity['labels'][language]['value'].lower().encode('utf8') != term:
+            if 'label' in entity:
+                if entity['label'].lower() != term:
+                    continue
+            elif 'labels' in entity and language in entity['labels']:
+                if entity['labels'][language]['value'].lower().encode('utf8') != term:
+                    continue
+            else:
                 continue
 
         results.append(entity)
@@ -356,7 +374,7 @@ def search(term, language, type_=None, label_exact=True, limit='15'):
     return results
 
 
-def finalize_statement(subject, property, value, language, url=None,
+def finalize_statement(subject, property, value, language, url=None, qualifiers=None,
                        resolve_property=True, resolve_value=True, **kwargs):
     """ Given the components of a statement, convert it into a quick statement.
 
@@ -383,11 +401,12 @@ def finalize_statement(subject, property, value, language, url=None,
     if not value:
         return None
 
-    statement = u'%s\t%s\t%s' % (subject, property, value)
+    statement = [subject, property, value] + (qualifiers or [])
     if url:
-        statement += u'\tS854\t"%s"' % url
+        statement.append('S854')
+        statement.append('"%s"' % url)
 
-    return statement
+    return '\t'.join(map(unicode, statement))
 
 
 def format_date(year=None, month=None, day=None):
@@ -545,3 +564,25 @@ def get_labels_and_aliases(entities, language_code):
             logger.debug("No '%s' aliases for entity ID '%s'. Skipping ..." % (language_code, entity_id))
     logger.info("Total entities with label and aliases: %d" % len(clean))
     return clean
+
+
+def wikidata_id_from_wikipedia_url(wiki_url):
+    title = urlparse(wiki_url).path[len('/wiki/'):]
+    data = json.loads(io.get_and_cache(
+        'https://en.wikipedia.org/w/api.php?action=query&prop=pageprops&format=json&titles=' + title
+    ))
+
+    ids = [
+        page['pageprops']['wikibase_item']
+        for pid, page in data['query']['pages'].iteritems()
+        if pid >= 0 and 'wikibase_item' in page.get('pageprops', {})
+    ]
+
+    if not ids:
+        logger.debug('failed to reconcile uri %s with a wikidata page')
+        return None
+    elif len(ids) > 1:
+        logger.debug('uri %s was reconciled to items %s, picking the first one',
+                     ', '.join(ids))
+
+    return ids[0]

@@ -37,17 +37,19 @@ def apply_custom_classification_rules(classified, language, overwrite=False):
 
     # all places recognized by the entity linker are FEs
     for entity in classified.get('linked_entities', []):
-        if 'http://dbpedia.org/ontology/Place' in entity['types']:
+        typeof_place = 'http://dbpedia.org/ontology/Place'
+        if typeof_place in entity['types']:
             fe = {
                 'fe': 'Place',
                 'chunk': entity['chunk'],
                 'score': entity['confidence'],
+                'link': entity,
             }
 
             old = chunk_to_fe.get(entity['chunk'])
             if old is None:
                 chunk_to_fe[fe['chunk']] = fe
-            elif overwrite:
+            elif overwrite or typeof_place not in old.get('link', {}).get('types', []):
                 chunk_to_fe[fe['chunk']] = fe
                 logger.debug('chunk "%s" was assigned role %s, assigning %s instead',
                              old['chunk'], old['fe'], 'Place')

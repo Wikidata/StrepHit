@@ -11,3 +11,4 @@ scipy>=0.17.0
 scikit-learn>=0.17.1
 pyyaml>=3.11
 dateutils>=0.6.6
+gensim>=0.12.4

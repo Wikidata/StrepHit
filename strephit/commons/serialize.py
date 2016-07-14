@@ -5,8 +5,8 @@ import logging
 import json
 
 import click
-
-from strephit.commons import wikidata, parallel
+from collections import defaultdict
+from strephit.commons import wikidata, parallel, text
 
 logger = logging.getLogger(__name__)
 
@@ -16,29 +16,27 @@ class ClassificationSerializer:
         self.url_to_wid = url_to_wid or {}
         self.language = language
         self.frame_data = frame_data
-        self.fe_to_wid = self.map_fe_to_wid(self.frame_data)
+        self.process_frame_data(self.frame_data)
 
-    @staticmethod
-    def map_fe_to_wid(frame_data):
-        fe_to_wid = {
-            'Place': 'P276',
-        }
+    def process_frame_data(self, frame_data):
+        lu_fe_map = {}
 
         for data in frame_data.values():
+            lu = data['lu'].split('.')[0]
             for fe in data.get('core_fes', []) + data.get('extra_fes', []):
-                if 'id' in fe:
-                    if fe['fe'] not in fe_to_wid:
-                        fe_to_wid[fe['fe']] = fe['id']
-                    else:
-                        # FIXME the check fails for an odd number of occurrences, but it shouldn't happen right?
-                        logger.warn("the FE %s has been assigned two different wikidata properties: '%s' and '%s', "
-                                    "it will be skipped altogether", fe['fe'], fe_to_wid['fe'], fe['id'])
-                        fe_to_wid.pop(fe['fe'])
+                if 'id' in fe['mapping']:
+                    key = lu, fe['fe']
+                    lu_fe_map[key] = {
+                        'wid': fe['mapping']['id'],
+                        'qualifiers': fe.get('qualifiers', []),
+                        'types': set(fe.get('dbpedia_classes', [])),
+                    }
                 else:
                     logger.debug("Dropping FE '%s' because no Wikidata property mapping is specified",
-                                fe['fe'])
+                                 fe['fe'])
 
-        return fe_to_wid
+        logger.info('got %d frame elements', len(lu_fe_map))
+        self.lu_fe_map = lu_fe_map
 
     def get_subjects(self, data):
         """ Finds all subjects of the frame assigned to the sentence
@@ -60,39 +58,80 @@ class ClassificationSerializer:
             for each in subjects:
                 name = each['chunk']
                 wid = wikidata.resolver_with_hints(
-                    'P1559', name, self.language
+                    'P1559', text.fix_name(name)[0], self.language
                 )
                 yield name, wid
         else:
-            # if this fails, assume the subject is the main subject of the article
-            # from which this sentence was extracted
+            # if this fails, assume the subject is the main subject of the
+            # article from which this sentence was extracted
             if data['url'] in self.url_to_wid:
                 name = None
                 wid = self.url_to_wid[data['url']]
             else:
                 name = data.get('name')
-                wid = wikidata.resolver_with_hints('P1559', name, self.language) or None if name else None
+                wid = wikidata.resolver_with_hints(
+                    'P1559', text.fix_name(name)[0], self.language,
+                    type_=5  # Q5 = human
+                ) or None if name else None
 
             yield name, wid
 
-    def serialize_numerical(self, subj, fe, url):
+    def serialize_numerical(self, subj, fe, data):
         """ Serializes a numerical FE found by the normalizer
         """
         literal = fe['literal']
+        wikidata_property = self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('wid')
+        if not wikidata_property:
+            logger.debug('skipping *numerical* FE of type "%s" and lu "%s"',
+                         fe['fe'], data['lu'])
+            return
+
         if fe['fe'] == 'Time':
             value = wikidata.format_date(**literal)
-            yield wikidata.finalize_statement(subj, 'P585', value, self.language, url,
+            yield wikidata.finalize_statement(subj, wikidata_property, value, self.language, data['url'],
                                               resolve_property=False, resolve_value=False)
         elif fe['fe'] == 'Duration':
             if 'start' in literal:
                 value = wikidata.format_date(**literal['start'])
-                yield wikidata.finalize_statement(subj, 'P580', value, self.language, url,
+                yield wikidata.finalize_statement(subj, wikidata_property, value, self.language, data['url'],
                                                   resolve_property=False, resolve_value=False)
 
             if 'end' in literal:
                 value = wikidata.format_date(**literal['end'])
-                yield wikidata.finalize_statement(subj, 'P580', value, self.language, url,
+                yield wikidata.finalize_statement(subj, wikidata_property, value, self.language, data['url'],
                                                   resolve_property=False, resolve_value=False)
+
+    def find_qualifiers(self, fes):
+        """ Finds all FEs that could serve as qualifiers instead of full statements
+        """
+
+        qualifiers = defaultdict(list)
+        for fe in fes:
+            if fe['fe'] == 'Time':
+                literal = fe['literal']
+                value = wikidata.format_date(**literal)
+                qualifiers['P585'].append(value)
+            elif fe['fe'] == 'Duration':
+                literal = fe['literal']
+                if 'start' in literal:
+                    value = wikidata.format_date(**literal['start'])
+                    qualifiers['P580'].append(value)
+
+                if 'end' in literal:
+                    value = wikidata.format_date(**literal['end'])
+                    qualifiers['P580'].append(value)
+            elif fe['fe'] == 'Place':
+                value = None
+                if 'link' in fe:
+                    value = wikidata.wikidata_id_from_wikipedia_url(fe['link']['uri'])
+
+                if not value:
+                    value = wikidata.resolve('P276', fe['chunk'], self.language)
+
+                if value:
+                    qualifiers['P276'].append(value)
+
+        return qualifiers
 
     def to_statements(self, data, input_encoded=True):
         """ Converts the classification results into quick statements
@@ -116,32 +155,51 @@ class ClassificationSerializer:
                 yield False, {'chunk': name, 'additional': {'sentence': data['text'], 'url': url}}
                 continue
 
+            all_qualifiers = self.find_qualifiers(data['fes'])
             for fe in data['fes']:
                 if fe['chunk'] == name:  # do not add a statement for the current subject
                     continue
 
                 if fe['fe'] in ['Time', 'Duration']:
-                    for each in self.serialize_numerical(subj, fe, url):
+                    for each in self.serialize_numerical(subj, fe, data):
                         yield True, each
                 else:
-                    prop = self.fe_to_wid.get(fe['fe'])
+                    prop = self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('wid')
                     if not prop:
-                        logger.debug('unknown fe type %s, skipping', fe['fe'])
+                        logger.debug('unknown fe type %s for LU %s, skipping', fe['fe'], data['lu'])
                         continue
 
-                    val = wikidata.resolve(prop, fe['chunk'], self.language)
-                    if val:
-                        yield True, wikidata.finalize_statement(
-                            subj, prop, val, self.language, url,
-                            resolve_property=False, resolve_value=False
-                        )
-                    else:
-                        logger.debug('could not resolve chunk "%s" of fe %s (property is %s)',
-                                     fe['chunk'], fe['fe'], prop)
-                        yield False, {
-                            'chunk': fe['chunk'],
-                            'additional': {'fe': fe, 'sentence': data['text'], 'url': url}
-                        }
+                    chunk_types = set(t[len('http://dbpedia.org/ontology/'):]
+                                      for t in fe.get('link', {}).get('types'))
+                    fe_types = self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('types', set())
+                    if fe_types and chunk_types and not fe_types & chunk_types:
+                        logger.debug('skipping chunk "%s" of fe %s because types do not match, '
+                                     'expected: %s actual %s', fe['chunk'], fe['fe'], fe_types, chunk_types)
+                        continue
+
+                    val = None
+                    if 'link' in fe:
+                        uri = fe['link']['uri']
+                        val = wikidata.wikidata_id_from_wikipedia_url(uri)
+
+                    if not val:
+                        val = wikidata.resolve(prop, fe['chunk'], self.language)
+
+                    if not val:
+                        val = 'Q19798648'
+                        logger.debug('could not resolve chunk "%s" of fe %s (property is %s), '
+                                     'using default value of %s',
+                                     fe['chunk'], fe['fe'], prop, val)
+
+                    stmt_qualifiers = []
+                    for qualifier_property in self.lu_fe_map.get((data['lu'], fe['fe']), {}).get('qualifiers', []):
+                        for qualifier_value in all_qualifiers.get(qualifier_property, []):
+                            stmt_qualifiers.extend((qualifier_property, qualifier_value))
+
+                    yield True, wikidata.finalize_statement(
+                        subj, prop, val, self.language, url, qualifiers=stmt_qualifiers,
+                        resolve_property=False, resolve_value=False
+                    )
 
 
 def map_url_to_wid(semistructured):
@@ -192,7 +250,7 @@ def main(classified, lexical_db, outfile, language,
     count = skipped = 0
     serializer = ClassificationSerializer(language, lexical_db, url_to_wid)
     for success, item in parallel.map(serializer.to_statements, classified,
-                                       processes=processes, flatten=True):
+                                      processes=processes, flatten=True):
         if success:
             outfile.write(item.encode('utf8'))
             outfile.write('\n')
